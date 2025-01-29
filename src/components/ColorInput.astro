@@ -20,8 +20,8 @@ const defaultColor = '#3b82f6'
 		<input
 			type='text'
 			id='hexInput'
-			class='h-10 px-2 border rounded'
-			placeholder='Enter hex code (e.g., #3b82f6)'
+			class='h-10 px-2 rounded border-2 border-slate-600'
+			placeholder='Enter hex code'
 			value={defaultColor}
 		/>
 	</div>
@@ -38,7 +38,7 @@ const defaultColor = '#3b82f6'
 			colorInput.value = color
 			hexInput.value = color
 		} else {
-			console.error('Invalid hex code:', color)
+			// console.error('Invalid hex code:', color)
 		}
 	}
 
