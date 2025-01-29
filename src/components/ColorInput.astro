@@ -2,17 +2,21 @@
 const defaultColor = '#3b82f6'
 ---
 
-<div class='mb-4'>
+<div class='mb-8'>
 	<label for='colorInput' class='block mb-2 text-lg'
 		>Select or enter a color below:</label
 	>
-	<div class='flex space-x-2'>
-		<input
-			type='color'
-			id='colorInput'
-			class='h-10 cursor-pointer'
-			value={defaultColor}
-		/>
+	<div class='flex items-center space-x-2'>
+		<div
+			class='rounded-full overflow-hidden border-2 border-slate-600 w-10 h-10 relative'
+		>
+			<input
+				type='color'
+				id='colorInput'
+				class='h-16 w-16 cursor-pointer absolute origin-center left-[-10px] top-[-10px]'
+				value={defaultColor}
+			/>
+		</div>
 		<input
 			type='text'
 			id='hexInput'
