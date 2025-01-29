@@ -3,25 +3,51 @@ const defaultColor = '#3b82f6'
 ---
 
 <div class='mb-4'>
-	<label for='colorInput' class='block mb-2'>Select a color:</label>
-	<input
-		type='color'
-		id='colorInput'
-		class='w-full h-10 cursor-pointer'
-		value={defaultColor}
-	/>
+	<label for='colorInput' class='block mb-2 text-lg'
+		>Select or enter a color below:</label
+	>
+	<div class='flex space-x-2'>
+		<input
+			type='color'
+			id='colorInput'
+			class='h-10 cursor-pointer'
+			value={defaultColor}
+		/>
+		<input
+			type='text'
+			id='hexInput'
+			class='h-10 px-2 border rounded'
+			placeholder='Enter hex code (e.g., #3b82f6)'
+			value={defaultColor}
+		/>
+	</div>
 </div>
 
 <script>
 	const colorInput = document.getElementById('colorInput') as HTMLInputElement
+	const hexInput = document.getElementById('hexInput') as HTMLInputElement
 	const root = document.documentElement
 
 	function updateColor(color: string) {
-		root.style.setProperty('--base-color', color)
+		if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+			root.style.setProperty('--base-color', color)
+			colorInput.value = color
+			hexInput.value = color
+		} else {
+			console.error('Invalid hex code:', color)
+		}
 	}
 
 	colorInput.addEventListener('input', (e) => {
 		const color = (e.target as HTMLInputElement).value
+		updateColor(color)
+	})
+
+	hexInput.addEventListener('input', (e) => {
+		let color = (e.target as HTMLInputElement).value
+		if (!color.startsWith('#')) {
+			color = '#' + color
+		}
 		updateColor(color)
 	})
 
