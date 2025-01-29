@@ -1,0 +1,30 @@
+---
+const defaultColor = '#3b82f6'
+---
+
+<div class='mb-4'>
+	<label for='colorInput' class='block mb-2'>Select a color:</label>
+	<input
+		type='color'
+		id='colorInput'
+		class='w-full h-10 cursor-pointer'
+		value={defaultColor}
+	/>
+</div>
+
+<script>
+	const colorInput = document.getElementById('colorInput') as HTMLInputElement
+	const root = document.documentElement
+
+	function updateColor(color: string) {
+		root.style.setProperty('--base-color', color)
+	}
+
+	colorInput.addEventListener('input', (e) => {
+		const color = (e.target as HTMLInputElement).value
+		updateColor(color)
+	})
+
+	// Set initial color
+	updateColor(colorInput.value)
+</script>

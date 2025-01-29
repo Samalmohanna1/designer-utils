@@ -1,11 +1,13 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import Layout from '../layouts/Layout.astro'
+import ColorInput from '../components/ColorInput.astro'
+import ColorScale from '../components/ColorScale.astro'
 ---
 
-<Layout>
-	<Welcome />
+<Layout title='Color Scale Generator'>
+	<main class='container mx-auto p-6 md:p-12 lg:p-24 bg-slate-100'>
+		<h1 class='text-3xl font-bold mb-4'>Color Scale Generator</h1>
+		<ColorInput />
+		<ColorScale />
+	</main>
 </Layout>
