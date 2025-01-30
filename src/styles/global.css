@@ -1,0 +1,54 @@
+@import url('./reset.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .paused {
+        animation-play-state: paused;
+    }
+}
+
+@font-face {
+    font-display: swap;
+    font-family: 'UbuntuMono-Regular';
+    font-weight: 100 900;
+    src: url(/fonts/UbuntuMono-Regular.ttf);
+}
+
+@font-face {
+    font-display: swap;
+    font-family: 'UbuntuMono-Bold';
+    font-weight: 100 900;
+    src: url(/fonts/UbuntuMono-Bold.ttf);
+}
+
+body {
+    color: theme('colors.zinc.900');
+    background-color: theme('colors.zinc.100');
+    transition:
+        color 0.5s,
+        background-color 0.5s;
+    line-height: theme('lineHeight.normal');
+    font-family: UbuntuMono-Regular, monospace;
+    font-size: 18px;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-wrap: balance;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: UbuntuMono-Bold, monospace;
+    line-height: theme('lineHeight.loose');
+    color: theme('colors.zinc.900');
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
