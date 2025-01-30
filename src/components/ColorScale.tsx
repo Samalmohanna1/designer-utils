@@ -61,11 +61,11 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	}, [baseColor])
 
 	return (
-		<div className='flex flex-wrap gap-4 w-full'>
+		<div className='flex flex-wrap gap-4'>
 			{shades.map((hexCode, index) => (
 				<div
 					key={index}
-					className='flex flex-col items-center min-w-[110px]'
+					className='flex flex-col items-center w-[110px]'
 				>
 					<div
 						className='w-full h-20 rounded color-scale-item border-2 border-slate-600 min-w-20'

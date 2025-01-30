@@ -21,11 +21,11 @@ const App = () => {
 	}, [])
 
 	return (
-		<div className='tracking-tight'>
+		<div className='tracking-tight container'>
 			{colorScales.map((scale) => (
 				<div
 					key={scale.id}
-					className='pb-2 mb-4 flex flex-col 2xl:flex-row gap-4 border-b-2 border-slate-300'
+					className='pb-2 mb-4 flex flex-col 2xl:flex-row justify-between border-b-2 border-slate-200 gap-4'
 				>
 					<ColorInput
 						initialColor={scale.color}
