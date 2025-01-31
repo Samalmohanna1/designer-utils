@@ -9,9 +9,9 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 
 	function calculateMixPercentage(shade: number): number {
 		if (shade <= 500) {
-			return 90 - ((shade - 50) / 450) * 90
+			return 95 - ((shade - 50) / 450) * 95
 		} else {
-			return ((shade - 500) / 400) * 40
+			return ((shade - 500) / 400) * 50
 		}
 	}
 
