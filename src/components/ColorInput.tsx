@@ -22,11 +22,11 @@ const ColorInput: React.FC<ColorInputProps> = ({
 
 	return (
 		<div className=''>
-			<label htmlFor='colorInput' className='block mb-2 text-lg'>
+			{/* <label htmlFor='colorInput' className='block mb-2 text-lg'>
 				Enter color below:
-			</label>
+			</label> */}
 			<div className='flex items-center space-x-2'>
-				<div className='rounded-full overflow-hidden border-2 border-slate-600 w-10 h-10 relative'>
+				<div className='rounded-full overflow-hidden border border-slate-400 w-10 h-10 relative'>
 					<input
 						type='color'
 						id='colorInput'
@@ -39,7 +39,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 					type='text'
 					maxLength={7}
 					id='hexInput'
-					className='h-10 max-w-28 px-2 rounded border-2 border-slate-600'
+					className='h-10 max-w-24 px-2 rounded border border-grey-400'
 					placeholder='Enter hex code'
 					value={color}
 					onChange={(e) =>
