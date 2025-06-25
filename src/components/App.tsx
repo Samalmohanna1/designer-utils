@@ -3,6 +3,7 @@ import ColorInput from './ColorInput'
 import ColorScale from './ColorScale'
 import ScreenshotButton from './ScreenshotBtn'
 import CodeBlock from './CodeBlock'
+import ContrastChecker from './ContrastChecker'
 
 const App = () => {
 	const [colorScales, setColorScales] = useState([
@@ -16,6 +17,12 @@ const App = () => {
 		])
 	}, [])
 
+	const removeColorScale = useCallback((id: number) => {
+		setColorScales((prevScales) =>
+			prevScales.filter((scale) => scale.id !== id)
+		)
+	}, [])
+
 	const handleColorChange = useCallback((id: number, newColor: string) => {
 		setColorScales((prevScales) =>
 			prevScales.map((s) => (s.id === id ? { ...s, color: newColor } : s))
@@ -24,19 +31,37 @@ const App = () => {
 
 	return (
 		<>
-			<section className='tracking-tight container p-4'>
+			<section className='tracking-tight container p-4 bg-white rounded-lg border divide-y divide-gray-200'>
 				{colorScales.map((scale) => (
 					<div
 						key={scale.id}
-						className='pb-2 mb-4 flex flex-col 2xl:flex-row justify-between border-b-2 border-slate-200 gap-4 max-w-screen-2xl'
+						className='py-4 flex flex-col 2xl:flex-row justify-between gap-4 max-w-screen-2xl'
 					>
-						<div data-html2canvas-ignore='true'>
+						<div
+							data-html2canvas-ignore='true'
+							className='flex flex-col gap-2'
+						>
 							<ColorInput
 								initialColor={scale.color}
 								onColorChange={(newColor) =>
 									handleColorChange(scale.id, newColor)
 								}
 							/>
+							{colorScales.length > 1 && (
+								<button
+									onClick={() => removeColorScale(scale.id)}
+									className='px-3 py-1 text-slate border rounded hover:bg-red-600 hover:text-white text-sm font-medium flex items-center justify-center gap-1 max-w-36'
+								>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										viewBox='0 0 448 512'
+										className='w-3 h-3 fill-current'
+									>
+										<path d='M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C304.4 6.8 292.3 0 279.2 0L168.8 0c-13.1 0-25.2 6.8-32.6 17.7zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64L32 128zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z' />
+									</svg>
+									Remove
+								</button>
+							)}
 						</div>
 						<ColorScale baseColor={scale.color} />
 					</div>
@@ -61,13 +86,18 @@ const App = () => {
 						</span>
 						Add a Color
 					</button>
-					<ScreenshotButton />
+					{/* <ScreenshotButton /> */}
 				</div>
 			</section>
 
-			<h2 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
-				Tailwind Theme Snippet
+			<h2 className='text-4xl mt-12 tracking-tight uppercase'>
+				WCAG Accessibility Combinations
 			</h2>
+			<ContrastChecker colorScales={colorScales} />
+
+			<h4 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
+				Tailwind Theme Snippet
+			</h4>
 			<CodeBlock colorScales={colorScales} />
 		</>
 	)
