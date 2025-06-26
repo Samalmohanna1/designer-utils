@@ -13,15 +13,20 @@ interface ContrastCheckerProps {
 const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 	const accessibleCombinations = useMemo(() => {
 		const allColors: ColorInfo[] = []
+		const seenHexColors = new Set<string>()
+
 		colorScales.forEach((scale, scaleIndex) => {
 			const shades = colorUtils.generateShades(scale.color)
 			shades.forEach((hex, shadeIndex) => {
-				allColors.push({
-					hex,
-					shade: colorUtils.shadeNumbers[shadeIndex],
-					scaleId: scale.id,
-					scaleIndex: scaleIndex,
-				})
+				if (!seenHexColors.has(hex.toLowerCase())) {
+					seenHexColors.add(hex.toLowerCase())
+					allColors.push({
+						hex,
+						shade: colorUtils.shadeNumbers[shadeIndex],
+						scaleId: scale.id,
+						scaleIndex: scaleIndex,
+					})
+				}
 			})
 		})
 
@@ -35,11 +40,11 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 					color2.hex
 				)
 
-				if (contrast >= 3) {
+				if (contrast >= 3.1) {
 					// Only include if it meets at least AA Large
 					const meetsAA = contrast >= 4.5
 					const meetsAAA = contrast >= 7
-					const meetsAALarge = contrast >= 3
+					const meetsAALarge = contrast >= 3.1
 
 					combinations.push({
 						color1,
