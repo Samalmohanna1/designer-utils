@@ -9,13 +9,15 @@ const App = () => {
 	const [colorScales, setColorScales] = useState([
 		{ id: 1, color: '#3b82f6' },
 	])
+	const [nextId, setNextId] = useState(2)
 
 	const addColorScale = useCallback(() => {
 		setColorScales((prevScales) => [
 			...prevScales,
-			{ id: prevScales.length + 1, color: '#3b82f6' },
+			{ id: nextId, color: '#3b82f6' },
 		])
-	}, [])
+		setNextId((prev) => prev + 1)
+	}, [nextId])
 
 	const removeColorScale = useCallback((id: number) => {
 		setColorScales((prevScales) =>
