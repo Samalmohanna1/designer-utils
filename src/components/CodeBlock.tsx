@@ -7,25 +7,37 @@ interface CodeBlockProps {
 
 const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	const tailwindCode = useMemo(() => {
+		const seenColors = new Set<string>()
 		return colorScales
 			.map((scale, index) => {
 				const shades = colorUtils.generateShades(scale.color)
-				return `  color${index + 1}: {
-${shades
-	.map(
-		(shade, i) =>
-			`    ${colorUtils.shadeNumbers[i]}: "${colorUtils.hexToHSL(shade)}"`
-	)
-	.join(',\n')}
-  }`
+				const uniqueShades = shades
+					.map((shade, i) => ({
+						shade: colorUtils.shadeNumbers[i],
+						hsl: colorUtils.hexToHSL(shade),
+					}))
+					.filter(({ hsl }) => {
+						if (seenColors.has(hsl)) {
+							return false
+						}
+						seenColors.add(hsl)
+						return true
+					})
+				if (uniqueShades.length === 0) {
+					return null
+				}
+				return `  color${index + 1}: {\n${uniqueShades
+					.map(({ shade, hsl }) => `    ${shade}: "${hsl}"`)
+					.join(',\n')}\n  }`
 			})
+			.filter(Boolean) // Remove null entries
 			.join(',\n')
 	}, [colorScales])
 
 	const fullTailwindConfig = useMemo(() => {
 		return `colors: {
 ${tailwindCode}
-      }`
+}`
 	}, [tailwindCode])
 
 	const copyToClipboard = () => {
