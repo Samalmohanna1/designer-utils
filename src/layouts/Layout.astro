@@ -5,6 +5,10 @@ interface Props {
 }
 
 const { title } = Astro.props
+const description =
+	'Create color scales, WCAG-compliant text contrast ratios, and export code snippets for Tailwind 3.4 Themes and CSS Variables. Perfect for designers and developers.'
+const canonicalURL = 'https://tools.myol-creative.com/'
+const image = '/og-image.png'
 ---
 
 <!doctype html>
@@ -15,13 +19,28 @@ const { title } = Astro.props
 			name='viewport'
 			content='width=device-width, initial-scale=1, viewport-fit=cover'
 		/>
+
+		<meta name='title' content={title} />
 		<link rel='icon' type='image/svg+xml' href='/favicon.svg' />
 		<meta name='generator' content={Astro.generator} />
-		<meta
-			name='description'
-			content='A simple and straight forward color scale generator.'
-		/>
+		<meta name='description' content={description} />
 		<meta name='author' content='Sam Almohanna' />
+		<!-- Canonical -->
+		<link rel='canonical' href={canonicalURL} />
+
+		<!-- Open Graph / Facebook -->
+		<meta property='og:type' content='website' />
+		<meta property='og:url' content={canonicalURL} />
+		<meta property='og:title' content={title} />
+		<meta property='og:description' content={description} />
+		<meta property='og:image' content={image} />
+
+		<!-- Twitter -->
+		<meta property='twitter:card' content='summary_large_image' />
+		<meta property='twitter:url' content={canonicalURL} />
+		<meta property='twitter:title' content={title} />
+		<meta property='twitter:description' content={description} />
+		<meta property='twitter:image' content={image} />
 
 		<title>{title}</title>
 
