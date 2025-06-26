@@ -52,7 +52,7 @@ const App = () => {
 							{colorScales.length > 1 && (
 								<button
 									onClick={() => removeColorScale(scale.id)}
-									className='px-3 py-1 text-slate border rounded hover:bg-red-600 hover:text-white text-sm font-medium flex items-center justify-center gap-1 max-w-36'
+									className='px-3 py-1 text-slate border rounded hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-sm font-medium flex items-center justify-center gap-1 max-w-36'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
@@ -75,7 +75,7 @@ const App = () => {
 				>
 					<button
 						onClick={addColorScale}
-						className='mt-4 px-4 py-2 bg-zinc-950 text-white rounded hover:bg-blue-900 font-bold flex items-center justify-center'
+						className='mt-4 px-4 py-2 bg-zinc-950 text-[#F4F5F9] rounded hover:bg-blue-900 font-bold flex items-center justify-center'
 					>
 						<span className='inline-block mr-2'>
 							<svg
