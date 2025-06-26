@@ -98,7 +98,7 @@ const App = () => {
 			<ContrastChecker colorScales={colorScales} />
 
 			<h4 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
-				Tailwind Theme Snippet
+				Code Snippet
 			</h4>
 			<CodeBlock colorScales={colorScales} />
 		</>
