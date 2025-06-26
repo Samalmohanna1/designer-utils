@@ -1,5 +1,8 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
+import Prism from 'prismjs'
+import 'prismjs/themes/prism-tomorrow.css'
+import 'prismjs/components/prism-css'
 
 interface CodeBlockProps {
 	colorScales: ColorScale[]
@@ -40,20 +43,26 @@ ${tailwindCode}
 }`
 	}, [tailwindCode])
 
+	useEffect(() => {
+		Prism.highlightAll()
+	}, [fullTailwindConfig])
+
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(fullTailwindConfig)
 	}
 
 	return (
-		<div className='relative mt-4 p-8 rounded-md font-mono bg-zinc-900  text-white/80'>
+		<div className='relative mt-4 p-8 rounded-md font-mono bg-[#2d2d2d]'>
 			<button
 				onClick={copyToClipboard}
-				className='absolute top-6 right-6 bg-gray-200 text-black px-4 py-2 rounded text-sm'
+				className='absolute top-6 right-6 bg-gray-200 text-black px-4 py-2 rounded text-sm font-bold'
 			>
 				Copy Code Snippet
 			</button>
 			<pre>
-				<code className='text-sm sm:text-lg'>{fullTailwindConfig}</code>
+				<code className='language-css text-sm sm:text-lg'>
+					{fullTailwindConfig}
+				</code>
 			</pre>
 		</div>
 	)
