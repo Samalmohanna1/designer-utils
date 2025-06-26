@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import Prism from 'prismjs'
 import 'prismjs/themes/prism-tomorrow.css'
@@ -9,6 +9,9 @@ interface CodeBlockProps {
 }
 
 const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
+	const [isCopied, setIsCopied] = useState(false)
+	const [isClient, setIsClient] = useState(false)
+
 	const tailwindCode = useMemo(() => {
 		const seenColors = new Set<string>()
 		return colorScales
@@ -44,23 +47,45 @@ ${tailwindCode}
 	}, [tailwindCode])
 
 	useEffect(() => {
-		Prism.highlightAll()
+		setIsClient(true)
+	}, [])
+
+	useEffect(() => {
+		if (isClient) {
+			Prism.highlightAll()
+		}
+	}, [fullTailwindConfig, isClient])
+
+	useEffect(() => {
+		setIsCopied(false)
 	}, [fullTailwindConfig])
 
 	const copyToClipboard = () => {
 		navigator.clipboard.writeText(fullTailwindConfig)
+		setIsCopied(true)
+		setTimeout(() => {
+			setIsCopied(false)
+		}, 2000)
 	}
 
 	return (
-		<div className='relative mt-4 p-8 rounded-md font-mono bg-[#2d2d2d]'>
+		<div className='relative mt-4 p-8 rounded-md font-mono bg-[#2d2d2d] text-white'>
 			<button
 				onClick={copyToClipboard}
-				className='absolute top-6 right-6 bg-gray-200 text-black px-4 py-2 rounded text-sm font-bold'
+				className={`absolute top-6 right-6 px-4 py-2 rounded text-sm font-bold transition-colors ${
+					isCopied
+						? 'bg-[#DCFCE7] text-[#0D5026]'
+						: 'bg-gray-200 text-black hover:bg-gray-300'
+				}`}
 			>
-				Copy Code Snippet
+				{isCopied ? 'Code Copied!' : 'Copy Code'}
 			</button>
 			<pre>
-				<code className='language-css text-sm sm:text-lg'>
+				<code
+					className={`text-sm sm:text-lg ${
+						isClient ? 'language-css' : ''
+					}`}
+				>
 					{fullTailwindConfig}
 				</code>
 			</pre>
