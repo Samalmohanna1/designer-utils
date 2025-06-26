@@ -24,6 +24,15 @@ const { title } = Astro.props
 		<meta name='author' content='Sam Almohanna' />
 
 		<title>{title}</title>
+
+		<script>
+			import posthog from 'posthog-js'
+
+			posthog.init('phc_94ik1KYUWEhH8mOK7Y3c4eSuq8nxZlayUtrPl3yF9N1', {
+				api_host: 'https://us.i.posthog.com',
+				person_profiles: 'always',
+			})
+		</script>
 	</head>
 	<body class='bg-zinc-950 min-h-screen'>
 		<slot />
