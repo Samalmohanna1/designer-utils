@@ -93,13 +93,13 @@ const App = () => {
 			</section>
 
 			<h2 className='text-4xl mt-12 tracking-tight uppercase'>
-				WCAG Accessibility Combinations
+				&#128064; WCAG Compliant Combinations
 			</h2>
 			<ContrastChecker colorScales={colorScales} />
 
-			<h4 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
-				Code Snippet
-			</h4>
+			<h3 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
+				&#128187; Code Snippet
+			</h3>
 			<CodeBlock colorScales={colorScales} />
 		</>
 	)
