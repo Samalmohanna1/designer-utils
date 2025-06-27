@@ -24,6 +24,13 @@
     src: url(/fonts/UbuntuMono-Bold.ttf);
 }
 
+@font-face {
+    font-display: swap;
+    font-family: "RobotoCondensed";
+    font-weight: 100 900;
+    src: url(/fonts/RobotoCondensed.ttf);
+}
+
 body {
     color: theme('colors.zinc.900');
     background-color: theme('colors.zinc.100');
@@ -39,13 +46,20 @@ body {
     text-wrap: balance;
 }
 
+table,
+tbody {
+    font-family: UbuntuMono-Regular,
+        monospace;
+}
+
 h1,
 h2,
 h3,
 h4,
 h5,
 h6 {
-    font-family: UbuntuMono-Bold, monospace;
+    font-family: RobotoCondensed, sans-serif;
+    font-weight: 800;
     line-height: theme('lineHeight.loose');
     color: theme('colors.zinc.900');
     -webkit-user-select: none;

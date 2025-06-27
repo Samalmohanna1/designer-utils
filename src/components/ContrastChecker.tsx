@@ -41,7 +41,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 				)
 
 				if (contrast >= 3.1) {
-					// Only include if it meets at least AA Large
 					const meetsAA = contrast >= 4.5
 					const meetsAAA = contrast >= 7
 					const meetsAALarge = contrast >= 3.1
@@ -148,8 +147,8 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 															combo.color1.hex,
 													}}
 												/>
-												<span className='text-sm font-mono'>
-													color{'-'}
+												<span className='text-sm'>
+													color
 													{combo.color1.scaleIndex +
 														1}
 													-{combo.color1.shade}
@@ -165,15 +164,15 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 															combo.color2.hex,
 													}}
 												/>
-												<span className='text-sm font-mono'>
-													color{'-'}
+												<span className='text-sm'>
+													color
 													{combo.color2.scaleIndex +
 														1}
 													-{combo.color2.shade}
 												</span>
 											</div>
 										</td>
-										<td className='px-4 py-2 font-mono text-sm'>
+										<td className='px-4 py-2 text-sm'>
 											{combo.contrast}:1
 										</td>
 										<td className='px-4 py-2'>
