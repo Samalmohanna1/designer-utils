@@ -6,6 +6,11 @@ export default {
 			screens: {
 				'3xl': '1920px',
 			},
+			fontFamily: {
+				UbuntuMonoRegular: ['UbuntuMono-Regular', 'monospace'],
+				UbuntuMonoBold: ['UbuntuMono-Bold', 'monospace'],
+				robotoCondensed: ['RobotoCondensed', 'sans-serif'],
+			},
 		},
 	},
 	plugins: [],
