@@ -21,11 +21,11 @@ const ColorInput: React.FC<ColorInputProps> = ({
 	}
 
 	return (
-		<div className=''>
-			{/* <label htmlFor='colorInput' className='block mb-2 text-lg'>
+		<div>
+			<label htmlFor='colorInput' className='sr-only'>
 				Enter color below:
-			</label> */}
-			<div className='flex items-center space-x-2'>
+			</label>
+			<div className='flex items-center gap-2'>
 				<div className='rounded-full overflow-hidden border border-slate-400 w-10 h-10 relative'>
 					<input
 						type='color'

@@ -41,7 +41,7 @@ const App = () => {
 					>
 						<div
 							data-html2canvas-ignore='true'
-							className='flex flex-col gap-2'
+							className='flex flex-col gap-2 justify-between'
 						>
 							<ColorInput
 								initialColor={scale.color}

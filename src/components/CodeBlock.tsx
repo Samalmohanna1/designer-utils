@@ -26,8 +26,8 @@ interface ColorData {
 const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	const [isCopied, setIsCopied] = useState(false)
 	const [isClient, setIsClient] = useState(false)
-	const [themeFormat, setThemeFormat] = useState<ThemeFormat>('tailwind3')
-	const [colorFormat, setColorFormat] = useState<ColorFormat>('hsl')
+	const [themeFormat, setThemeFormat] = useState<ThemeFormat>('css')
+	const [colorFormat, setColorFormat] = useState<ColorFormat>('hex')
 
 	const convertColor = (hex: string, format: ColorFormat): string => {
 		switch (format) {
@@ -131,8 +131,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	}
 
 	return (
-		<>
-			<div className='space-y-4'>
+		<div className='border bg-white rounded-lg overflow-hidden'>
+			<div className='p-4 space-y-4'>
 				<div className='flex gap-4 flex-wrap'>
 					<div className='space-y-1'>
 						<label className='block text-sm font-medium text-gray-700'>
@@ -145,8 +145,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							}
 							className='px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
 						>
-							<option value='tailwind3'>Tailwind 3.4</option>
 							<option value='css'>CSS Variables</option>
+							<option value='tailwind3'>Tailwind 3.4</option>
 						</select>
 					</div>
 
@@ -168,10 +168,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					</div>
 				</div>
 			</div>
-			<div className='relative mt-4 p-8 rounded-md font-mono bg-[#2d2d2d] text-white'>
+			<div className='relative p-8 bg-[#2d2d2d] text-white'>
 				<button
 					onClick={copyToClipboard}
-					className={`absolute top-6 right-6 px-4 py-2 rounded text-sm font-bold transition-colors ${
+					className={`absolute top-6 right-6 px-4 py-2 rounded font-bold transition-colors ${
 						isCopied
 							? 'bg-[#DCFCE7] text-[#0D5026]'
 							: 'bg-gray-200 text-black hover:bg-gray-300'
@@ -189,7 +189,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					</code>
 				</pre>
 			</div>
-		</>
+		</div>
 	)
 }
 

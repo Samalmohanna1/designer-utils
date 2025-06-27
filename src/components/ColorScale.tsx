@@ -18,7 +18,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 					className='flex flex-col items-center w-[110px]'
 				>
 					<div
-						className='w-full h-20 rounded color-scale-item border border-grey-400 min-w-20'
+						className='w-full h-14 rounded color-scale-item border border-grey-400 min-w-12'
 						style={{ backgroundColor: hexCode }}
 					/>
 					<span className='flex justify-between px-[1px] w-full'>
