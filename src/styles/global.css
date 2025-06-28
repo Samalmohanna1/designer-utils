@@ -1,68 +1,130 @@
-@import url('./reset.css');
+@import url('./reset.css') layer(base);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-@layer utilities {
-    .paused {
-        animation-play-state: paused;
-    }
+@theme {
+  --breakpoint-3xl: 1920px;
+
+  --font-Ubuntu-mono-regular: UbuntuMono-Regular, monospace;
+  --font-Ubuntu-mono-bold: UbuntuMono-Bold, monospace;
+  --font-roboto-condensed: RobotoCondensed, sans-serif;
+
+  /* Colors */
+  --color-black-50: hsla(0, 4%, 95%, 1);
+  --color-black-100: hsla(0, 0%, 85%, 1);
+  --color-black-200: hsla(0, 0%, 64%, 1);
+  --color-black-300: hsla(0, 1%, 43%, 1);
+  --color-black-400: hsla(0, 2%, 22%, 1);
+  --color-black-500: hsla(0, 25%, 2%, 1);
+  --color-black-600: hsla(0, 14%, 1%, 1);
+  --color-black-700: hsla(0, 33%, 1%, 1);
+  --color-black-800: hsla(0, 20%, 1%, 1);
+  --color-black-900: hsla(0, 20%, 1%, 1);
+  --color-blue-50: hsla(198, 71%, 97%, 1);
+
+  --color-cream-50: hsla(30, 100%, 100%, 1);
+  --color-cream-100: hsla(40, 100%, 99%, 1);
+  --color-cream-200: hsla(42, 87%, 97%, 1);
+  --color-cream-300: hsla(38, 83%, 95%, 1);
+  --color-cream-400: hsla(38, 87%, 94%, 1);
+  --color-cream-500: hsla(39, 85%, 92%, 1);
+  --color-cream-600: hsla(38, 31%, 81%, 1);
+  --color-cream-700: hsla(38, 16%, 69%, 1);
+  --color-cream-800: hsla(38, 10%, 58%, 1);
+  --color-cream-900: hsla(39, 7%, 46%, 1);
+
+  --color-yellow-50: hsla(47, 100%, 98%, 1);
+  --color-yellow-100: hsla(48, 100%, 94%, 1);
+  --color-yellow-200: hsla(47, 100%, 87%, 1);
+  --color-yellow-300: hsla(48, 100%, 79%, 1);
+  --color-yellow-400: hsla(48, 100%, 72%, 1);
+  --color-yellow-500: hsla(48, 100%, 64%, 1);
+  --color-yellow-600: hsla(48, 72%, 56%, 1);
+  --color-yellow-700: hsla(48, 57%, 48%, 1);
+  --color-yellow-800: hsla(48, 57%, 40%, 1);
+  --color-yellow-900: hsla(48, 56%, 32%, 1);
+
+  /* Font Sizes */
+  --text-step--2: clamp(0.72rem, 0.6609rem + 0.2954vw, 0.96rem);
+  --text-step--1: clamp(0.9rem, 0.8262rem + 0.3692vw, 1.2rem);
+  --text-step-0: clamp(1.125rem, 1.0327rem + 0.4615vw, 1.5rem);
+  --text-step-1: clamp(1.4063rem, 1.2909rem + 0.5769vw, 1.875rem);
+  --text-step-2: clamp(1.7578rem, 1.6136rem + 0.7212vw, 2.3438rem);
+  --text-step-3: clamp(2.1973rem, 2.017rem + 0.9014vw, 2.9297rem);
+  --text-step-4: clamp(2.7466rem, 2.5212rem + 1.1268vw, 3.6621rem);
+  --text-step-5: clamp(3.4332rem, 3.1515rem + 1.4085vw, 4.5776rem);
+  --text-step-6: clamp(4.2915rem, 3.9394rem + 1.7606vw, 5.722rem);
+  --text-step-7: clamp(5.3644rem, 4.9243rem + 2.2008vw, 7.1526rem);
+  --text-step-8: clamp(6.7055rem, 6.1553rem + 2.751vw, 8.9407rem);
+
+  /* Spacing */
+  --spacing-3xs: clamp(0.3125rem, 0.2971rem + 0.0769vw, 0.375rem);
+  --spacing-2xs: clamp(0.5625rem, 0.5163rem + 0.2308vw, 0.75rem);
+  --spacing-xs: clamp(0.875rem, 0.8135rem + 0.3077vw, 1.125rem);
+  --spacing-s: clamp(1.125rem, 1.0327rem + 0.4615vw, 1.5rem);
+  --spacing-m: clamp(1.6875rem, 1.549rem + 0.6923vw, 2.25rem);
+  --spacing-l: clamp(2.25rem, 2.0654rem + 0.9231vw, 3rem);
+  --spacing-xl: clamp(3.375rem, 3.0981rem + 1.3846vw, 4.5rem);
+  --spacing-2xl: clamp(4.5rem, 4.1308rem + 1.8462vw, 6rem);
+  --spacing-3xl: clamp(6.75rem, 6.1962rem + 2.7692vw, 9rem);
+}
+
+/* @layer base {
+
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+} */
+
+@utility paused {
+  animation-play-state: paused;
 }
 
 @font-face {
-    font-display: swap;
-    font-family: 'UbuntuMono-Regular';
-    font-weight: 100 900;
-    src: url(/fonts/UbuntuMono-Regular.ttf);
+  font-display: swap;
+  font-family: 'UbuntuMono-Regular';
+  font-weight: 100 900;
+  src: url(/fonts/UbuntuMono-Regular.ttf);
 }
 
 @font-face {
-    font-display: swap;
-    font-family: 'UbuntuMono-Bold';
-    font-weight: 100 900;
-    src: url(/fonts/UbuntuMono-Bold.ttf);
+  font-display: swap;
+  font-family: 'UbuntuMono-Bold';
+  font-weight: 100 900;
+  src: url(/fonts/UbuntuMono-Bold.ttf);
 }
 
 @font-face {
-    font-display: swap;
-    font-family: "RobotoCondensed";
-    font-weight: 100 900;
-    src: url(/fonts/RobotoCondensed.ttf);
+  font-display: swap;
+  font-family: "RobotoCondensed";
+  font-weight: 100 900;
+  src: url(/fonts/RobotoCondensed.ttf);
 }
 
 body {
-    color: theme('colors.zinc.900');
-    background-color: theme('colors.zinc.100');
-    transition:
-        color 0.5s,
-        background-color 0.5s;
-    line-height: theme('lineHeight.normal');
-    font-family: UbuntuMono-Regular, monospace;
-    font-size: 18px;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-wrap: balance;
-}
-
-table,
-tbody {
-    font-family: UbuntuMono-Regular,
-        monospace;
+  color: var(--color-black-400);
+  transition:
+    color 0.5s,
+    background-color 0.5s;
+  font-family: UbuntuMono-Regular, monospace;
+  font-size: 18px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-wrap: balance;
 }
 
 h1,
 h2,
-h3,
-h4,
-h5,
-h6 {
-    font-family: RobotoCondensed, sans-serif;
-    font-weight: 800;
-    line-height: theme('lineHeight.loose');
-    color: theme('colors.zinc.900');
-    -webkit-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+h3 {
+  color: var(--color-black-500);
+  font-family: RobotoCondensed, sans-serif;
+  font-weight: 900;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

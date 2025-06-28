@@ -60,42 +60,29 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 		return combinations.sort((a, b) => b.contrast - a.contrast)
 	}, [colorScales])
 
-	if (colorScales.length === 0) {
-		return (
-			<div className='mt-8 p-4 bg-gray-100 rounded-lg'>
-				<h3 className='text-lg font-semibold mb-2'>
-					WCAG Accessibility Checker
-				</h3>
-				<p className='text-gray-600'>
-					Add some color scales to see accessibility combinations.
-				</p>
-			</div>
-		)
-	}
-
 	return (
-		<div className='space-y-6'>
-			<div className='bg-white rounded-lg border overflow-hidden mt-6'>
-				<div className='p-4 bg-gray-50 border-b'>
-					<p className='text-sm text-gray-600 mt-1'>
+		<div className='space-y-s mb-xl'>
+			<div className='bg-cream-50 rounded-lg border  border-black-100 overflow-hidden mt-s'>
+				<div className='p-xs bg-cream-200 border-b border-black-100'>
+					<p className='text-step--2'>
 						Showing all {accessibleCombinations.length} combinations
 						that meet minimum accessibility standards (≥3:1)
 					</p>
 				</div>
 
-				<div className='overflow-x-auto max-h-[32rem]'>
+				<div className='overflow-x-auto max-h-128'>
 					<table className='w-full'>
-						<thead className='bg-gray-50 sticky top-0 text-gray-600 text-left font-medium uppercase text-xs'>
+						<thead className='bg-cream-200 sticky top-0 text-left uppercase text-xs'>
 							<tr>
-								<th className='px-4 py-2'>Foreground</th>
-								<th className='px-4 py-2'>Background</th>
-								<th className='px-4 py-2'>Contrast</th>
-								<th className='px-4 py-2'>Level</th>
-								<th className='px-4 py-2'>Min Text Size</th>
-								<th className='px-4 py-2'>Preview</th>
+								<th className='px-xs py-2xs'>Foreground</th>
+								<th className='px-xs py-2xs'>Background</th>
+								<th className='px-xs py-2xs'>Contrast</th>
+								<th className='px-xs py-2xs'>Level</th>
+								<th className='px-xs py-2xs'>Min Text Size</th>
+								<th className='px-xs py-2xs'>Preview</th>
 							</tr>
 						</thead>
-						<tbody className='divide-y divide-gray-200'>
+						<tbody className='divide-y divide-black-100'>
 							{accessibleCombinations.map((combo, index) => {
 								const getAccessibilityBadge = (
 									combo: ColorCombination
@@ -136,12 +123,12 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 								return (
 									<tr
 										key={index}
-										className='hover:bg-gray-50'
+										className='hover:bg-cream-100'
 									>
-										<td className='px-4 py-2'>
+										<td className='px-xs py-2xs'>
 											<div className='flex items-center gap-2'>
 												<div
-													className='w-4 h-4 rounded border border-gray-300'
+													className='w-4 h-4 rounded-sm border border-gray-300'
 													style={{
 														backgroundColor:
 															combo.color1.hex,
@@ -155,10 +142,10 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 												</span>
 											</div>
 										</td>
-										<td className='px-4 py-2'>
+										<td className='px-xs py-2xs'>
 											<div className='flex items-center gap-2'>
 												<div
-													className='w-4 h-4 rounded border border-gray-300'
+													className='w-4 h-4 rounded-sm border border-gray-300'
 													style={{
 														backgroundColor:
 															combo.color2.hex,
@@ -172,22 +159,22 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 												</span>
 											</div>
 										</td>
-										<td className='px-4 py-2 text-sm'>
+										<td className='px-xs py-2xs text-sm'>
 											{combo.contrast}:1
 										</td>
-										<td className='px-4 py-2'>
+										<td className='px-xs py-2xs'>
 											<span
-												className={`px-2 py-1 rounded text-xs font-medium ${badge.class}`}
+												className={`px-2xs py-3xs rounded-sm text-xs ${badge.class}`}
 											>
 												{badge.level}
 											</span>
 										</td>
-										<td className='px-4 py-2 text-sm font-medium'>
+										<td className='px-xs py-2xs text-sm'>
 											{minSize}
 										</td>
-										<td className='px-4 py-2'>
+										<td className='px-xs py-2xs'>
 											<div
-												className='px-3 py-1 rounded text-sm font-medium border text-center'
+												className='px-3 py-1 rounded-sm text-sm border text-center'
 												style={{
 													backgroundColor:
 														combo.color2.hex,
@@ -206,7 +193,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 			</div>
 
 			{accessibleCombinations.length === 0 && (
-				<div className='p-4 bg-red-50 border border-red-200 rounded-lg'>
+				<div className='p-s bg-red-50 border border-red-200 rounded-lg'>
 					<p className='text-red-700'>
 						No accessible color combinations found. Try adding more
 						contrasting colors or additional color scales.

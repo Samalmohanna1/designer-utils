@@ -15,7 +15,7 @@ const ScreenshotButton = () => {
 
 	return (
 		<button
-			className='mt-4 px-4 py-2 bg-zinc-950 text-white rounded hover:bg-blue-900 font-bold flex items-center justify-center'
+			className='mt-4 px-4 py-2 bg-zinc-950 text-white rounded-sm hover:bg-blue-900 font-bold flex items-center justify-center'
 			onClick={takeScreenshot}
 		>
 			<span className='inline-block mr-2'>
