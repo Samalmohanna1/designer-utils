@@ -8,7 +8,7 @@ interface CodeBlockProps {
 	colorScales: ColorScale[]
 }
 
-type ThemeFormat = 'tailwind3' | 'css'
+type ThemeFormat = 'tailwind3' | 'tailwind4' | 'css'
 type ColorFormat = 'hex' | 'hsl' | 'rgb'
 
 type ShadeNumber = (typeof colorUtils.shadeNumbers)[number]
@@ -90,6 +90,19 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				return `colors: {\n${tailwindColors}\n}`
 			}
 
+			case 'tailwind4': {
+				const tailwind4Colors = colorData
+					.flatMap(({ index, shades }: ColorData) =>
+						shades.map(
+							({ shade, color }: Shade) =>
+								`  --color-color${index}-${shade}: ${color};`
+						)
+					)
+					.join('\n')
+
+				return `@theme {\n${tailwind4Colors}\n}`
+			}
+
 			case 'css': {
 				const cssVars = colorData
 					.flatMap(({ index, shades }: ColorData) =>
@@ -147,6 +160,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 						>
 							<option value='css'>CSS Variables</option>
 							<option value='tailwind3'>Tailwind 3.4</option>
+							<option value='tailwind4'>Tailwind 4.1</option>
 						</select>
 					</div>
 
