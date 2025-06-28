@@ -1,4 +1,4 @@
-![Color Scale Generator](public/assets/og-image.png)
+![Color Scale Generator](./assets/og-image.png)
 
 # Color Scale Generator
 
