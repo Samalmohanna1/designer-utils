@@ -131,11 +131,11 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	}
 
 	return (
-		<div className='border bg-white rounded-lg overflow-hidden'>
-			<div className='p-4 space-y-4'>
-				<div className='flex gap-4 flex-wrap'>
-					<div className='space-y-1'>
-						<label className='block text-sm font-medium text-gray-700'>
+		<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
+			<div className='p-xs space-y-s'>
+				<div className='flex gap-s flex-wrap'>
+					<div className='space-y-3xs'>
+						<label className='block text-step--2 font-roboto-condensed'>
 							Theme Format
 						</label>
 						<select
@@ -143,15 +143,15 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							onChange={(e) =>
 								setThemeFormat(e.target.value as ThemeFormat)
 							}
-							className='px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 						>
 							<option value='css'>CSS Variables</option>
 							<option value='tailwind3'>Tailwind 3.4</option>
 						</select>
 					</div>
 
-					<div className='space-y-1'>
-						<label className='block text-sm font-medium text-gray-700'>
+					<div className='space-y-3xs'>
+						<label className='block text-step--2 font-roboto-condensed'>
 							Color Format
 						</label>
 						<select
@@ -159,7 +159,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							onChange={(e) =>
 								setColorFormat(e.target.value as ColorFormat)
 							}
-							className='px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 						>
 							<option value='hex'>Hex</option>
 							<option value='hsl'>HSL</option>
@@ -168,13 +168,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					</div>
 				</div>
 			</div>
-			<div className='relative p-8 bg-[#2d2d2d] text-white'>
+			<div className='relative p-s bg-[#2d2d2d] text-cream-100'>
 				<button
 					onClick={copyToClipboard}
-					className={`absolute top-6 right-6 px-4 py-2 rounded font-bold transition-colors ${
+					className={`absolute top-6 right-6 px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
 						isCopied
-							? 'bg-[#DCFCE7] text-[#0D5026]'
-							: 'bg-gray-200 text-black hover:bg-gray-300'
+							? 'bg-green-200 text-green-800'
+							: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
 					}`}
 				>
 					{isCopied ? 'Code Copied!' : 'Copy Code'}

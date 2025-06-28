@@ -33,15 +33,18 @@ const App = () => {
 
 	return (
 		<>
-			<section className='tracking-tight container p-4 bg-white rounded-lg border divide-y divide-gray-200'>
+			<h1 className='text-step-2 mb-2xs tracking-tight uppercase'>
+				&#127912; Color Scale Generator
+			</h1>
+			<section className='tracking-tight container p-s mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
 				{colorScales.map((scale) => (
 					<div
 						key={scale.id}
-						className='py-4 flex flex-col 2xl:flex-row justify-between gap-4 max-w-screen-2xl'
+						className='py-4 flex flex-col 2xl:flex-row justify-between gap-s'
 					>
 						<div
 							data-html2canvas-ignore='true'
-							className='flex flex-col gap-2 justify-between'
+							className='flex flex-col justify-between'
 						>
 							<ColorInput
 								initialColor={scale.color}
@@ -52,7 +55,7 @@ const App = () => {
 							{colorScales.length > 1 && (
 								<button
 									onClick={() => removeColorScale(scale.id)}
-									className='px-3 py-1 text-slate border rounded hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-sm font-medium flex items-center justify-center gap-1 max-w-36'
+									className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 flex items-center justify-center gap-3xs max-w-36'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
@@ -71,13 +74,13 @@ const App = () => {
 
 				<div
 					data-html2canvas-ignore='true'
-					className='flex flex-col sm:flex-row gap-8'
+					className='flex flex-col sm:flex-row gap-m'
 				>
 					<button
 						onClick={addColorScale}
-						className='mt-4 px-4 py-2 bg-zinc-950 text-[#F4F5F9] rounded hover:bg-blue-900 font-bold flex items-center justify-center'
+						className='mt-s px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 hover:font-bold font-roboto-condensed flex items-center justify-center'
 					>
-						<span className='inline-block mr-2'>
+						<span className='inline-block mr-2xs'>
 							<svg
 								xmlns='http://www.w3.org/2000/svg'
 								viewBox='0 0 448 512'
@@ -92,12 +95,12 @@ const App = () => {
 				</div>
 			</section>
 
-			<h2 className='text-4xl mt-12 tracking-tight uppercase'>
+			<h2 className='text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128064; WCAG Compliant Combinations
 			</h2>
 			<ContrastChecker colorScales={colorScales} />
 
-			<h3 className='text-4xl mt-12 mb-4 tracking-tight uppercase'>
+			<h3 className='text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128187; Code Snippet
 			</h3>
 			<CodeBlock colorScales={colorScales} />

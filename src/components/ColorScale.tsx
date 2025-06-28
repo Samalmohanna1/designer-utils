@@ -11,18 +11,18 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	}, [baseColor])
 
 	return (
-		<div className='flex flex-wrap gap-4'>
+		<div className='flex flex-wrap gap-xs'>
 			{shades.map((hexCode, index) => (
 				<div
 					key={index}
 					className='flex flex-col items-center w-[110px]'
 				>
 					<div
-						className='w-full h-14 rounded color-scale-item border border-grey-400 min-w-12'
+						className='w-full h-16 rounded-sm color-scale-item border border-black-100 min-w-12'
 						style={{ backgroundColor: hexCode }}
 					/>
-					<span className='flex justify-between px-[1px] w-full'>
-						<div className='text-md text-zinc-600'>
+					<span className='flex justify-between px-px w-full'>
+						<div className='text-md'>
 							{colorUtils.shadeNumbers[index]}
 						</div>
 						<div className='text-lg hex-code'>{hexCode}</div>
