@@ -43,21 +43,7 @@ Export colors in your preferred format:
 
 ### Online Tool
 
-Visit [your-domain.com] to use the tool directly in your browser.
-
-### Local Development
-
-```bash
-# Clone the repository
-git clone [repository-url]
-cd color-scale-generator
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
+Visit [MYOL Tools](https://tools.myol-creative.com/) to use the tool directly in your browser.
 
 ## 📖 How to Use
 
