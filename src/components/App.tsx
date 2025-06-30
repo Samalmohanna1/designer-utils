@@ -39,9 +39,9 @@ const App = () => {
 				{colorScales.map((scale) => (
 					<div
 						key={scale.id}
-						className='py-4 flex flex-col 2xl:flex-row justify-between gap-s'
+						className='py-4 flex flex-col sm:flex-row justify-between gap-s'
 					>
-						<div className='flex flex-col justify-between'>
+						<div className='flex sm:flex-col gap-xs'>
 							<ColorInput
 								initialColor={scale.color}
 								onColorChange={(newColor) =>
@@ -51,7 +51,7 @@ const App = () => {
 							{colorScales.length > 1 && (
 								<button
 									onClick={() => removeColorScale(scale.id)}
-									className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 flex items-center justify-center gap-3xs max-w-36'
+									className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 font-roboto-condensed flex items-center justify-center gap-3xs max-w-36'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
