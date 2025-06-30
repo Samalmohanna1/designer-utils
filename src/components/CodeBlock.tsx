@@ -148,10 +148,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 			<div className='p-xs space-y-s'>
 				<div className='flex gap-s flex-wrap'>
 					<div className='space-y-3xs'>
-						<label className='block text-step--2 font-roboto-condensed'>
+						<label
+							htmlFor='theme format'
+							className='block text-step--2 font-roboto-condensed'
+						>
 							Theme Format
 						</label>
 						<select
+							id='theme format'
 							value={themeFormat}
 							onChange={(e) =>
 								setThemeFormat(e.target.value as ThemeFormat)
@@ -165,10 +169,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					</div>
 
 					<div className='space-y-3xs'>
-						<label className='block text-step--2 font-roboto-condensed'>
+						<label
+							htmlFor='color format'
+							className='block text-step--2 font-roboto-condensed'
+						>
 							Color Format
 						</label>
 						<select
+							id='color format'
 							value={colorFormat}
 							onChange={(e) =>
 								setColorFormat(e.target.value as ColorFormat)

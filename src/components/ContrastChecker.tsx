@@ -48,7 +48,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 					combinations.push({
 						color1,
 						color2,
-						contrast: Math.round(contrast * 100) / 100,
+						contrast: Math.round(contrast * 10) / 10,
 						meetsAA,
 						meetsAAA,
 						meetsAALarge,
@@ -70,7 +70,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 					</p>
 				</div>
 
-				<div className='overflow-x-auto max-h-128'>
+				<div className='overflow-x-auto max-h-128' tabIndex={0}>
 					<table className='w-full'>
 						<thead className='bg-cream-200 sticky top-0 text-left uppercase text-xs'>
 							<tr>
@@ -90,17 +90,17 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 									if (combo.meetsAAA)
 										return {
 											level: 'AAA',
-											class: 'text-green-700 bg-green-100',
+											class: 'text-black-400 bg-green-200',
 										}
 									if (combo.meetsAA)
 										return {
 											level: 'AA',
-											class: 'text-blue-700 bg-blue-100',
+											class: 'text-black-400 bg-blue-100',
 										}
 									if (combo.meetsAALarge)
 										return {
 											level: 'AA Large',
-											class: 'text-yellow-700 bg-yellow-100',
+											class: 'text-black-400 bg-yellow-200',
 										}
 									return {
 										level: 'Fail',
