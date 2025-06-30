@@ -11,7 +11,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	}, [baseColor])
 
 	return (
-		<div className='flex flex-wrap gap-xs'>
+		<div className='flex flex-wrap gap-2xs'>
 			{shades.map((hexCode, index) => (
 				<div
 					key={index}
@@ -22,10 +22,8 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 						style={{ backgroundColor: hexCode }}
 					/>
 					<span className='flex justify-between px-px w-full'>
-						<div className='text-md'>
-							{colorUtils.shadeNumbers[index]}
-						</div>
-						<div className='text-lg hex-code'>{hexCode}</div>
+						<div>{colorUtils.shadeNumbers[index]}</div>
+						<div className='hex-code'>{hexCode}</div>
 					</span>
 				</div>
 			))}
