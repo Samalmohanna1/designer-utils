@@ -345,43 +345,6 @@ export const colorUtils = {
         return (brightest + 0.05) / (darkest + 0.05)
     },
 
-    // --- Color vision deficiency (CVD) simulation ---
-    // Severity-1.0 sRGB matrices from Machado, Oliveira & Fernandes (2009),
-    // applied directly to gamma-encoded sRGB. Used to preview how a palette
-    // reads for the three common dichromacies.
-    cvdMatrices: {
-        protanopia: [
-            [0.152286, 1.052583, -0.204868],
-            [0.114503, 0.786281, 0.099216],
-            [-0.003882, -0.048116, 1.051998],
-        ],
-        deuteranopia: [
-            [0.367322, 0.860646, -0.227968],
-            [0.280085, 0.672501, 0.047413],
-            [-0.01182, 0.04294, 0.968881],
-        ],
-        tritanopia: [
-            [1.255528, -0.076749, -0.178779],
-            [-0.078411, 0.930809, 0.147602],
-            [0.004733, 0.691367, 0.303900],
-        ],
-    } as Record<string, number[][]>,
-
-    // Simulate a hex color under a CVD type. 'normal' returns it unchanged.
-    simulateCvd(hex: string, type: string): string {
-        const matrix = colorUtils.cvdMatrices[type]
-        if (!matrix) return colorUtils.rgbToHex(...colorUtils.hexToRgb(hex))
-
-        const [r, g, b] = colorUtils.hexToRgb(hex)
-        const out = matrix.map((row) =>
-            Math.min(
-                255,
-                Math.max(0, row[0] * r + row[1] * g + row[2] * b)
-            )
-        ) as [number, number, number]
-        return colorUtils.rgbToHex(...out)
-    },
-
     // The dark-mode ramp: the same shade slots in reverse, so a light tint
     // (e.g. 50) takes the value of its opposite end (900) and vice versa,
     // keeping hue and chroma. shadeHexes is the ordered 50..900 list.

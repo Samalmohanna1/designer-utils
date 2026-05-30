@@ -1,13 +1,11 @@
 import { useMemo, useState } from 'react'
 import { colorUtils } from '../utils/colorUtils'
-import type { VisionType } from './App'
 
 interface ColorScaleProps {
 	baseColor: string
-	visionType: VisionType
 }
 
-const ColorScale: React.FC<ColorScaleProps> = ({ baseColor, visionType }) => {
+const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	const shades = useMemo(() => {
 		return colorUtils.generateShades(baseColor)
 	}, [baseColor])
@@ -24,8 +22,6 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor, visionType }) => {
 		<div className='flex flex-wrap gap-2xs'>
 			{shades.map((hexCode, index) => {
 				const isCopied = copied === hexCode
-				// Swatch shows the simulated color; copy/label keep the true hex.
-				const shownColor = colorUtils.simulateCvd(hexCode, visionType)
 				return (
 					<button
 						key={index}
@@ -37,7 +33,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor, visionType }) => {
 					>
 						<div
 							className='relative w-full h-12 rounded-sm color-scale-item border border-black-100 min-w-12 group-hover:ring-2 group-hover:ring-black-500 group-focus:ring-2 group-focus:ring-blue-500'
-							style={{ backgroundColor: shownColor }}
+							style={{ backgroundColor: hexCode }}
 						>
 							<span
 								className={`absolute inset-0 flex items-center justify-center text-xs font-bold rounded-sm transition-opacity ${

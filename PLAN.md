@@ -115,7 +115,7 @@ Tiers are rough guidance, not a strict order.
   Respects the color-format selector. Later extended dark mode to Tailwind 4
   (`.dark` block), the Markdown style guide (Dark column), and Design Tokens
   (top-level `light`/`dark` groups), sharing `colorUtils.mirrorHexes`.
-- **Colorblind simulation** (branch `feature/colorblind-simulation`). A global
-  "Preview as" selector re-renders all swatches through `colorUtils.simulateCvd`
-  (Machado matrices) for protanopia / deuteranopia / tritanopia; swatch fill is
-  simulated while the hex label, copy, and picker keep the true color.
+- **Colorblind simulation** (branch `feature/colorblind-simulation`). A fixed
+  bottom bar (`CvdBar`) toggles a page-wide SVG `feColorMatrix` filter via a
+  `body.cvd-*` class for protanopia / deuteranopia / tritanopia / achromatopsia;
+  the filter covers `main` + `footer`, leaving the bar itself unfiltered.

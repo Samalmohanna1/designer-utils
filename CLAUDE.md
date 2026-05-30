@@ -16,8 +16,8 @@ export the result as ready-to-paste code.
 What the app does, top to bottom on one page:
 
 1. **Generate scales.** Enter one or more base hex colors; each expands into a
-   10-step shade ramp (50–900). A "Preview as" control simulates color-vision
-   deficiencies (protanopia / deuteranopia / tritanopia) across all swatches.
+   10-step shade ramp (50–900). A fixed bottom bar can simulate color blindness
+   (protanopia / deuteranopia / tritanopia / achromatopsia) across the whole page.
 2. **Check contrast.** Every unique shade across every scale is paired against
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
@@ -70,13 +70,14 @@ No database, no auth, no API. All color math runs in the browser.
 ```
 src/
   pages/index.astro       Single route. Wraps <App> in the layout + footer.
-  layouts/Layout.astro    HTML shell: meta/OG/Twitter tags, PostHog init, bg pattern.
+  layouts/Layout.astro    HTML shell: meta/OG tags, PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
     App.tsx               Root island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
     ContrastChecker.tsx   Builds & sorts all accessible shade pairings into a table.
     CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
+    CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
   utils/
     colorUtils.ts         All color math + shared types. The one place logic lives.
   styles/
@@ -281,11 +282,15 @@ the live page reflects the merged commit before calling anything fixed.
   for the preview, not the ratio.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
-- **Vision simulation (CVD)** — the "Preview as" selector (state in `App`,
-  type `VisionType`) re-renders every scale's swatches through
-  `colorUtils.simulateCvd`, which applies a severity-1.0 Machado matrix to the
-  sRGB hex. **Only the swatch fill is simulated** — the hex label, copy action,
-  and color-picker stay the *true* color. `normal` is a pass-through.
+- **Vision simulation (CVD)** — the fixed bottom bar
+  ([CvdBar](./src/components/CvdBar.tsx), a `client:load` island in
+  [Layout](./src/layouts/Layout.astro)) simulates color blindness **page-wide**.
+  It toggles a `cvd-<mode>` class on `<body>`; a global (`is:global`) CSS rule
+  then applies the matching SVG `feColorMatrix` filter (defined in the Layout) to
+  `main` + `footer`. The bar is a sibling of those, so it stays unfiltered.
+  Modes: `protanopia`, `deuteranopia`, `tritanopia`, `achromatopsia` — one active
+  at a time; re-clicking the active one (or "Reset to full color") clears it.
+  There's no "normal" option — that's just the unfiltered default.
 - **Format vs. color format** — *format* is the output syntax (`cssDark`,
   `tailwind4`, `markdown`, `tokens`; `cssDark` is the default); *color format* is
   the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`,
