@@ -10,13 +10,7 @@ interface CodeBlockProps {
 	colorScales: ColorScale[]
 }
 
-type ThemeFormat =
-	| 'tailwind3'
-	| 'tailwind4'
-	| 'css'
-	| 'cssDark'
-	| 'markdown'
-	| 'tokens'
+type ThemeFormat = 'tailwind4' | 'cssDark' | 'markdown' | 'tokens'
 type ColorFormat = 'hex' | 'hsl' | 'rgb'
 
 type ShadeNumber = (typeof colorUtils.shadeNumbers)[number]
@@ -35,7 +29,7 @@ interface ColorData {
 const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	const [isCopied, setIsCopied] = useState(false)
 	const [isClient, setIsClient] = useState(false)
-	const [themeFormat, setThemeFormat] = useState<ThemeFormat>('css')
+	const [themeFormat, setThemeFormat] = useState<ThemeFormat>('cssDark')
 	const [colorFormat, setColorFormat] = useState<ColorFormat>('hex')
 
 	// Formats whose values are fixed (not driven by the color-format selector).
@@ -89,24 +83,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 
 	const formattedCode = useMemo(() => {
 		switch (themeFormat) {
-			case 'tailwind3': {
-				const body = colorData
-					.map(
-						({ slug, shades }) =>
-							`  ${slug}: {\n${shades
-								.map(
-									({ shade, hex }) =>
-										`    ${shade}: "${convertColor(
-											hex,
-											colorFormat
-										)}"`
-								)
-								.join(',\n')}\n  }`
-					)
-					.join(',\n')
-				return `colors: {\n${body}\n}`
-			}
-
 			case 'tailwind4': {
 				const body = colorData
 					.flatMap(({ slug, shades }) =>
@@ -138,21 +114,6 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					.join('\n')
 
 				return `@theme {\n${body}\n}\n\n.dark {\n${dark}\n}`
-			}
-
-			case 'css': {
-				const body = colorData
-					.flatMap(({ slug, shades }) =>
-						shades.map(
-							({ shade, hex }) =>
-								`  --${slug}-${shade}: ${convertColor(
-									hex,
-									colorFormat
-								)};`
-						)
-					)
-					.join('\n')
-				return `:root {\n${body}\n}`
 			}
 
 			case 'cssDark': {
@@ -316,9 +277,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							}
 							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 						>
-							<option value='css'>CSS Variables</option>
 							<option value='cssDark'>CSS + Dark Mode</option>
-							<option value='tailwind3'>Tailwind 3.4</option>
 							<option value='tailwind4'>Tailwind 4.1</option>
 							<option value='markdown'>Style Guide (Markdown)</option>
 							<option value='tokens'>Design Tokens (JSON)</option>

@@ -20,12 +20,11 @@ What the app does, top to bottom on one page:
 2. **Check contrast.** Every unique shade across every scale is paired against
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
-3. **Export.** The scales are emitted as **CSS variables**, **CSS + Dark Mode**
-   (`:root` plus a `prefers-color-scheme: dark` block with the ramp inverted),
-   **Tailwind 3.4** theme colors, **Tailwind 4.1** `@theme` tokens (in
-   **hex / HSL / RGB**), a **Markdown style guide** (a Hex + HSL table per color
-   with WCAG text-on-white/black notes), or **W3C Design Tokens (DTCG) JSON**
-   (always hex), with one-click copy.
+3. **Export.** The scales are emitted as **CSS + Dark Mode** (`:root` plus a
+   `prefers-color-scheme: dark` block with the ramp inverted), **Tailwind 4.1**
+   `@theme` tokens (in **hex / HSL / RGB**), a **Markdown style guide** (a
+   Hex + HSL table per color with WCAG text-on-white/black notes), or **W3C
+   Design Tokens (DTCG) JSON** (always hex), with one-click copy.
 4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
    updates the link live and a shared link reopens the exact palette. Also
    autosaved to `localStorage` (written, but not auto-restored — the URL or the
@@ -76,7 +75,7 @@ src/
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
     ContrastChecker.tsx   Builds & sorts all accessible shade pairings into a table.
-    CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS / Tailwind / Markdown).
+    CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
   utils/
     colorUtils.ts         All color math + shared types. The one place logic lives.
   styles/
@@ -264,7 +263,7 @@ the live page reflects the merged commit before calling anything fixed.
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`
-  (CSS / Tailwind 4) or `<slug>: { … }` (Tailwind 3). Both
+  (CSS / Tailwind 4). Both
   [CodeBlock](./src/components/CodeBlock.tsx) and
   [ContrastChecker](./src/components/ContrastChecker.tsx) labels go through
   `uniqueSlugs` so naming stays consistent. (This replaced the old positional
@@ -281,14 +280,14 @@ the live page reflects the merged commit before calling anything fixed.
   for the preview, not the ratio.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
-- **Format vs. color format** — *format* is the output syntax (`css` variables,
-  `cssDark`, `tailwind3`, `tailwind4`, `markdown`, `tokens`); *color format* is
+- **Format vs. color format** — *format* is the output syntax (`cssDark`,
+  `tailwind4`, `markdown`, `tokens`; `cssDark` is the default); *color format* is
   the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`,
   except the color format is hidden for the fixed-value formats (`markdown` →
   Hex + HSL table; `tokens` → always hex). Those two build from raw-hex shade
   data, not the `convertColor` pipeline the code formats use. `tokens` emits W3C
   Design Tokens (DTCG), keyed by the de-duped slug. The Prism language switches
-  `css` / `markdown` / `json` by format (`cssDark` uses `css`).
+  `css` / `markdown` / `json` by format (`cssDark`, `tailwind4` use `css`).
 - **Dark mode in exports** — the dark ramp is the light ramp **mirrored**
   (`colorUtils.mirrorHexes` — 50↔900, 100↔800, …), so light tints become dark
   and vice versa, keeping hue/chroma. Where each format puts it: `cssDark` →
@@ -296,7 +295,6 @@ the live page reflects the merged commit before calling anything fixed.
   `tailwind4` → `@theme { … }` plus a `.dark { … }` override (class-based dark
   variant); `markdown` → a **Dark** column in the per-color table; `tokens` →
   top-level `light` and `dark` groups, each `{ slug: { shade: { $type, $value } } }`.
-  (`css`, `tailwind3` stay light-only.)
 - **Palette sharing** — the palette serializes to `name:hex,…`
   (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
   the `#p=` prefix. `App` reads it once on mount (a valid hash wins over the
