@@ -63,6 +63,39 @@ color (a `500`), auto-named via `colorUtils.nameFromHex`.
 
 ---
 
+## Feature roadmap
+
+Prioritized by leverage for the designer workflow and the designer→dev handoff.
+Tiers are rough guidance, not a strict order.
+
+### Tier 2 — handoff bridges (export depth)
+
+- **Dark-mode pairing** — emit a `:root` + `prefers-color-scheme: dark` (or
+  `[data-theme]`) block with the ramp inverted (900↔50). Devs hand-build this
+  today.
+- **SCSS** variables / map, and **cross-platform** formats (Android
+  `colors.xml`, iOS `UIColor` / SwiftUI `Color`).
+- **Swatch files** — `.ase` / `.aco` for direct import into design tools.
+
+### Tier 3 — accessibility (extend the differentiator)
+
+- **Colorblind simulation** — protanopia / deuteranopia / tritanopia previews of
+  the palette.
+- **APCA contrast** alongside WCAG 2 (the WCAG 3 direction).
+- **Suggest a passing shade** — when a contrast pair fails, propose the nearest
+  shade in the ramp that passes.
+
+### Tier 4 — quick wins (low effort, daily value)
+
+- **Copy a whole scale** (array / all shades), not just one swatch.
+- **Reorder (drag) scales** and **duplicate a scale**.
+- **Pin the input as a chosen shade** (e.g. "this hex is my 600") instead of
+  always forcing it to 500; optional ramp-curve tuning.
+- **Curate which shades export** (systems rarely ship all 10).
+- **Bulk-create scales** by pasting a list of hex values.
+
+---
+
 ## Done
 
 - **Color selection: naming + designer optimizations** (branch
@@ -77,3 +110,7 @@ color (a `500`), auto-named via `colorUtils.nameFromHex`.
   New `tokens` format in `CodeBlock` emitting W3C Design Tokens
   (`{ slug: { shade: { $type, $value } } }`, always hex) for Style Dictionary /
   Tokens Studio / Figma; JSON syntax-highlighted; color-format selector hidden.
+- **OKLCH shade generation** (branch `feature/oklch-ramp`). Ramps built in OKLCH
+  (perceptual): base anchors 500, lightness interpolates to fixed light/dark
+  endpoints holding hue, chroma tapers at the ends, with binary-search gamut
+  mapping. Even, hue-stable steps replacing the sRGB white/black mix.

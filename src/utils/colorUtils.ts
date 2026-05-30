@@ -23,14 +23,6 @@ export interface ColorCombination {
 export const colorUtils = {
     shadeNumbers: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const,
 
-    calculateMixPercentage(shade: number): number {
-        if (shade <= 500) {
-            return 95 - ((shade - 50) / 450) * 95
-        } else {
-            return ((shade - 500) / 400) * 50
-        }
-    },
-
     hexToRgb(hex: string): [number, number, number] {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
         return result
@@ -170,16 +162,6 @@ export const colorUtils = {
             )
     },
 
-    mixColors(
-        color1: [number, number, number],
-        color2: [number, number, number],
-        weight: number
-    ): [number, number, number] {
-        return color1.map((c, i) =>
-            Math.round(c * (1 - weight) + color2[i] * weight)
-        ) as [number, number, number]
-    },
-
     hslToHex(h: number, s: number, l: number): string {
         const sFrac = s / 100
         const lFrac = l / 100
@@ -198,13 +180,128 @@ export const colorUtils = {
         return colorUtils.hslToHex(hue, 65, 60)
     },
 
+    // --- OKLCH (perceptual) color space ---
+    // Conversions follow Björn Ottosson's OKLab definition. OKLCH is the
+    // cylindrical form: L (0..1 lightness), C (chroma >= 0), H (hue degrees).
+
+    // hex -> OKLCH. Inverse of oklchToHex.
+    hexToOklch(hex: string): { l: number; c: number; h: number } {
+        const [r, g, b] = colorUtils
+            .hexToRgb(hex)
+            .map((x) => colorUtils.sRGBtoLin(x))
+
+        const l_ = Math.cbrt(
+            0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+        )
+        const m_ = Math.cbrt(
+            0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+        )
+        const s_ = Math.cbrt(
+            0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+        )
+
+        const L = 0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720468 * s_
+        const a = 1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_
+        const bb = 0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_
+
+        const c = Math.sqrt(a * a + bb * bb)
+        let h = (Math.atan2(bb, a) * 180) / Math.PI
+        if (h < 0) h += 360
+        return { l: L, c, h }
+    },
+
+    // OKLCH -> linear sRGB (may fall outside [0,1] if out of gamut).
+    oklchToLinearRgb(l: number, c: number, h: number): [number, number, number] {
+        const hRad = (h * Math.PI) / 180
+        const a = c * Math.cos(hRad)
+        const bb = c * Math.sin(hRad)
+
+        const l_ = l + 0.3963377774 * a + 0.2158037573 * bb
+        const m_ = l - 0.1055613458 * a - 0.0638541728 * bb
+        const s_ = l - 0.0894841775 * a - 1.291485548 * bb
+
+        const lc = l_ * l_ * l_
+        const mc = m_ * m_ * m_
+        const sc = s_ * s_ * s_
+
+        return [
+            4.0767416621 * lc - 3.3077115913 * mc + 0.2309699292 * sc,
+            -1.2684380046 * lc + 2.6097574011 * mc - 0.3413193965 * sc,
+            -0.0041960863 * lc - 0.7034186147 * mc + 1.707614701 * sc,
+        ]
+    },
+
+    // OKLCH -> hex. If the color is outside sRGB, reduce chroma (preserving
+    // hue and lightness) until it fits, rather than clamping channels — which
+    // would shift the hue. This is a simple binary-search gamut map.
+    oklchToHex(l: number, c: number, h: number): string {
+        const inGamut = ([r, g, b]: [number, number, number]) => {
+            const e = 0.0001
+            return (
+                r >= -e && r <= 1 + e &&
+                g >= -e && g <= 1 + e &&
+                b >= -e && b <= 1 + e
+            )
+        }
+
+        let lo = 0
+        let hi = c
+        if (!inGamut(colorUtils.oklchToLinearRgb(l, hi, h))) {
+            for (let i = 0; i < 24; i++) {
+                const mid = (lo + hi) / 2
+                if (inGamut(colorUtils.oklchToLinearRgb(l, mid, h))) {
+                    lo = mid
+                } else {
+                    hi = mid
+                }
+            }
+        } else {
+            lo = hi
+        }
+
+        const [rLin, gLin, bLin] = colorUtils.oklchToLinearRgb(l, lo, h)
+        return colorUtils.rgbToHex(
+            colorUtils.linToSRGB(rLin),
+            colorUtils.linToSRGB(gLin),
+            colorUtils.linToSRGB(bLin)
+        )
+    },
+
+    // OKLCH lightness endpoints for the ramp. The base color anchors 500;
+    // lighter shades fan up toward LIGHTEST, darker ones down toward DARKEST.
+    LIGHTEST_L: 0.97,
+    DARKEST_L: 0.25,
+
+    // Index of the 500 shade, which is the unmodified base color.
+    BASE_INDEX: 5,
+
     generateShades(baseColor: string): string[] {
-        const baseRgb = this.hexToRgb(baseColor)
-        return this.shadeNumbers.map((shade) => {
-            const mixPercentage = this.calculateMixPercentage(shade) / 100
-            const mixColor: [number, number, number] = shade < 500 ? [255, 255, 255] : [0, 0, 0]
-            const mixedRgb = this.mixColors(baseRgb, mixColor, mixPercentage)
-            return this.rgbToHex(...mixedRgb)
+        const base = colorUtils.hexToOklch(baseColor)
+        const { BASE_INDEX, LIGHTEST_L, DARKEST_L } = colorUtils
+
+        return colorUtils.shadeNumbers.map((_shade, i) => {
+            if (i === BASE_INDEX) {
+                // 500 is the base color, normalized to canonical hex.
+                return colorUtils.rgbToHex(...colorUtils.hexToRgb(baseColor))
+            }
+
+            // Interpolate lightness between the base (at 500) and the
+            // light/dark endpoint, so the ramp is monotonic for any input.
+            let targetL: number
+            if (i < BASE_INDEX) {
+                const t = (BASE_INDEX - i) / BASE_INDEX
+                targetL = base.l + (LIGHTEST_L - base.l) * t
+            } else {
+                const lastIndex = colorUtils.shadeNumbers.length - 1
+                const t = (i - BASE_INDEX) / (lastIndex - BASE_INDEX)
+                targetL = base.l + (DARKEST_L - base.l) * t
+            }
+
+            // Taper chroma toward the very light / very dark ends so the
+            // ramp stays in gamut and doesn't look neon or wash out.
+            const distance = Math.abs(targetL - base.l)
+            const chroma = Math.max(base.c * (1 - 0.5 * distance), 0)
+            return colorUtils.oklchToHex(targetL, chroma, base.h)
         })
     },
 
@@ -216,6 +313,16 @@ export const colorUtils = {
         } else {
             return Math.pow((colorChannel + 0.055) / 1.055, 2.4)
         }
+    },
+
+    // Inverse of sRGBtoLin: linear-light (0..1) -> 0..255 sRGB, clamped.
+    linToSRGB(channel: number): number {
+        const clamped = Math.min(Math.max(channel, 0), 1)
+        const v =
+            clamped <= 0.0031308
+                ? clamped * 12.92
+                : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055
+        return v * 255
     },
 
     getLuminance(r: number, g: number, b: number): number {
