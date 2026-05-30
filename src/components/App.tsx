@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import ColorInput from './ColorInput'
 import ColorScale2 from './ColorScale'
@@ -10,6 +10,9 @@ interface ScaleState extends ColorScale {
 	nameEdited: boolean
 }
 
+const STORAGE_KEY = 'color-scale-generator:palette'
+const HASH_PREFIX = '#p='
+
 const makeScale = (id: number, index: number): ScaleState => {
 	const color = colorUtils.defaultColorForIndex(index)
 	return {
@@ -20,11 +23,61 @@ const makeScale = (id: number, index: number): ScaleState => {
 	}
 }
 
+const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
+
+// Build ScaleState rows from decoded {name, color} entries. A shared name is
+// treated as authored (nameEdited), so it isn't overwritten by hue auto-naming.
+const scalesFromEntries = (
+	entries: { name: string; color: string }[]
+): ScaleState[] =>
+	entries.map((entry, i) => ({
+		id: i + 1,
+		color: entry.color,
+		name: entry.name,
+		nameEdited: true,
+	}))
+
+// Reads a palette from the URL hash, if present and valid. Client-only.
+const readHashPalette = (): ScaleState[] | null => {
+	if (typeof window === 'undefined') return null
+	const hash = window.location.hash
+	if (!hash.startsWith(HASH_PREFIX)) return null
+	const encoded = decodeURIComponent(hash.slice(HASH_PREFIX.length))
+	const entries = colorUtils.decodePalette(encoded)
+	return entries.length > 0 ? scalesFromEntries(entries) : null
+}
+
 const App = () => {
-	const [colorScales, setColorScales] = useState<ScaleState[]>([
-		makeScale(1, 0),
-	])
+	const [colorScales, setColorScales] = useState<ScaleState[]>(defaultScales)
 	const [nextId, setNextId] = useState(2)
+	// Becomes true after the initial URL read, so the sync effect doesn't
+	// clobber the hash before we've had a chance to load from it.
+	const hydrated = useRef(false)
+
+	// On mount: a palette in the URL wins; otherwise keep the default.
+	// (Autosave is written below but intentionally not auto-restored.)
+	useEffect(() => {
+		const fromHash = readHashPalette()
+		if (fromHash) {
+			setColorScales(fromHash)
+			setNextId(fromHash.length + 1)
+		}
+		hydrated.current = true
+	}, [])
+
+	// Live-sync to the URL hash (replaceState, so edits don't spam history)
+	// and autosave to localStorage. Runs only after the initial load.
+	useEffect(() => {
+		if (!hydrated.current) return
+		const encoded = colorUtils.encodePalette(colorScales)
+		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encoded}`
+		window.history.replaceState(null, '', url)
+		try {
+			window.localStorage.setItem(STORAGE_KEY, encoded)
+		} catch {
+			// localStorage may be unavailable (private mode); ignore.
+		}
+	}, [colorScales])
 
 	const addColorScale = useCallback(() => {
 		setColorScales((prevScales) => [
@@ -67,8 +120,15 @@ const App = () => {
 	}, [])
 
 	const resetScales = useCallback(() => {
-		setColorScales([makeScale(1, 0)])
+		setColorScales(defaultScales())
 		setNextId(2)
+	}, [])
+
+	const [linkCopied, setLinkCopied] = useState(false)
+	const copyShareLink = useCallback(() => {
+		navigator.clipboard.writeText(window.location.href)
+		setLinkCopied(true)
+		setTimeout(() => setLinkCopied(false), 2000)
 	}, [])
 
 	return (
@@ -77,17 +137,29 @@ const App = () => {
 				<h1 className='text-step-1 sm:text-step-2 tracking-tight uppercase'>
 					&#127912; Color Scale Generator
 				</h1>
-				{(colorScales.length > 1 ||
-					colorScales[0]?.nameEdited ||
-					colorScales[0]?.color !==
-						colorUtils.defaultColorForIndex(0)) && (
+				<div className='flex items-center gap-2xs'>
 					<button
-						onClick={resetScales}
-						className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed'
+						onClick={copyShareLink}
+						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
+							linkCopied
+								? 'border-green-600 bg-green-200 text-green-800'
+								: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+						}`}
 					>
-						Reset palette
+						{linkCopied ? 'Link copied!' : 'Copy share link'}
 					</button>
-				)}
+					{(colorScales.length > 1 ||
+						colorScales[0]?.nameEdited ||
+						colorScales[0]?.color !==
+							colorUtils.defaultColorForIndex(0)) && (
+						<button
+							onClick={resetScales}
+							className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed'
+						>
+							Reset palette
+						</button>
+					)}
+				</div>
 			</div>
 			<section className='tracking-tight container p-s mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
 				{colorScales.map((scale) => (

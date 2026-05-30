@@ -13,7 +13,7 @@ about architecture or conventions.
 scales from base colors, check WCAG contrast across all generated shades, and
 export the result as ready-to-paste code.
 
-Three things the app does, top to bottom on one page:
+What the app does, top to bottom on one page:
 
 1. **Generate scales.** Enter one or more base hex colors; each expands into a
    10-step shade ramp (50–900).
@@ -24,6 +24,10 @@ Three things the app does, top to bottom on one page:
    theme colors, **Tailwind 4.1** `@theme` tokens (in **hex / HSL / RGB**), or a
    **Markdown style guide** (a Hex + HSL table per color with WCAG
    text-on-white/black notes), with one-click copy.
+4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
+   updates the link live and a shared link reopens the exact palette. Also
+   autosaved to `localStorage` (written, but not auto-restored — the URL or the
+   default wins on load). See the **Palette sharing** glossary entry.
 
 Deployed at <https://tools.myol-creative.com/>. There is no backend — it's a
 fully static Astro site with a client-rendered React island.
@@ -275,6 +279,15 @@ the live page reflects the merged commit before calling anything fixed.
   format is hidden for `markdown` (which always emits a Hex + HSL table). The
   Markdown branch builds from raw-hex shade data, not the `convertColor`
   pipeline the code formats use.
+- **Palette sharing** — the palette serializes to `name:hex,…`
+  (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
+  the `#p=` prefix. `App` reads it once on mount (a valid hash wins over the
+  default; `localStorage` is written but **not** auto-restored), then a
+  `colorScales` effect live-syncs back to the hash via `history.replaceState`
+  (no history spam) and to `localStorage`. A `hydrated` ref gates that effect so
+  it can't overwrite the hash before the initial read. Shared scales load with
+  `nameEdited: true` (the name is authored, so a later recolor won't rename it).
+  Malformed pairs are dropped; if nothing valid decodes, the default loads.
 
 ---
 

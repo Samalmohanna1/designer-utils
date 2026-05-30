@@ -69,3 +69,7 @@ color (a `500`), auto-named via `colorUtils.nameFromHex`.
   `feature/contrast-picker-redesign`). Editable, hue-auto-named scales; names
   flow into the export (slugified + de-duped) and contrast labels; varied
   default color per new scale; click-to-copy swatch hex; reset-palette control.
+- **Shareable / persistent palette** (branch `feature/shareable-palette`).
+  Palette serialized to the URL hash (`#p=name:hex,…`) with live sync + a copy
+  link button; `localStorage` autosave (write-only, not auto-restored). URL wins
+  over default on load; malformed hashes fall back to the default.
