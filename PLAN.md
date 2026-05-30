@@ -76,8 +76,6 @@ Tiers are rough guidance, not a strict order.
 
 ### Tier 3 — accessibility (extend the differentiator)
 
-- **Colorblind simulation** — protanopia / deuteranopia / tritanopia previews of
-  the palette.
 - **APCA contrast** alongside WCAG 2 (the WCAG 3 direction).
 - **Suggest a passing shade** — when a contrast pair fails, propose the nearest
   shade in the ramp that passes.
@@ -114,4 +112,10 @@ Tiers are rough guidance, not a strict order.
 - **CSS + Dark Mode export** (branch `feature/dark-mode-export`). New `cssDark`
   format: the `:root` light block plus a `@media (prefers-color-scheme: dark)`
   block where each shade takes its mirror value (50↔900, …), keeping hue/chroma.
-  Respects the color-format selector.
+  Respects the color-format selector. Later extended dark mode to Tailwind 4
+  (`.dark` block), the Markdown style guide (Dark column), and Design Tokens
+  (top-level `light`/`dark` groups), sharing `colorUtils.mirrorHexes`.
+- **Colorblind simulation** (branch `feature/colorblind-simulation`). A global
+  "Preview as" selector re-renders all swatches through `colorUtils.simulateCvd`
+  (Machado matrices) for protanopia / deuteranopia / tritanopia; swatch fill is
+  simulated while the hex label, copy, and picker keep the true color.

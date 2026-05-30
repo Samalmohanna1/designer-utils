@@ -16,7 +16,8 @@ export the result as ready-to-paste code.
 What the app does, top to bottom on one page:
 
 1. **Generate scales.** Enter one or more base hex colors; each expands into a
-   10-step shade ramp (50–900).
+   10-step shade ramp (50–900). A "Preview as" control simulates color-vision
+   deficiencies (protanopia / deuteranopia / tritanopia) across all swatches.
 2. **Check contrast.** Every unique shade across every scale is paired against
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
@@ -280,6 +281,11 @@ the live page reflects the merged commit before calling anything fixed.
   for the preview, not the ratio.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
+- **Vision simulation (CVD)** — the "Preview as" selector (state in `App`,
+  type `VisionType`) re-renders every scale's swatches through
+  `colorUtils.simulateCvd`, which applies a severity-1.0 Machado matrix to the
+  sRGB hex. **Only the swatch fill is simulated** — the hex label, copy action,
+  and color-picker stay the *true* color. `normal` is a pass-through.
 - **Format vs. color format** — *format* is the output syntax (`cssDark`,
   `tailwind4`, `markdown`, `tokens`; `cssDark` is the default); *color format* is
   the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`,

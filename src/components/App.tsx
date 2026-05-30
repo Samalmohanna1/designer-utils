@@ -10,6 +10,19 @@ interface ScaleState extends ColorScale {
 	nameEdited: boolean
 }
 
+export type VisionType =
+	| 'normal'
+	| 'protanopia'
+	| 'deuteranopia'
+	| 'tritanopia'
+
+const visionOptions: { value: VisionType; label: string }[] = [
+	{ value: 'normal', label: 'Normal vision' },
+	{ value: 'protanopia', label: 'Protanopia (red-blind)' },
+	{ value: 'deuteranopia', label: 'Deuteranopia (green-blind)' },
+	{ value: 'tritanopia', label: 'Tritanopia (blue-blind)' },
+]
+
 const STORAGE_KEY = 'color-scale-generator:palette'
 const HASH_PREFIX = '#p='
 
@@ -131,6 +144,8 @@ const App = () => {
 		setTimeout(() => setLinkCopied(false), 2000)
 	}, [])
 
+	const [visionType, setVisionType] = useState<VisionType>('normal')
+
 	return (
 		<>
 			<div className='flex flex-wrap items-center justify-between gap-2xs mb-2xs'>
@@ -160,6 +175,34 @@ const App = () => {
 						</button>
 					)}
 				</div>
+			</div>
+			<div className='flex flex-wrap items-center gap-2xs mb-2xs'>
+				<label
+					htmlFor='vision-type'
+					className='text-step--2 font-roboto-condensed uppercase tracking-tight'
+				>
+					Preview as
+				</label>
+				<select
+					id='vision-type'
+					value={visionType}
+					onChange={(e) =>
+						setVisionType(e.target.value as VisionType)
+					}
+					className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				>
+					{visionOptions.map(({ value, label }) => (
+						<option key={value} value={value}>
+							{label}
+						</option>
+					))}
+				</select>
+				{visionType !== 'normal' && (
+					<span className='text-step--2 text-black-300'>
+						simulating color vision deficiency — swatches show
+						simulated color; copy still uses the true hex
+					</span>
+				)}
 			</div>
 			<section className='tracking-tight container p-s mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
 				{colorScales.map((scale) => (
@@ -195,7 +238,10 @@ const App = () => {
 								</button>
 							)}
 						</div>
-						<ColorScale2 baseColor={scale.color} />
+						<ColorScale2
+							baseColor={scale.color}
+							visionType={visionType}
+						/>
 					</div>
 				))}
 
