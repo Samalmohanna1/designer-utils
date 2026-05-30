@@ -32,7 +32,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 						className='flex flex-col items-center w-[110px] group cursor-pointer focus:outline-hidden'
 					>
 						<div
-							className='relative w-full h-16 rounded-sm color-scale-item border border-black-100 min-w-12 group-hover:ring-2 group-hover:ring-black-500 group-focus:ring-2 group-focus:ring-blue-500'
+							className='relative w-full h-12 rounded-sm color-scale-item border border-black-100 min-w-12 group-hover:ring-2 group-hover:ring-black-500 group-focus:ring-2 group-focus:ring-blue-500'
 							style={{ backgroundColor: hexCode }}
 						>
 							<span

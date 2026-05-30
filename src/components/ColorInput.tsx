@@ -36,21 +36,23 @@ const ColorInput: React.FC<ColorInputProps> = ({
 	const inputId = `color-${autoName}`
 
 	return (
-		<div className='space-y-3xs'>
-			<label
-				htmlFor={`name-${inputId}`}
-				className='block text-step--2 font-roboto-condensed'
-			>
-				Name
-			</label>
-			<input
-				type='text'
-				id={`name-${inputId}`}
-				className='h-9 w-full max-w-44 px-2xs rounded-sm border border-black-100 text-step--2'
-				placeholder={autoName}
-				value={name}
-				onChange={(e) => onNameChange(e.target.value)}
-			/>
+		<div className='space-y-2xs'>
+			<div className='flex items-center gap-2xs'>
+				<label
+					htmlFor={`name-${inputId}`}
+					className='text-step--2 font-roboto-condensed shrink-0'
+				>
+					Name
+				</label>
+				<input
+					type='text'
+					id={`name-${inputId}`}
+					className='h-10 w-full max-w-36 px-2xs rounded-sm border border-black-100 text-step--2'
+					placeholder={autoName}
+					value={name}
+					onChange={(e) => onNameChange(e.target.value)}
+				/>
+			</div>
 
 			<label htmlFor={inputId} className='sr-only'>
 				Color hex value

@@ -93,7 +93,7 @@ const App = () => {
 				{colorScales.map((scale) => (
 					<div
 						key={scale.id}
-						className='py-4 flex flex-col sm:flex-row justify-between gap-s'
+						className='py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-s'
 					>
 						<div className='flex sm:flex-col gap-xs'>
 							<ColorInput
