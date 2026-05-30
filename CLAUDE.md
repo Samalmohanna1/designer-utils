@@ -287,11 +287,16 @@ the live page reflects the merged commit before calling anything fixed.
   except the color format is hidden for the fixed-value formats (`markdown` →
   Hex + HSL table; `tokens` → always hex). Those two build from raw-hex shade
   data, not the `convertColor` pipeline the code formats use. `tokens` emits W3C
-  Design Tokens (DTCG): `{ slug: { shade: { $type: "color", $value: "#hex" } } }`,
-  keyed by the de-duped slug. `cssDark` adds a `@media (prefers-color-scheme:
-  dark)` block where each shade takes its **mirror** value (50↔900, 100↔800, …)
-  so light tints become dark and vice versa, keeping hue/chroma. The Prism
-  language switches `css` / `markdown` / `json` by format (`cssDark` uses `css`).
+  Design Tokens (DTCG), keyed by the de-duped slug. The Prism language switches
+  `css` / `markdown` / `json` by format (`cssDark` uses `css`).
+- **Dark mode in exports** — the dark ramp is the light ramp **mirrored**
+  (`colorUtils.mirrorHexes` — 50↔900, 100↔800, …), so light tints become dark
+  and vice versa, keeping hue/chroma. Where each format puts it: `cssDark` →
+  `:root` plus a `@media (prefers-color-scheme: dark) { :root { … } }` override;
+  `tailwind4` → `@theme { … }` plus a `.dark { … }` override (class-based dark
+  variant); `markdown` → a **Dark** column in the per-color table; `tokens` →
+  top-level `light` and `dark` groups, each `{ slug: { shade: { $type, $value } } }`.
+  (`css`, `tailwind3` stay light-only.)
 - **Palette sharing** — the palette serializes to `name:hex,…`
   (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
   the `#p=` prefix. `App` reads it once on mount (a valid hash wins over the

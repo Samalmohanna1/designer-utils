@@ -345,6 +345,13 @@ export const colorUtils = {
         return (brightest + 0.05) / (darkest + 0.05)
     },
 
+    // The dark-mode ramp: the same shade slots in reverse, so a light tint
+    // (e.g. 50) takes the value of its opposite end (900) and vice versa,
+    // keeping hue and chroma. shadeHexes is the ordered 50..900 list.
+    mirrorHexes(shadeHexes: string[]): string[] {
+        return [...shadeHexes].reverse()
+    },
+
     // Which shades pass WCAG AA (>=4.5:1) as text on white and on black.
     // Used by the style-guide export to annotate each scale.
     textSafeShades(shadeHexes: string[]): {

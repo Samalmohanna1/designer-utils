@@ -119,7 +119,25 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 						)
 					)
 					.join('\n')
-				return `@theme {\n${body}\n}`
+
+				// Dark mode overrides the same custom properties under .dark,
+				// for Tailwind 4's class-based dark variant. Mirrored ramp.
+				const dark = colorData
+					.flatMap(({ slug, shades }) => {
+						const mirrored = colorUtils.mirrorHexes(
+							shades.map((s) => s.hex)
+						)
+						return shades.map(
+							({ shade }, i) =>
+								`  --color-${slug}-${shade}: ${convertColor(
+									mirrored[i],
+									colorFormat
+								)};`
+						)
+					})
+					.join('\n')
+
+				return `@theme {\n${body}\n}\n\n.dark {\n${dark}\n}`
 			}
 
 			case 'css': {
@@ -150,19 +168,20 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					)
 					.join('\n')
 
-				// Dark mode mirrors the ramp: each shade takes the value of its
-				// opposite end (50<->900, 100<->800, ...), so light tints become
-				// dark shades and vice versa, keeping hue and chroma.
+				// Dark mode mirrors the ramp (see colorUtils.mirrorHexes).
 				const dark = colorData
-					.flatMap(({ slug, shades }) =>
-						shades.map(({ shade }, i) => {
-							const mirror = shades[shades.length - 1 - i]
-							return `    --${slug}-${shade}: ${convertColor(
-								mirror.hex,
-								colorFormat
-							)};`
-						})
-					)
+					.flatMap(({ slug, shades }) => {
+						const mirrored = colorUtils.mirrorHexes(
+							shades.map((s) => s.hex)
+						)
+						return shades.map(
+							({ shade }, i) =>
+								`    --${slug}-${shade}: ${convertColor(
+									mirrored[i],
+									colorFormat
+								)};`
+						)
+					})
 					.join('\n')
 
 				return [
@@ -181,12 +200,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					s.charAt(0).toUpperCase() + s.slice(1)
 
 				const sections = colorData.map(({ name, shades }) => {
+					// Dark column: the value each shade maps to in dark mode.
+					const dark = colorUtils.mirrorHexes(shades.map((s) => s.hex))
 					const rows = shades
 						.map(
-							({ shade, hex }) =>
+							({ shade, hex }, i) =>
 								`| ${shade} | \`${hex}\` | \`${colorUtils.hexToHSL(
 									hex
-								)}\` |`
+								)}\` | \`${dark[i]}\` |`
 						)
 						.join('\n')
 
@@ -197,8 +218,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					return [
 						`## ${capitalize(name)}`,
 						'',
-						'| Shade | Hex | HSL |',
-						'| ----: | --- | --- |',
+						'| Shade | Hex | HSL | Dark |',
+						'| ----: | --- | --- | --- |',
 						rows,
 						'',
 						`- **Text on white** (AA): ${colorUtils.formatShadeRanges(
@@ -213,27 +234,40 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				return [
 					'# Color Palette',
 					'',
-					'Generated color scales. Accessibility notes list the shades',
-					'that pass WCAG AA (≥4.5:1) as text on a white or black background.',
+					'Generated color scales. The **Dark** column is the value each',
+					'shade maps to in dark mode (the ramp mirrored). Accessibility',
+					'notes list the shades that pass WCAG AA (≥4.5:1) as text on a',
+					'white or black background.',
 					'',
 					...sections,
 				].join('\n\n')
 			}
 
 			case 'tokens': {
-				// W3C Design Tokens (DTCG) format: groups keyed by slug, each
-				// shade a { $type: "color", $value: "#hex" } token. Always hex.
-				const tokens: Record<
+				// W3C Design Tokens (DTCG): top-level `light` and `dark` groups,
+				// each keyed by slug -> shade -> { $type, $value }. Dark uses the
+				// mirrored ramp. Always hex.
+				type Group = Record<
 					string,
 					Record<string, { $type: 'color'; $value: string }>
-				> = {}
+				>
+				const light: Group = {}
+				const dark: Group = {}
 				colorData.forEach(({ slug, shades }) => {
-					tokens[slug] = {}
-					shades.forEach(({ shade, hex }) => {
-						tokens[slug][shade] = { $type: 'color', $value: hex }
+					light[slug] = {}
+					dark[slug] = {}
+					const mirrored = colorUtils.mirrorHexes(
+						shades.map((s) => s.hex)
+					)
+					shades.forEach(({ shade, hex }, i) => {
+						light[slug][shade] = { $type: 'color', $value: hex }
+						dark[slug][shade] = {
+							$type: 'color',
+							$value: mirrored[i],
+						}
 					})
 				})
-				return JSON.stringify(tokens, null, 2)
+				return JSON.stringify({ light, dark }, null, 2)
 			}
 
 			default:
