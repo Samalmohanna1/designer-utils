@@ -137,6 +137,39 @@ export const colorUtils = {
         })
     },
 
+    // --- Shareable palette serialization ---
+    // A palette is encoded for the URL hash as `name:hex` pairs joined by
+    // commas, e.g. `blue:5799DB,brand:E11D48`. Names are slugified and hexes
+    // are stripped of '#'. Round-trips through encode/decode.
+
+    encodePalette(scales: { name: string; color: string }[]): string {
+        return scales
+            .map(({ name, color }) => {
+                const hex = color.replace('#', '').toUpperCase()
+                return `${colorUtils.slugify(name)}:${hex}`
+            })
+            .join(',')
+    },
+
+    // Parses the encoded string back into entries, dropping any malformed
+    // pair. Returns [] when nothing valid is found.
+    decodePalette(encoded: string): { name: string; color: string }[] {
+        if (!encoded) return []
+        return encoded
+            .split(',')
+            .map((pair) => {
+                const [rawName, rawHex] = pair.split(':')
+                if (!rawHex) return null
+                const hex = rawHex.trim()
+                if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null
+                const name = colorUtils.slugify(rawName ?? '')
+                return { name, color: `#${hex.toUpperCase()}` }
+            })
+            .filter(
+                (e): e is { name: string; color: string } => e !== null
+            )
+    },
+
     mixColors(
         color1: [number, number, number],
         color2: [number, number, number],
