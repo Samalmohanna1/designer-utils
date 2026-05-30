@@ -20,9 +20,10 @@ Three things the app does, top to bottom on one page:
 2. **Check contrast.** Every unique shade across every scale is paired against
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
-3. **Export code.** The scales are emitted as **CSS variables**, **Tailwind 3.4**
-   theme colors, or **Tailwind 4.1** `@theme` tokens, in **hex / HSL / RGB**,
-   with one-click copy.
+3. **Export.** The scales are emitted as **CSS variables**, **Tailwind 3.4**
+   theme colors, **Tailwind 4.1** `@theme` tokens (in **hex / HSL / RGB**), or a
+   **Markdown style guide** (a Hex + HSL table per color with WCAG
+   text-on-white/black notes), with one-click copy.
 
 Deployed at <https://tools.myol-creative.com/>. There is no backend — it's a
 fully static Astro site with a client-rendered React island.
@@ -69,7 +70,7 @@ src/
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
     ContrastChecker.tsx   Builds & sorts all accessible shade pairings into a table.
-    CodeBlock.tsx         Theme/color-format selectors + Prism-highlighted, copyable export.
+    CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS / Tailwind / Markdown).
   utils/
     colorUtils.ts         All color math + shared types. The one place logic lives.
   styles/
@@ -256,7 +257,8 @@ the live page reflects the merged commit before calling anything fixed.
   [CodeBlock](./src/components/CodeBlock.tsx) and
   [ContrastChecker](./src/components/ContrastChecker.tsx) labels go through
   `uniqueSlugs` so naming stays consistent. (This replaced the old positional
-  `color1`/`color2` naming.)
+  `color1`/`color2` naming.) The Markdown export uses the human `name`
+  (capitalized) for section headings rather than the slug.
 - **Shade** — one step on a scale, keyed by `shadeNumbers` `50 100 200 300 400
   500 600 700 800 900`. **500 is the unmodified base color.** Below 500 mixes
   toward white, above 500 toward black.
@@ -267,9 +269,12 @@ the live page reflects the merged commit before calling anything fixed.
   for the preview, not the ratio.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
-- **Theme format vs. color format** — *theme format* is the output syntax
-  (`css` variables, `tailwind3`, `tailwind4`); *color format* is the value
-  encoding (`hex`, `hsl`, `rgb`). They're independent selectors in `CodeBlock`.
+- **Format vs. color format** — *format* is the output syntax (`css` variables,
+  `tailwind3`, `tailwind4`, `markdown`); *color format* is the value encoding
+  (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`, except the color
+  format is hidden for `markdown` (which always emits a Hex + HSL table). The
+  Markdown branch builds from raw-hex shade data, not the `convertColor`
+  pipeline the code formats use.
 
 ---
 

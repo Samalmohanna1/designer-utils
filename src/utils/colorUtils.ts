@@ -203,5 +203,48 @@ export const colorUtils = {
         const darkest = Math.min(lum1, lum2)
 
         return (brightest + 0.05) / (darkest + 0.05)
-    }
+    },
+
+    // Which shades pass WCAG AA (>=4.5:1) as text on white and on black.
+    // Used by the style-guide export to annotate each scale.
+    textSafeShades(shadeHexes: string[]): {
+        onWhite: number[]
+        onBlack: number[]
+    } {
+        const onWhite: number[] = []
+        const onBlack: number[] = []
+        shadeHexes.forEach((hex, i) => {
+            const shade = colorUtils.shadeNumbers[i]
+            if (colorUtils.getContrastRatio(hex, '#FFFFFF') >= 4.5) {
+                onWhite.push(shade)
+            }
+            if (colorUtils.getContrastRatio(hex, '#000000') >= 4.5) {
+                onBlack.push(shade)
+            }
+        })
+        return { onWhite, onBlack }
+    },
+
+    // Compresses a sorted list of shade numbers into a readable range string,
+    // e.g. [600,700,800,900] -> "600-900", [50,200,900] -> "50, 200, 900".
+    formatShadeRanges(shades: number[]): string {
+        if (shades.length === 0) return 'none'
+        const order = colorUtils.shadeNumbers as readonly number[]
+        const parts: string[] = []
+        let start = shades[0]
+        let prev = shades[0]
+        const isNext = (a: number, b: number) =>
+            order.indexOf(b) === order.indexOf(a) + 1
+        for (let i = 1; i <= shades.length; i++) {
+            const cur = shades[i]
+            if (i < shades.length && isNext(prev, cur)) {
+                prev = cur
+                continue
+            }
+            parts.push(start === prev ? `${start}` : `${start}-${prev}`)
+            start = cur
+            prev = cur
+        }
+        return parts.join(', ')
+    },
 }
