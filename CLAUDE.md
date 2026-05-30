@@ -87,17 +87,22 @@ tests/                    Playwright specs.
 tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
-**`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL conversion, and
-WCAG luminance/contrast all live there as a single exported `colorUtils` object,
-plus the shared `ColorScale` / `ColorInfo` / `ColorCombination` types. Add new
-color logic here, not inline in components.
+**`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
+conversion, and WCAG luminance/contrast all live there as a single exported
+`colorUtils` object, plus the shared `ColorScale` / `ColorInfo` /
+`ColorCombination` types. Add new color logic here, not inline in components.
 
 #### How shades are generated
 
-`generateShades` walks the fixed `shadeNumbers` ramp `[50…900]`. For each step,
-`calculateMixPercentage` decides how far to mix the base color toward **white**
-(shades < 500) or **black** (shades ≥ 500); 500 is the unmixed base. So the base
-hex you enter is always the `500` swatch.
+`generateShades` works in **OKLCH** (a perceptual color space) so steps are
+visually even and hue stays stable across the ramp. The base color anchors
+**500** (`BASE_INDEX`) and is returned unchanged; lighter shades (50–400)
+interpolate lightness up toward `LIGHTEST_L`, darker shades (600–900) down toward
+`DARKEST_L`, keeping the base's hue. Chroma tapers toward the light/dark ends.
+`oklchToHex` does a binary-search **gamut map** — when a target is outside sRGB
+it lowers chroma (preserving hue + lightness) rather than clamping channels,
+which would shift the hue. So the base hex you enter is always the `500` swatch,
+and the ramp is monotonic in lightness for any input.
 
 #### Contrast table
 
@@ -265,8 +270,9 @@ the live page reflects the merged commit before calling anything fixed.
   `color1`/`color2` naming.) The Markdown export uses the human `name`
   (capitalized) for section headings rather than the slug.
 - **Shade** — one step on a scale, keyed by `shadeNumbers` `50 100 200 300 400
-  500 600 700 800 900`. **500 is the unmodified base color.** Below 500 mixes
-  toward white, above 500 toward black.
+  500 600 700 800 900`. **500 is the unmodified base color.** The ramp is built
+  in OKLCH: lighter shades step the lightness up, darker shades step it down,
+  holding the base's hue (see "How shades are generated").
 - **Contrast picker** — [ContrastChecker](./src/components/ContrastChecker.tsx)
   is a *pick-a-background → legible-foregrounds* flow (not a full pairings
   table). Results are the shades scoring ≥3:1 against the chosen background,
