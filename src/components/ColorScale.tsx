@@ -11,6 +11,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	}, [baseColor])
 
 	const [copied, setCopied] = useState<string | null>(null)
+	const [allCopied, setAllCopied] = useState(false)
 
 	const copyHex = (hex: string) => {
 		navigator.clipboard.writeText(hex)
@@ -18,7 +19,14 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 		setTimeout(() => setCopied(null), 1200)
 	}
 
+	const copyAll = () => {
+		navigator.clipboard.writeText(shades.join('\n'))
+		setAllCopied(true)
+		setTimeout(() => setAllCopied(false), 1200)
+	}
+
 	return (
+		<div className='flex flex-col gap-2xs'>
 		<div className='flex flex-wrap gap-2xs'>
 			{shades.map((hexCode, index) => {
 				const isCopied = copied === hexCode
@@ -52,6 +60,18 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 					</button>
 				)
 			})}
+		</div>
+		<button
+			type='button'
+			onClick={copyAll}
+			className={`self-start px-xs py-3xs rounded-sm text-step--2 font-roboto-condensed border ${
+				allCopied
+					? 'border-green-600 bg-green-200 text-green-800'
+					: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+			}`}
+		>
+			{allCopied ? 'All copied!' : 'Copy all'}
+		</button>
 		</div>
 	)
 }

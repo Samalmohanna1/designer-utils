@@ -111,6 +111,19 @@ const App = () => {
 		)
 	}, [])
 
+	const moveScale = useCallback((id: number, direction: -1 | 1) => {
+		setColorScales((prevScales) => {
+			const index = prevScales.findIndex((s) => s.id === id)
+			const target = index + direction
+			if (index < 0 || target < 0 || target >= prevScales.length) {
+				return prevScales
+			}
+			const next = [...prevScales]
+			;[next[index], next[target]] = [next[target], next[index]]
+			return next
+		})
+	}, [])
+
 	const handleNameChange = useCallback((id: number, newName: string) => {
 		setColorScales((prevScales) =>
 			prevScales.map((s) =>
@@ -130,6 +143,26 @@ const App = () => {
 		setLinkCopied(true)
 		setTimeout(() => setLinkCopied(false), 2000)
 	}, [])
+
+	const [bulkOpen, setBulkOpen] = useState(false)
+	const [bulkText, setBulkText] = useState('')
+	const addFromHexList = useCallback(() => {
+		const hexes = colorUtils.parseHexList(bulkText)
+		if (hexes.length === 0) return
+		setColorScales((prevScales) => {
+			let id = nextId
+			const added: ScaleState[] = hexes.map((color) => ({
+				id: id++,
+				color,
+				name: colorUtils.nameFromHex(color),
+				nameEdited: false,
+			}))
+			setNextId(id)
+			return [...prevScales, ...added]
+		})
+		setBulkText('')
+		setBulkOpen(false)
+	}, [bulkText, nextId])
 
 	return (
 		<>
@@ -162,7 +195,7 @@ const App = () => {
 				</div>
 			</div>
 			<section className='tracking-tight container p-s mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
-				{colorScales.map((scale) => (
+				{colorScales.map((scale, index) => (
 					<div
 						key={scale.id}
 						className='py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-s'
@@ -180,40 +213,105 @@ const App = () => {
 								}
 							/>
 							{colorScales.length > 1 && (
-								<button
-									onClick={() => removeColorScale(scale.id)}
-									className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 font-roboto-condensed flex items-center justify-center gap-3xs max-w-36'
-								>
-									<svg
-										xmlns='http://www.w3.org/2000/svg'
-										viewBox='0 0 448 512'
-										className='w-3 h-3 fill-current'
+								<div className='flex gap-3xs'>
+									<button
+										onClick={() => moveScale(scale.id, -1)}
+										disabled={index === 0}
+										aria-label='Move color up'
+										title='Move up'
+										className='px-2xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current'
 									>
-										<path d='M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C304.4 6.8 292.3 0 279.2 0L168.8 0c-13.1 0-25.2 6.8-32.6 17.7zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64L32 128zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z' />
-									</svg>
-									Remove
-								</button>
+										↑
+									</button>
+									<button
+										onClick={() => moveScale(scale.id, 1)}
+										disabled={
+											index === colorScales.length - 1
+										}
+										aria-label='Move color down'
+										title='Move down'
+										className='px-2xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current'
+									>
+										↓
+									</button>
+									<button
+										onClick={() => removeColorScale(scale.id)}
+										aria-label='Remove color'
+										className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 font-roboto-condensed flex items-center justify-center gap-3xs'
+									>
+										<svg
+											xmlns='http://www.w3.org/2000/svg'
+											viewBox='0 0 448 512'
+											className='w-3 h-3 fill-current'
+										>
+											<path d='M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C304.4 6.8 292.3 0 279.2 0L168.8 0c-13.1 0-25.2 6.8-32.6 17.7zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64L32 128zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z' />
+										</svg>
+										Remove
+									</button>
+								</div>
 							)}
 						</div>
 						<ColorScale2 baseColor={scale.color} />
 					</div>
 				))}
 
-				<button
-					onClick={addColorScale}
-					className='mt-s px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
-				>
-					<span className='inline-block mr-2xs'>
-						<svg
-							xmlns='http://www.w3.org/2000/svg'
-							viewBox='0 0 448 512'
-							className='w-4 h-4 fill-current'
+				<div className='mt-s flex flex-wrap gap-xs'>
+					<button
+						onClick={addColorScale}
+						className='px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
+					>
+						<span className='inline-block mr-2xs'>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								viewBox='0 0 448 512'
+								className='w-4 h-4 fill-current'
+							>
+								<path d='M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z' />
+							</svg>
+						</span>
+						Add a Color
+					</button>
+					<button
+						onClick={() => setBulkOpen((o) => !o)}
+						aria-expanded={bulkOpen}
+						className='px-xs py-2xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 font-roboto-condensed text-step--2'
+					>
+						{bulkOpen ? 'Cancel' : 'Paste a list'}
+					</button>
+				</div>
+
+				{bulkOpen && (
+					<div className='mt-s flex flex-col gap-2xs'>
+						<label
+							htmlFor='bulk-hex'
+							className='text-step--2 font-roboto-condensed'
 						>
-							<path d='M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z' />
-						</svg>
-					</span>
-					Add a Color
-				</button>
+							Paste hex values (commas, spaces, or new lines)
+						</label>
+						<textarea
+							id='bulk-hex'
+							rows={3}
+							value={bulkText}
+							onChange={(e) => setBulkText(e.target.value)}
+							placeholder='#5799DB, #E11D48, #16A34A'
+							className='w-full max-w-xl px-2xs py-3xs rounded-sm border border-black-100 text-step--2 font-mono'
+						/>
+						<button
+							onClick={addFromHexList}
+							disabled={
+								colorUtils.parseHexList(bulkText).length === 0
+							}
+							className='self-start px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
+						>
+							Add{' '}
+							{colorUtils.parseHexList(bulkText).length || ''}{' '}
+							color
+							{colorUtils.parseHexList(bulkText).length === 1
+								? ''
+								: 's'}
+						</button>
+					</div>
+				)}
 			</section>
 
 			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
