@@ -10,7 +10,13 @@ interface CodeBlockProps {
 	colorScales: ColorScale[]
 }
 
-type ThemeFormat = 'tailwind3' | 'tailwind4' | 'css' | 'markdown' | 'tokens'
+type ThemeFormat =
+	| 'tailwind3'
+	| 'tailwind4'
+	| 'css'
+	| 'cssDark'
+	| 'markdown'
+	| 'tokens'
 type ColorFormat = 'hex' | 'hsl' | 'rgb'
 
 type ShadeNumber = (typeof colorUtils.shadeNumbers)[number]
@@ -131,6 +137,45 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				return `:root {\n${body}\n}`
 			}
 
+			case 'cssDark': {
+				const light = colorData
+					.flatMap(({ slug, shades }) =>
+						shades.map(
+							({ shade, hex }) =>
+								`  --${slug}-${shade}: ${convertColor(
+									hex,
+									colorFormat
+								)};`
+						)
+					)
+					.join('\n')
+
+				// Dark mode mirrors the ramp: each shade takes the value of its
+				// opposite end (50<->900, 100<->800, ...), so light tints become
+				// dark shades and vice versa, keeping hue and chroma.
+				const dark = colorData
+					.flatMap(({ slug, shades }) =>
+						shades.map(({ shade }, i) => {
+							const mirror = shades[shades.length - 1 - i]
+							return `    --${slug}-${shade}: ${convertColor(
+								mirror.hex,
+								colorFormat
+							)};`
+						})
+					)
+					.join('\n')
+
+				return [
+					`:root {\n${light}\n}`,
+					'',
+					'@media (prefers-color-scheme: dark) {',
+					'  :root {',
+					dark,
+					'  }',
+					'}',
+				].join('\n')
+			}
+
 			case 'markdown': {
 				const capitalize = (s: string) =>
 					s.charAt(0).toUpperCase() + s.slice(1)
@@ -238,6 +283,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 						>
 							<option value='css'>CSS Variables</option>
+							<option value='cssDark'>CSS + Dark Mode</option>
 							<option value='tailwind3'>Tailwind 3.4</option>
 							<option value='tailwind4'>Tailwind 4.1</option>
 							<option value='markdown'>Style Guide (Markdown)</option>

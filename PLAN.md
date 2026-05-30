@@ -70,9 +70,6 @@ Tiers are rough guidance, not a strict order.
 
 ### Tier 2 — handoff bridges (export depth)
 
-- **Dark-mode pairing** — emit a `:root` + `prefers-color-scheme: dark` (or
-  `[data-theme]`) block with the ramp inverted (900↔50). Devs hand-build this
-  today.
 - **SCSS** variables / map, and **cross-platform** formats (Android
   `colors.xml`, iOS `UIColor` / SwiftUI `Color`).
 - **Swatch files** — `.ase` / `.aco` for direct import into design tools.
@@ -114,3 +111,7 @@ Tiers are rough guidance, not a strict order.
   (perceptual): base anchors 500, lightness interpolates to fixed light/dark
   endpoints holding hue, chroma tapers at the ends, with binary-search gamut
   mapping. Even, hue-stable steps replacing the sRGB white/black mix.
+- **CSS + Dark Mode export** (branch `feature/dark-mode-export`). New `cssDark`
+  format: the `:root` light block plus a `@media (prefers-color-scheme: dark)`
+  block where each shade takes its mirror value (50↔900, …), keeping hue/chroma.
+  Respects the color-format selector.
