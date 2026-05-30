@@ -4,12 +4,13 @@ import Prism from 'prismjs'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-markdown'
+import 'prismjs/components/prism-json'
 
 interface CodeBlockProps {
 	colorScales: ColorScale[]
 }
 
-type ThemeFormat = 'tailwind3' | 'tailwind4' | 'css' | 'markdown'
+type ThemeFormat = 'tailwind3' | 'tailwind4' | 'css' | 'markdown' | 'tokens'
 type ColorFormat = 'hex' | 'hsl' | 'rgb'
 
 type ShadeNumber = (typeof colorUtils.shadeNumbers)[number]
@@ -31,8 +32,14 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 	const [themeFormat, setThemeFormat] = useState<ThemeFormat>('css')
 	const [colorFormat, setColorFormat] = useState<ColorFormat>('hex')
 
-	const isMarkdown = themeFormat === 'markdown'
-	const language = isMarkdown ? 'markdown' : 'css'
+	// Formats whose values are fixed (not driven by the color-format selector).
+	const fixedColorFormat = themeFormat === 'markdown' || themeFormat === 'tokens'
+	const language =
+		themeFormat === 'markdown'
+			? 'markdown'
+			: themeFormat === 'tokens'
+			? 'json'
+			: 'css'
 
 	const convertColor = (hex: string, format: ColorFormat): string => {
 		switch (format) {
@@ -168,6 +175,22 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				].join('\n\n')
 			}
 
+			case 'tokens': {
+				// W3C Design Tokens (DTCG) format: groups keyed by slug, each
+				// shade a { $type: "color", $value: "#hex" } token. Always hex.
+				const tokens: Record<
+					string,
+					Record<string, { $type: 'color'; $value: string }>
+				> = {}
+				colorData.forEach(({ slug, shades }) => {
+					tokens[slug] = {}
+					shades.forEach(({ shade, hex }) => {
+						tokens[slug][shade] = { $type: 'color', $value: hex }
+					})
+				})
+				return JSON.stringify(tokens, null, 2)
+			}
+
 			default:
 				return ''
 		}
@@ -218,10 +241,11 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							<option value='tailwind3'>Tailwind 3.4</option>
 							<option value='tailwind4'>Tailwind 4.1</option>
 							<option value='markdown'>Style Guide (Markdown)</option>
+							<option value='tokens'>Design Tokens (JSON)</option>
 						</select>
 					</div>
 
-					{!isMarkdown && (
+					{!fixedColorFormat && (
 						<div className='space-y-3xs'>
 							<label
 								htmlFor='color format'

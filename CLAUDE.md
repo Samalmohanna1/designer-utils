@@ -21,9 +21,10 @@ What the app does, top to bottom on one page:
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
 3. **Export.** The scales are emitted as **CSS variables**, **Tailwind 3.4**
-   theme colors, **Tailwind 4.1** `@theme` tokens (in **hex / HSL / RGB**), or a
+   theme colors, **Tailwind 4.1** `@theme` tokens (in **hex / HSL / RGB**), a
    **Markdown style guide** (a Hex + HSL table per color with WCAG
-   text-on-white/black notes), with one-click copy.
+   text-on-white/black notes), or **W3C Design Tokens (DTCG) JSON** (always hex),
+   with one-click copy.
 4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
    updates the link live and a shared link reopens the exact palette. Also
    autosaved to `localStorage` (written, but not auto-restored — the URL or the
@@ -274,11 +275,14 @@ the live page reflects the merged commit before calling anything fixed.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
 - **Format vs. color format** — *format* is the output syntax (`css` variables,
-  `tailwind3`, `tailwind4`, `markdown`); *color format* is the value encoding
-  (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`, except the color
-  format is hidden for `markdown` (which always emits a Hex + HSL table). The
-  Markdown branch builds from raw-hex shade data, not the `convertColor`
-  pipeline the code formats use.
+  `tailwind3`, `tailwind4`, `markdown`, `tokens`); *color format* is the value
+  encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`, except
+  the color format is hidden for the fixed-value formats (`markdown` → Hex + HSL
+  table; `tokens` → always hex). Those two build from raw-hex shade data, not the
+  `convertColor` pipeline the code formats use. `tokens` emits W3C Design Tokens
+  (DTCG): `{ slug: { shade: { $type: "color", $value: "#hex" } } }`, keyed by the
+  de-duped slug. The Prism language switches `css` / `markdown` / `json` by
+  format.
 - **Palette sharing** — the palette serializes to `name:hex,…`
   (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
   the `#p=` prefix. `App` reads it once on mount (a valid hash wins over the
