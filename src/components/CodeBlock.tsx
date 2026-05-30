@@ -10,7 +10,13 @@ interface CodeBlockProps {
 	colorScales: ColorScale[]
 }
 
-type ThemeFormat = 'tailwind3' | 'tailwind4' | 'css' | 'markdown' | 'tokens'
+type ThemeFormat =
+	| 'tailwind3'
+	| 'tailwind4'
+	| 'css'
+	| 'cssDark'
+	| 'markdown'
+	| 'tokens'
 type ColorFormat = 'hex' | 'hsl' | 'rgb'
 
 type ShadeNumber = (typeof colorUtils.shadeNumbers)[number]
@@ -113,7 +119,25 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 						)
 					)
 					.join('\n')
-				return `@theme {\n${body}\n}`
+
+				// Dark mode overrides the same custom properties under .dark,
+				// for Tailwind 4's class-based dark variant. Mirrored ramp.
+				const dark = colorData
+					.flatMap(({ slug, shades }) => {
+						const mirrored = colorUtils.mirrorHexes(
+							shades.map((s) => s.hex)
+						)
+						return shades.map(
+							({ shade }, i) =>
+								`  --color-${slug}-${shade}: ${convertColor(
+									mirrored[i],
+									colorFormat
+								)};`
+						)
+					})
+					.join('\n')
+
+				return `@theme {\n${body}\n}\n\n.dark {\n${dark}\n}`
 			}
 
 			case 'css': {
@@ -131,17 +155,59 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				return `:root {\n${body}\n}`
 			}
 
+			case 'cssDark': {
+				const light = colorData
+					.flatMap(({ slug, shades }) =>
+						shades.map(
+							({ shade, hex }) =>
+								`  --${slug}-${shade}: ${convertColor(
+									hex,
+									colorFormat
+								)};`
+						)
+					)
+					.join('\n')
+
+				// Dark mode mirrors the ramp (see colorUtils.mirrorHexes).
+				const dark = colorData
+					.flatMap(({ slug, shades }) => {
+						const mirrored = colorUtils.mirrorHexes(
+							shades.map((s) => s.hex)
+						)
+						return shades.map(
+							({ shade }, i) =>
+								`    --${slug}-${shade}: ${convertColor(
+									mirrored[i],
+									colorFormat
+								)};`
+						)
+					})
+					.join('\n')
+
+				return [
+					`:root {\n${light}\n}`,
+					'',
+					'@media (prefers-color-scheme: dark) {',
+					'  :root {',
+					dark,
+					'  }',
+					'}',
+				].join('\n')
+			}
+
 			case 'markdown': {
 				const capitalize = (s: string) =>
 					s.charAt(0).toUpperCase() + s.slice(1)
 
 				const sections = colorData.map(({ name, shades }) => {
+					// Dark column: the value each shade maps to in dark mode.
+					const dark = colorUtils.mirrorHexes(shades.map((s) => s.hex))
 					const rows = shades
 						.map(
-							({ shade, hex }) =>
+							({ shade, hex }, i) =>
 								`| ${shade} | \`${hex}\` | \`${colorUtils.hexToHSL(
 									hex
-								)}\` |`
+								)}\` | \`${dark[i]}\` |`
 						)
 						.join('\n')
 
@@ -152,8 +218,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 					return [
 						`## ${capitalize(name)}`,
 						'',
-						'| Shade | Hex | HSL |',
-						'| ----: | --- | --- |',
+						'| Shade | Hex | HSL | Dark |',
+						'| ----: | --- | --- | --- |',
 						rows,
 						'',
 						`- **Text on white** (AA): ${colorUtils.formatShadeRanges(
@@ -168,27 +234,40 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				return [
 					'# Color Palette',
 					'',
-					'Generated color scales. Accessibility notes list the shades',
-					'that pass WCAG AA (≥4.5:1) as text on a white or black background.',
+					'Generated color scales. The **Dark** column is the value each',
+					'shade maps to in dark mode (the ramp mirrored). Accessibility',
+					'notes list the shades that pass WCAG AA (≥4.5:1) as text on a',
+					'white or black background.',
 					'',
 					...sections,
 				].join('\n\n')
 			}
 
 			case 'tokens': {
-				// W3C Design Tokens (DTCG) format: groups keyed by slug, each
-				// shade a { $type: "color", $value: "#hex" } token. Always hex.
-				const tokens: Record<
+				// W3C Design Tokens (DTCG): top-level `light` and `dark` groups,
+				// each keyed by slug -> shade -> { $type, $value }. Dark uses the
+				// mirrored ramp. Always hex.
+				type Group = Record<
 					string,
 					Record<string, { $type: 'color'; $value: string }>
-				> = {}
+				>
+				const light: Group = {}
+				const dark: Group = {}
 				colorData.forEach(({ slug, shades }) => {
-					tokens[slug] = {}
-					shades.forEach(({ shade, hex }) => {
-						tokens[slug][shade] = { $type: 'color', $value: hex }
+					light[slug] = {}
+					dark[slug] = {}
+					const mirrored = colorUtils.mirrorHexes(
+						shades.map((s) => s.hex)
+					)
+					shades.forEach(({ shade, hex }, i) => {
+						light[slug][shade] = { $type: 'color', $value: hex }
+						dark[slug][shade] = {
+							$type: 'color',
+							$value: mirrored[i],
+						}
 					})
 				})
-				return JSON.stringify(tokens, null, 2)
+				return JSON.stringify({ light, dark }, null, 2)
 			}
 
 			default:
@@ -238,6 +317,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 						>
 							<option value='css'>CSS Variables</option>
+							<option value='cssDark'>CSS + Dark Mode</option>
 							<option value='tailwind3'>Tailwind 3.4</option>
 							<option value='tailwind4'>Tailwind 4.1</option>
 							<option value='markdown'>Style Guide (Markdown)</option>
