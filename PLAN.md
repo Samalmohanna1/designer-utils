@@ -73,3 +73,7 @@ color (a `500`), auto-named via `colorUtils.nameFromHex`.
   Palette serialized to the URL hash (`#p=name:hex,…`) with live sync + a copy
   link button; `localStorage` autosave (write-only, not auto-restored). URL wins
   over default on load; malformed hashes fall back to the default.
+- **Design Tokens (DTCG) JSON export** (branch `feature/design-tokens-export`).
+  New `tokens` format in `CodeBlock` emitting W3C Design Tokens
+  (`{ slug: { shade: { $type, $value } } }`, always hex) for Style Dictionary /
+  Tokens Studio / Figma; JSON syntax-highlighted; color-format selector hidden.
