@@ -1,0 +1,277 @@
+# CLAUDE.md
+
+Project context and working rules for Claude Code in this repo. This file is
+the source of truth for how to work on this codebase. Re-read it when in doubt
+about architecture or conventions.
+
+---
+
+## What this is
+
+**Color Scale Generator** — a single-page web tool (part of the "Designer Utils"
+/ MYOL Creative tools suite) that lets designers and developers build color
+scales from base colors, check WCAG contrast across all generated shades, and
+export the result as ready-to-paste code.
+
+Three things the app does, top to bottom on one page:
+
+1. **Generate scales.** Enter one or more base hex colors; each expands into a
+   10-step shade ramp (50–900).
+2. **Check contrast.** Every unique shade across every scale is paired against
+   every other, and combinations meeting at least 3:1 are listed with their
+   WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
+3. **Export code.** The scales are emitted as **CSS variables**, **Tailwind 3.4**
+   theme colors, or **Tailwind 4.1** `@theme` tokens, in **hex / HSL / RGB**,
+   with one-click copy.
+
+Deployed at <https://tools.myol-creative.com/>. There is no backend — it's a
+fully static Astro site with a client-rendered React island.
+
+## Companion docs
+
+- **[PLAN.md](./PLAN.md)** — tracked follow-up work. Read the relevant item
+  before starting it; mark items done as they ship.
+- **[README.md](./README.md)** — setup, local dev, deploy. <!-- keep in sync -->
+
+Keep CLAUDE.md, PLAN.md, and README.md **in sync with reality**. When a change
+makes any of them stale — new surface, new dependency, removed file, changed
+command — the doc update is **part of that change, not a follow-up**.
+
+---
+
+## Stack & architecture
+
+- **Astro 5** static site (`output` default = static). Config in
+  [astro.config.mjs](./astro.config.mjs).
+- **React 19** for interactivity, via `@astrojs/react`. The entire app is one
+  React island mounted with `client:load` in [src/pages/index.astro](./src/pages/index.astro).
+- **Tailwind CSS 4** via the `@tailwindcss/vite` plugin (no `tailwind.config`
+  file — theme is defined in CSS with `@theme`, see
+  [src/styles/global.css](./src/styles/global.css)).
+- **Prism.js** for syntax-highlighting the exported code block
+  (`prism-tomorrow` theme, CSS grammar).
+- **PostHog** analytics, initialized inline in
+  [src/layouts/Layout.astro](./src/layouts/Layout.astro).
+- **Playwright** for end-to-end tests, run in CI via GitHub Actions.
+- **TypeScript** throughout (`astro/tsconfigs/strict` — see
+  [tsconfig.json](./tsconfig.json)).
+
+No database, no auth, no API. All color math runs in the browser.
+
+### Project layout
+
+```
+src/
+  pages/index.astro       Single route. Wraps <App> in the layout + footer.
+  layouts/Layout.astro    HTML shell: meta/OG/Twitter tags, PostHog init, bg pattern.
+  components/
+    App.tsx               Root island. Owns colorScales state; composes the three sections.
+    ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
+    ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
+    ContrastChecker.tsx   Builds & sorts all accessible shade pairings into a table.
+    CodeBlock.tsx         Theme/color-format selectors + Prism-highlighted, copyable export.
+  utils/
+    colorUtils.ts         All color math + shared types. The one place logic lives.
+  styles/
+    global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
+    reset.css             CSS reset (imported into the base layer).
+  assets/                 SVGs used by the build.
+public/                   Static files served as-is: fonts/, favicon.svg, og-image.png.
+tests/                    Playwright specs.
+tests-examples/           Playwright's generated demo spec (not part of the suite).
+```
+
+**`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL conversion, and
+WCAG luminance/contrast all live there as a single exported `colorUtils` object,
+plus the shared `ColorScale` / `ColorInfo` / `ColorCombination` types. Add new
+color logic here, not inline in components.
+
+#### How shades are generated
+
+`generateShades` walks the fixed `shadeNumbers` ramp `[50…900]`. For each step,
+`calculateMixPercentage` decides how far to mix the base color toward **white**
+(shades < 500) or **black** (shades ≥ 500); 500 is the unmixed base. So the base
+hex you enter is always the `500` swatch.
+
+#### Contrast table
+
+`ContrastChecker` flattens every scale's shades, dedupes by hex, then compares
+every unique pair (O(n²)). Pairs scoring ≥ 3:1 are kept and sorted high-to-low.
+Thresholds: **AAA ≥ 7**, **AA ≥ 4.5**, **AA Large ≥ 3.1**.
+
+---
+
+## Coding conventions
+
+- **TypeScript strict.** No `any` / `@ts-ignore` without a same-line written
+  justification. The build fails on type errors; don't paper over them.
+- **Color/contrast logic lives in [colorUtils.ts](./src/utils/colorUtils.ts).**
+  Don't reimplement hex parsing, mixing, or contrast math inside a component —
+  import it. If a value or helper is reused, lift it into `colorUtils`.
+- **Tailwind 4, CSS-first.** Design tokens (colors like `cream-*`, `black-*`,
+  `yellow-*`; fluid type `text-step-*`; spacing `2xs`/`s`/`xl`; fonts) are
+  defined in [global.css](./src/styles/global.css) under `@theme`. Use the
+  existing tokens; add a new one to `@theme` before using it rather than
+  hardcoding hex/px inline. There is **no `tailwind.config` file** — don't add
+  one to define theme values.
+- **No comments unless the WHY is non-obvious** — a hidden constraint or a
+  surprising workaround. Don't explain WHAT the code does. No `TODO`s without an
+  owner.
+- **Single responsibility.** One React component per file, default-exported.
+  Keep state ownership in `App.tsx`; child components stay presentational and
+  receive props.
+- **Naming:** PascalCase components/types (and component file names, matching
+  the existing files), camelCase functions/variables, SCREAMING_SNAKE for
+  constants. Descriptive names; no obscure abbreviations.
+- **No dead code.** No commented-out blocks or scaffolding for unagreed
+  features. Prefer deletion over deprecation. (Note: `ContrastLevel.tsx` imports
+  a `ColorCombo` component that doesn't exist and is unused by `App` — treat it
+  as stale; clean it up if you touch that area.)
+- **No emojis in code or commit messages** unless explicitly asked. (The
+  decorative emoji *entities* in `App.tsx`/`index.astro` headings are existing
+  user-facing copy — leave them unless asked to change the copy.)
+
+## Dependency policy
+
+Keep dependencies minimal. **Do not add libraries** unless the task explicitly
+requires them — justify any new dependency in your message *before* installing.
+The whole tool runs on hand-written color math with no color library on purpose.
+
+Current dependencies and why:
+
+- `astro`, `@astrojs/react`, `react`, `react-dom` — framework + interactive island.
+- `tailwindcss`, `@tailwindcss/vite` — styling.
+- `prismjs` (`@types/prismjs`) — syntax highlighting in the export block.
+- `posthog-js` — product analytics.
+- `@playwright/test` — end-to-end tests.
+
+---
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start Astro dev server at `http://localhost:4321`. |
+| `npm run build` | Static production build. |
+| `npm run preview` | Serve the built output locally. |
+| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev`). |
+
+There is **no separate lint script.** Type checking comes from the strict
+`tsconfig` at build time; run `npm run build` to catch type errors.
+
+---
+
+## Testing
+
+- **Playwright e2e** under [tests/](./tests/), configured in
+  [playwright.config.ts](./playwright.config.ts). The config starts the dev
+  server automatically and runs chromium/firefox/webkit.
+- **`tests-examples/` is Playwright's generated demo** — not part of the real
+  suite. Don't extend it.
+- Note the existing `tests/example.spec.ts` is **scaffolding** (a "get started"
+  assertion that doesn't match this app's UI). When adding real coverage,
+  replace it rather than building on it, and assert on actual behavior — scale
+  generation, the contrast table, format switching, copy-to-clipboard.
+- **Test feature behavior, not just that the page loads.** For color math,
+  cover `colorUtils` directly (shade ramp endpoints, contrast thresholds at
+  3.1/4.5/7, hex/HSL/RGB conversion).
+- Tests must pass before a change is considered complete; CI
+  ([.github/workflows/playwright.yml](./.github/workflows/playwright.yml)) runs
+  them on every push/PR to `main`.
+
+## Design system & UX standards
+
+- **Pull colors, type, and spacing from the `@theme` tokens** in
+  [global.css](./src/styles/global.css) rather than inventing inline values. If
+  a value isn't there, add it to `@theme` first, then use it.
+- **This tool is itself an accessibility utility — hold its own UI to a high
+  bar.** Target WCAG AAA contrast (7:1 normal text, 4.5:1 large) for the app's
+  own chrome. Verify pairs; don't eyeball them.
+- **Accessibility beyond contrast:** semantic HTML first, ARIA only when needed.
+  Every form control has a label (note `ColorInput` uses an `sr-only` label and
+  the selects in `CodeBlock` use `htmlFor`). Keyboard navigation and visible
+  focus on every interactive element; the contrast table is scrollable via
+  `tabIndex`.
+- **Mobile-first / responsive.** Layout already switches at `sm:`/`md:`
+  breakpoints and type is fluid (`clamp`-based `text-step-*`). Test at
+  representative widths before calling a change done.
+
+---
+
+## Git & workflow
+
+> ### ⚠ Never work on `main`.
+>
+> **Before the first file edit of any task, run `git branch --show-current`.**
+> If it returns `main`, create a branch *before* the first edit:
+>
+> ```
+> git fetch origin
+> git checkout -b <type>/<short-name> origin/main
+> ```
+
+- **Branch fresh, don't reuse.** Cut each task branch from `origin/main`. Prefer
+  `fetch` over `pull`. One branch per logical change; one PR per branch. This
+  repo's history shows the convention clearly (e.g. `chore/updatePackages`,
+  `style/layoutFix`, `fix/acsb`).
+- **Branch naming:** semantic prefix + kebab-case slug, slash-separated:
+  - `feature/` — new functionality
+  - `fix/` — bug fixes
+  - `chore/` — maintenance, deps, config, docs
+  - `refactor/` — restructuring with no behavior change
+  - `style/` — visual polish, no behavior change
+  - `test/` — adding or improving tests
+- **Commits:** small, focused, conventional prefix (`feat:`, `fix:`,
+  `refactor:`, `chore:`, `style:`, `docs:`). The *why* in the body when it isn't
+  obvious. Always create new commits — never amend pushed commits.
+- **No AI attribution.** Never add `Co-Authored-By` or any AI-attribution
+  trailer. Commits are authored solely by the user's git config.
+- **Don't push or merge to `main` yourself.** After checks pass, stage and
+  commit. The user reviews and opens the PR (the workflow here is PR-based —
+  merged via GitHub pull requests).
+- **Surface the PR description in chat when a branch is ready** — full Summary +
+  Test plan, ready to paste.
+- **Confirm before destructive ops** (`reset --hard`, force-push, `branch -D`,
+  `clean -f`, `--no-verify`). Read-only investigation never needs confirmation.
+
+## Deploy
+
+The site is static and published at <https://tools.myol-creative.com/>. Deploys
+track `main` (merge the PR → production rebuilds). After a deploy, sanity-check
+the live page reflects the merged commit before calling anything fixed.
+
+---
+
+## Domain glossary
+
+- **Scale** — one base color and the 10 shades derived from it. The app supports
+  multiple scales at once; each has a numeric `id`. In exported code they're
+  named `color1`, `color2`, … by their **1-based position** (`scaleIndex + 1`),
+  *not* by `id`.
+- **Shade** — one step on a scale, keyed by `shadeNumbers` `50 100 200 300 400
+  500 600 700 800 900`. **500 is the unmodified base color.** Below 500 mixes
+  toward white, above 500 toward black.
+- **Combination** — an ordered pair of shades shown in the contrast table:
+  `color1` is foreground, `color2` is background.
+- **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
+  table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
+- **Theme format vs. color format** — *theme format* is the output syntax
+  (`css` variables, `tailwind3`, `tailwind4`); *color format* is the value
+  encoding (`hex`, `hsl`, `rgb`). They're independent selectors in `CodeBlock`.
+
+---
+
+## Rules for Claude (summary)
+
+- Do NOT add features, services, or dependencies not asked for. No color
+  libraries — the math is intentionally hand-written in `colorUtils.ts`.
+- Keep all color/contrast logic in `colorUtils.ts`; keep components
+  presentational with state owned by `App.tsx`.
+- Use existing `@theme` tokens; add to `@theme` before hardcoding values. No
+  `tailwind.config` file.
+- Always create a new branch; never work on `main`.
+- Run `npm run build` (type check) and `npx playwright test` before calling a
+  change complete.
+- Never add AI co-author trailers.
+- Commit after checks pass, but never push — the user opens the PR after review.
+- When in doubt about architecture, re-read this file.
