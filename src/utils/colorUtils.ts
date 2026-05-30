@@ -1,6 +1,7 @@
 export interface ColorScale {
     id: number
     color: string
+    name: string
 }
 
 export interface ColorInfo {
@@ -55,6 +56,11 @@ export const colorUtils = {
     },
 
     hexToHSL(hex: string): string {
+        const { h, s, l } = colorUtils.hexToHSLValues(hex)
+        return `hsla(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%, 1)`
+    },
+
+    hexToHSLValues(hex: string): { h: number; s: number; l: number } {
         let [r, g, b] = colorUtils.hexToRgb(hex).map((x) => x / 255)
         const max = Math.max(r, g, b)
         const min = Math.min(r, g, b)
@@ -78,9 +84,57 @@ export const colorUtils = {
             }
             h /= 6
         }
-        return `hsla(${Math.round(h * 360)}, ${Math.round(s * 100)}%, ${Math.round(
-            l * 100
-        )}%, 1)`
+        return { h: h * 360, s: s * 100, l: l * 100 }
+    },
+
+    // Maps a hex to a human-friendly hue name (e.g. "blue", "slate").
+    // Hand-rolled from HSL so there's no color-name dependency.
+    nameFromHex(hex: string): string {
+        const { h, s, l } = colorUtils.hexToHSLValues(hex)
+
+        if (l <= 8) return 'black'
+        if (l >= 95 && s <= 12) return 'white'
+        if (s <= 10) {
+            if (l <= 30) return 'charcoal'
+            if (l <= 55) return 'gray'
+            return 'silver'
+        }
+
+        const hues: [number, string][] = [
+            [15, 'red'],
+            [45, 'orange'],
+            [70, 'yellow'],
+            [160, 'green'],
+            [200, 'teal'],
+            [250, 'blue'],
+            [290, 'purple'],
+            [330, 'pink'],
+            [360, 'red'],
+        ]
+        const base = hues.find(([max]) => h <= max)?.[1] ?? 'color'
+        if (s <= 30) return `muted-${base}`
+        return base
+    },
+
+    slugify(name: string): string {
+        const slug = name
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+        return slug || 'color'
+    },
+
+    // Turns scale names into unique, export-safe slugs, preserving order.
+    // Collisions get a numeric suffix: blue, blue-2, blue-3.
+    uniqueSlugs(names: string[]): string[] {
+        const counts = new Map<string, number>()
+        return names.map((name) => {
+            const base = colorUtils.slugify(name)
+            const seen = counts.get(base) ?? 0
+            counts.set(base, seen + 1)
+            return seen === 0 ? base : `${base}-${seen + 1}`
+        })
     },
 
     mixColors(
@@ -91,6 +145,24 @@ export const colorUtils = {
         return color1.map((c, i) =>
             Math.round(c * (1 - weight) + color2[i] * weight)
         ) as [number, number, number]
+    },
+
+    hslToHex(h: number, s: number, l: number): string {
+        const sFrac = s / 100
+        const lFrac = l / 100
+        const k = (n: number) => (n + h / 30) % 12
+        const a = sFrac * Math.min(lFrac, 1 - lFrac)
+        const f = (n: number) =>
+            lFrac - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))
+        return colorUtils.rgbToHex(f(0) * 255, f(8) * 255, f(4) * 255)
+    },
+
+    // A distinct starting color for the Nth scale, so new scales don't
+    // collapse into each other in the dedupe. Walks the hue wheel by a
+    // golden-angle step for good visual separation.
+    defaultColorForIndex(index: number): string {
+        const hue = (210 + index * 137.508) % 360
+        return colorUtils.hslToHex(hue, 65, 60)
     },
 
     generateShades(baseColor: string): string[] {
