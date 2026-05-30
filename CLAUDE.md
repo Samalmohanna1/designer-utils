@@ -262,6 +262,9 @@ the live page reflects the merged commit before calling anything fixed.
   `name`. The `name` is **auto-derived from the hue** (`colorUtils.nameFromHex`,
   e.g. blue) until the user edits it, after which it's left alone (tracked by
   `nameEdited` in `App`'s local state, *not* on the shared `ColorScale` type).
+  **Array order is the export/contrast order** — up/down buttons reorder it.
+  Scales can be bulk-created by pasting a hex list (`colorUtils.parseHexList`),
+  and each scale's ramp can be copied wholesale ("Copy all").
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`

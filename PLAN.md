@@ -65,29 +65,14 @@ color (a `500`), auto-named via `colorUtils.nameFromHex`.
 
 ## Feature roadmap
 
-Prioritized by leverage for the designer workflow and the designer→dev handoff.
-Tiers are rough guidance, not a strict order.
+Remaining quick wins (low effort, daily value). Earlier tiers (SCSS /
+cross-platform exports, swatch files, APCA, suggest-a-passing-shade) were
+dropped from scope.
 
-### Tier 2 — handoff bridges (export depth)
-
-- **SCSS** variables / map, and **cross-platform** formats (Android
-  `colors.xml`, iOS `UIColor` / SwiftUI `Color`).
-- **Swatch files** — `.ase` / `.aco` for direct import into design tools.
-
-### Tier 3 — accessibility (extend the differentiator)
-
-- **APCA contrast** alongside WCAG 2 (the WCAG 3 direction).
-- **Suggest a passing shade** — when a contrast pair fails, propose the nearest
-  shade in the ramp that passes.
-
-### Tier 4 — quick wins (low effort, daily value)
-
-- **Copy a whole scale** (array / all shades), not just one swatch.
-- **Reorder (drag) scales** and **duplicate a scale**.
+- **Duplicate a scale** — clone a scale (same color/name, new id) after it.
 - **Pin the input as a chosen shade** (e.g. "this hex is my 600") instead of
   always forcing it to 500; optional ramp-curve tuning.
 - **Curate which shades export** (systems rarely ship all 10).
-- **Bulk-create scales** by pasting a list of hex values.
 
 ---
 
@@ -119,3 +104,7 @@ Tiers are rough guidance, not a strict order.
   bottom bar (`CvdBar`) toggles a page-wide SVG `feColorMatrix` filter via a
   `body.cvd-*` class for protanopia / deuteranopia / tritanopia / achromatopsia;
   the filter covers `main` + `footer`, leaving the bar itself unfiltered.
+- **Quick wins** (branch `feature/quick-wins`). Per-scale "Copy all" (10 hexes,
+  newline-separated); reorder scales with up/down buttons (export + URL order
+  follows); bulk-paste hex (`colorUtils.parseHexList`) to create several
+  auto-named scales at once.

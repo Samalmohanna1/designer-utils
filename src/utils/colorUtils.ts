@@ -129,6 +129,16 @@ export const colorUtils = {
         })
     },
 
+    // Extracts every 6-digit hex color from free-form pasted text (commas,
+    // spaces, or newlines; '#' optional). Returns normalized #RRGGBB values
+    // in order. Used by the bulk-paste flow.
+    parseHexList(text: string): string[] {
+        const matches = text.match(/#?[0-9a-fA-F]{6}\b/g) ?? []
+        return matches.map(
+            (m) => `#${m.replace('#', '').toUpperCase()}`
+        )
+    },
+
     // --- Shareable palette serialization ---
     // A palette is encoded for the URL hash as `name:hex` pairs joined by
     // commas, e.g. `blue:5799DB,brand:E11D48`. Names are slugified and hexes
