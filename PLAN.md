@@ -43,8 +43,29 @@ generated demo and is not part of the suite.
 - [ ] Remove or ignore the `tests-examples/` demo so it isn't mistaken for real tests.
 - [ ] `npx playwright test` passes.
 
+### 3. Generate a palette from an image
+
+**Status:** not started · **Type:** `feature`
+
+Let designers seed scales from an uploaded image instead of picking hex by hand.
+Decided approach: **extract the top N dominant colors**, each becoming one base
+color (a `500`), auto-named via `colorUtils.nameFromHex`.
+
+- [ ] Image upload / drag-and-drop control in the color selection section.
+- [ ] Sample pixels onto a `<canvas>` and quantize to N dominant colors
+      (hand-rolled — e.g. median-cut or coarse bucketing — no new dependency
+      unless justified first; keep it in `colorUtils`).
+- [ ] A control for how many colors to extract (N).
+- [ ] Each extracted color becomes a new scale (base + auto-name); de-dupe
+      against existing scales.
+- [ ] Process the image client-side only — never upload it anywhere.
+- [ ] Tests: extraction returns N valid hex colors; scales are created and named.
+
 ---
 
 ## Done
 
-_(none yet)_
+- **Color selection: naming + designer optimizations** (branch
+  `feature/contrast-picker-redesign`). Editable, hue-auto-named scales; names
+  flow into the export (slugified + de-duped) and contrast labels; varied
+  default color per new scale; click-to-copy swatch hex; reset-palette control.

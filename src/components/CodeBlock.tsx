@@ -19,7 +19,7 @@ interface Shade {
 }
 
 interface ColorData {
-	index: number
+	slug: string
 	shades: Shade[]
 }
 
@@ -44,6 +44,9 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 
 	const formattedCode = useMemo(() => {
 		const seenColors = new Set<string>()
+		const slugs = colorUtils.uniqueSlugs(
+			colorScales.map((scale) => scale.name)
+		)
 
 		const colorData: ColorData[] = colorScales
 			.map((scale: ColorScale, index: number): ColorData | null => {
@@ -68,7 +71,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				}
 
 				return {
-					index: index + 1,
+					slug: slugs[index],
 					shades,
 				}
 			})
@@ -77,8 +80,8 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 		switch (themeFormat) {
 			case 'tailwind3': {
 				const tailwindColors = colorData
-					.map(({ index, shades }: ColorData) => {
-						return `  color${index}: {\n${shades
+					.map(({ slug, shades }: ColorData) => {
+						return `  ${slug}: {\n${shades
 							.map(
 								({ shade, color }: Shade) =>
 									`    ${shade}: "${color}"`
@@ -92,10 +95,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 
 			case 'tailwind4': {
 				const tailwind4Colors = colorData
-					.flatMap(({ index, shades }: ColorData) =>
+					.flatMap(({ slug, shades }: ColorData) =>
 						shades.map(
 							({ shade, color }: Shade) =>
-								`  --color-color${index}-${shade}: ${color};`
+								`  --color-${slug}-${shade}: ${color};`
 						)
 					)
 					.join('\n')
@@ -105,10 +108,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 
 			case 'css': {
 				const cssVars = colorData
-					.flatMap(({ index, shades }: ColorData) =>
+					.flatMap(({ slug, shades }: ColorData) =>
 						shades.map(
 							({ shade, color }: Shade) =>
-								`  --color${index}-${shade}: ${color};`
+								`  --${slug}-${shade}: ${color};`
 						)
 					)
 					.join('\n')

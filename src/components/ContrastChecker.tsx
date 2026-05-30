@@ -41,9 +41,15 @@ const tierInfo: Record<
 	},
 }
 
-const colorLabel = (c: ColorInfo) => `color${c.scaleIndex + 1}-${c.shade}`
-
 const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
+	const slugs = useMemo(
+		() => colorUtils.uniqueSlugs(colorScales.map((s) => s.name)),
+		[colorScales]
+	)
+
+	const colorLabel = (c: ColorInfo) =>
+		`${slugs[c.scaleIndex] ?? 'color'}-${c.shade}`
+
 	const uniqueColors = useMemo(() => {
 		const colors: ColorInfo[] = []
 		const seen = new Set<string>()

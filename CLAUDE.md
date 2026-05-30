@@ -245,14 +245,26 @@ the live page reflects the merged commit before calling anything fixed.
 ## Domain glossary
 
 - **Scale** — one base color and the 10 shades derived from it. The app supports
-  multiple scales at once; each has a numeric `id`. In exported code they're
-  named `color1`, `color2`, … by their **1-based position** (`scaleIndex + 1`),
-  *not* by `id`.
+  multiple scales at once; each has a numeric `id`, a base `color`, and a
+  `name`. The `name` is **auto-derived from the hue** (`colorUtils.nameFromHex`,
+  e.g. blue) until the user edits it, after which it's left alone (tracked by
+  `nameEdited` in `App`'s local state, *not* on the shared `ColorScale` type).
+- **Slug** — the export-safe form of a scale's `name`
+  (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
+  (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`
+  (CSS / Tailwind 4) or `<slug>: { … }` (Tailwind 3). Both
+  [CodeBlock](./src/components/CodeBlock.tsx) and
+  [ContrastChecker](./src/components/ContrastChecker.tsx) labels go through
+  `uniqueSlugs` so naming stays consistent. (This replaced the old positional
+  `color1`/`color2` naming.)
 - **Shade** — one step on a scale, keyed by `shadeNumbers` `50 100 200 300 400
   500 600 700 800 900`. **500 is the unmodified base color.** Below 500 mixes
   toward white, above 500 toward black.
-- **Combination** — an ordered pair of shades shown in the contrast table:
-  `color1` is foreground, `color2` is background.
+- **Contrast picker** — [ContrastChecker](./src/components/ContrastChecker.tsx)
+  is a *pick-a-background → legible-foregrounds* flow (not a full pairings
+  table). Results are the shades scoring ≥3:1 against the chosen background,
+  grouped by tier. Contrast is symmetric, so foreground/background only matters
+  for the preview, not the ratio.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
 - **Theme format vs. color format** — *theme format* is the output syntax
