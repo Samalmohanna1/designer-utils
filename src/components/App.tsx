@@ -97,7 +97,7 @@ const App = () => {
 					>
 						<div className='flex sm:flex-col gap-xs'>
 							<ColorInput
-								initialColor={scale.color}
+								color={scale.color}
 								name={scale.name}
 								autoName={colorUtils.nameFromHex(scale.color)}
 								onColorChange={(newColor) =>

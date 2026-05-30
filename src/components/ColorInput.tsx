@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ColorInputProps {
-	initialColor: string
+	color: string
 	name: string
 	autoName: string
 	onColorChange: (color: string) => void
@@ -9,20 +9,27 @@ interface ColorInputProps {
 }
 
 const ColorInput: React.FC<ColorInputProps> = ({
-	initialColor,
+	color,
 	name,
 	autoName,
 	onColorChange,
 	onNameChange,
 }) => {
-	const [color, setColor] = useState(initialColor.toUpperCase())
+	// Draft text for the hex field so the user can type an in-progress,
+	// not-yet-valid value. Resyncs whenever the committed color changes
+	// from outside (color picker, reset).
+	const [draft, setDraft] = useState(color.toUpperCase())
+
+	useEffect(() => {
+		setDraft(color.toUpperCase())
+	}, [color])
 
 	const updateColor = (newColor: string) => {
-		const formattedColor = newColor.toUpperCase()
-		setColor(formattedColor)
+		const formatted = newColor.toUpperCase()
+		setDraft(formatted)
 
-		if (/^#[0-9A-F]{6}$/.test(formattedColor)) {
-			onColorChange(formattedColor)
+		if (/^#[0-9A-F]{6}$/.test(formatted)) {
+			onColorChange(formatted)
 		}
 	}
 
@@ -55,7 +62,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 						id={inputId}
 						aria-label='Color picker'
 						className='h-16 w-16 cursor-pointer absolute origin-center left-[-10px] top-[-10px]'
-						value={/^#[0-9A-F]{6}$/.test(color) ? color : '#3B82F6'}
+						value={/^#[0-9A-F]{6}$/.test(draft) ? draft : '#3B82F6'}
 						onChange={(e) => updateColor(e.target.value)}
 					/>
 				</div>
@@ -66,7 +73,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 					aria-label='Hex code'
 					className='h-10 max-w-24 px-2xs rounded-sm border border-black-100'
 					placeholder='Enter hex code'
-					value={color}
+					value={draft}
 					onChange={(e) =>
 						updateColor(
 							e.target.value.startsWith('#')
