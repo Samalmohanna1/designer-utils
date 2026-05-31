@@ -36,34 +36,29 @@ const ColorInput: React.FC<ColorInputProps> = ({
 	const inputId = `color-${autoName}`
 
 	return (
-		<div className='space-y-2xs'>
-			<div className='flex items-center gap-2xs'>
-				<label
-					htmlFor={`name-${inputId}`}
-					className='text-step--2 font-roboto-condensed shrink-0'
-				>
-					Name
-				</label>
-				<input
-					type='text'
-					id={`name-${inputId}`}
-					className='h-10 w-full max-w-36 px-2xs rounded-sm border border-black-100 text-step--2'
-					placeholder={autoName}
-					value={name}
-					onChange={(e) => onNameChange(e.target.value)}
-				/>
-			</div>
-
-			<label htmlFor={inputId} className='sr-only'>
-				Color hex value
+		<div className='space-y-3xs'>
+			<label htmlFor={`name-${inputId}`} className='sr-only'>
+				Color name
 			</label>
-			<div className='flex items-center gap-2xs'>
-				<div className='rounded-full overflow-hidden border border-black-100 w-10 h-10 relative shrink-0'>
+			<input
+				type='text'
+				id={`name-${inputId}`}
+				className='h-8 w-36 px-2xs rounded-sm border border-black-100 text-step--2'
+				placeholder={autoName}
+				value={name}
+				onChange={(e) => onNameChange(e.target.value)}
+			/>
+
+			<div className='flex items-center gap-3xs'>
+				<label htmlFor={inputId} className='sr-only'>
+					Color picker
+				</label>
+				<div className='rounded-full overflow-hidden border border-black-100 w-8 h-8 relative shrink-0'>
 					<input
 						type='color'
 						id={inputId}
 						aria-label='Color picker'
-						className='h-16 w-16 cursor-pointer absolute origin-center left-[-10px] top-[-10px]'
+						className='h-16 w-16 cursor-pointer absolute origin-center left-[-16px] top-[-16px]'
 						value={/^#[0-9A-F]{6}$/.test(draft) ? draft : '#3B82F6'}
 						onChange={(e) => updateColor(e.target.value)}
 					/>
@@ -73,8 +68,8 @@ const ColorInput: React.FC<ColorInputProps> = ({
 					maxLength={7}
 					id={`hex-${inputId}`}
 					aria-label='Hex code'
-					className='h-10 max-w-24 px-2xs rounded-sm border border-black-100'
-					placeholder='Enter hex code'
+					className='h-8 w-24 px-2xs rounded-sm border border-black-100 text-step--2'
+					placeholder='#hex'
 					value={draft}
 					onChange={(e) =>
 						updateColor(

@@ -37,6 +37,30 @@ const scalesFromEntries = (
 		nameEdited: true,
 	}))
 
+// Write an SVG string to the clipboard so it pastes into Figma (and other
+// vector tools) as named, editable rectangles. The markup goes on the
+// clipboard under BOTH text/plain and image/svg+xml in one ClipboardItem:
+// Figma-in-browser pastes the SVG it finds in text/plain on canvas, while the
+// desktop app / other tools read the image/svg+xml blob — covering both paths.
+// Falls back to plain text where ClipboardItem is unavailable. Calls onDone
+// once the write resolves.
+const copySvg = (svg: string, onDone: () => void): void => {
+	if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+		const item = new ClipboardItem({
+			'text/plain': new Blob([svg], { type: 'text/plain' }),
+			'image/svg+xml': new Blob([svg], { type: 'image/svg+xml' }),
+		})
+		navigator.clipboard
+			.write([item])
+			.then(onDone)
+			.catch(() => {
+				navigator.clipboard.writeText(svg).then(onDone)
+			})
+	} else {
+		navigator.clipboard.writeText(svg).then(onDone)
+	}
+}
+
 // Reads a palette from the URL hash, if present and valid. Client-only.
 const readHashPalette = (): ScaleState[] | null => {
 	if (typeof window === 'undefined') return null
@@ -132,6 +156,15 @@ const App = () => {
 		)
 	}, [])
 
+	const [copiedScaleId, setCopiedScaleId] = useState<number | null>(null)
+	// Copy one scale's ramp as a labeled-swatch SVG (see copySvg).
+	const copyScale = useCallback((id: number, slug: string, color: string) => {
+		copySvg(colorUtils.scaleToSvg(slug, color), () => {
+			setCopiedScaleId(id)
+			setTimeout(() => setCopiedScaleId(null), 1200)
+		})
+	}, [])
+
 	const resetScales = useCallback(() => {
 		setColorScales(defaultScales())
 		setNextId(2)
@@ -143,6 +176,8 @@ const App = () => {
 		setLinkCopied(true)
 		setTimeout(() => setLinkCopied(false), 2000)
 	}, [])
+
+	const [paletteCopied, setPaletteCopied] = useState(false)
 
 	const [bulkOpen, setBulkOpen] = useState(false)
 	const [bulkText, setBulkText] = useState('')
@@ -164,6 +199,21 @@ const App = () => {
 		setBulkOpen(false)
 	}, [bulkText, nextId])
 
+	// De-duped slugs, matching the export/contrast naming.
+	const slugs = colorUtils.uniqueSlugs(colorScales.map((s) => s.name))
+
+	// Copy every scale as one SVG (a row per scale), so the whole palette pastes
+	// into Figma at once. Uses the same de-duped slugs as the exports.
+	const copyPalette = () => {
+		const svg = colorUtils.paletteToSvg(
+			colorScales.map((s, i) => ({ slug: slugs[i], color: s.color }))
+		)
+		copySvg(svg, () => {
+			setPaletteCopied(true)
+			setTimeout(() => setPaletteCopied(false), 2000)
+		})
+	}
+
 	return (
 		<>
 			<div className='flex flex-wrap items-center justify-between gap-2xs mb-2xs'>
@@ -171,6 +221,17 @@ const App = () => {
 					&#127912; Color Scale Generator
 				</h1>
 				<div className='flex items-center gap-2xs'>
+					<button
+						onClick={copyPalette}
+						title='Copy the whole palette as SVG (paste into Figma)'
+						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
+							paletteCopied
+								? 'border-green-600 bg-green-200 text-green-800'
+								: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+						}`}
+					>
+						{paletteCopied ? 'Palette copied!' : 'Copy palette SVG'}
+					</button>
 					<button
 						onClick={copyShareLink}
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
@@ -194,13 +255,13 @@ const App = () => {
 					)}
 				</div>
 			</div>
-			<section className='tracking-tight container p-s mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
 				{colorScales.map((scale, index) => (
 					<div
 						key={scale.id}
-						className='py-4 flex flex-col sm:flex-row sm:items-start justify-between gap-s'
+						className='py-2xs flex flex-col sm:flex-row sm:items-stretch gap-2xs'
 					>
-						<div className='flex sm:flex-col gap-xs'>
+						<div className='flex sm:flex-col gap-3xs shrink-0'>
 							<ColorInput
 								color={scale.color}
 								name={scale.name}
@@ -212,44 +273,72 @@ const App = () => {
 									handleNameChange(scale.id, newName)
 								}
 							/>
-							{colorScales.length > 1 && (
-								<div className='flex gap-3xs'>
-									<button
-										onClick={() => moveScale(scale.id, -1)}
-										disabled={index === 0}
-										aria-label='Move color up'
-										title='Move up'
-										className='px-2xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current'
+							<div className='flex gap-3xs'>
+								<button
+									onClick={() =>
+										copyScale(
+											scale.id,
+											slugs[index],
+											scale.color
+										)
+									}
+									aria-label='Copy as SVG to paste into Figma'
+									title='Copy as SVG (paste into Figma)'
+									className={`p-3xs border rounded-sm flex items-center justify-center ${
+										copiedScaleId === scale.id
+											? 'border-green-600 bg-green-200 text-green-800'
+											: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+									}`}
+								>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										viewBox='0 0 448 512'
+										className='w-3.5 h-3.5 fill-current'
 									>
-										↑
-									</button>
-									<button
-										onClick={() => moveScale(scale.id, 1)}
-										disabled={
-											index === colorScales.length - 1
-										}
-										aria-label='Move color down'
-										title='Move down'
-										className='px-2xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 font-roboto-condensed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current'
-									>
-										↓
-									</button>
-									<button
-										onClick={() => removeColorScale(scale.id)}
-										aria-label='Remove color'
-										className='px-s py-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] text-step--2 font-roboto-condensed flex items-center justify-center gap-3xs'
-									>
-										<svg
-											xmlns='http://www.w3.org/2000/svg'
-											viewBox='0 0 448 512'
-											className='w-3 h-3 fill-current'
+										<path d='M208 0L332.1 0c12.7 0 24.9 5.1 33.9 14.1l67.9 67.9c9 9 14.1 21.2 14.1 33.9L448 336c0 26.5-21.5 48-48 48l-192 0c-26.5 0-48-21.5-48-48l0-288c0-26.5 21.5-48 48-48zM48 128l80 0 0 64-64 0 0 256 192 0 0-32 64 0 0 48c0 26.5-21.5 48-48 48L48 512c-26.5 0-48-21.5-48-48L0 176c0-26.5 21.5-48 48-48z' />
+									</svg>
+								</button>
+								{colorScales.length > 1 && (
+									<>
+										<button
+											onClick={() => moveScale(scale.id, -1)}
+											disabled={index === 0}
+											aria-label='Move color up'
+											title='Move up'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current flex items-center justify-center'
 										>
-											<path d='M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C304.4 6.8 292.3 0 279.2 0L168.8 0c-13.1 0-25.2 6.8-32.6 17.7zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64L32 128zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z' />
-										</svg>
-										Remove
-									</button>
-								</div>
-							)}
+											<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 384 512' className='w-3 h-3 fill-current'>
+												<path d='M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2 160 448c0 17.7 14.3 32 32 32s32-14.3 32-32l0-306.7L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z' />
+											</svg>
+										</button>
+										<button
+											onClick={() => moveScale(scale.id, 1)}
+											disabled={index === colorScales.length - 1}
+											aria-label='Move color down'
+											title='Move down'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current flex items-center justify-center'
+										>
+											<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 384 512' className='w-3 h-3 fill-current'>
+												<path d='M169.4 470.6c12.5 12.5 32.8 12.5 45.3 0l160-160c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L224 370.8 224 64c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 306.7L54.6 265.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l160 160z' />
+											</svg>
+										</button>
+										<button
+											onClick={() => removeColorScale(scale.id)}
+											aria-label='Remove color'
+											title='Remove color'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] flex items-center justify-center'
+										>
+											<svg
+												xmlns='http://www.w3.org/2000/svg'
+												viewBox='0 0 448 512'
+												className='w-3 h-3 fill-current'
+											>
+												<path d='M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C304.4 6.8 292.3 0 279.2 0L168.8 0c-13.1 0-25.2 6.8-32.6 17.7zM32 128l384 0 0 320c0 35.3-28.7 64-64 64L96 512c-35.3 0-64-28.7-64-64L32 128zm96 64c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16zm96 0c-8.8 0-16 7.2-16 16l0 224c0 8.8 7.2 16 16 16s16-7.2 16-16l0-224c0-8.8-7.2-16-16-16z' />
+											</svg>
+										</button>
+									</>
+								)}
+							</div>
 						</div>
 						<ColorScale2 baseColor={scale.color} />
 					</div>
