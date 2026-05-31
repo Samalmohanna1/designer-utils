@@ -11,7 +11,6 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	}, [baseColor])
 
 	const [copied, setCopied] = useState<string | null>(null)
-	const [allCopied, setAllCopied] = useState(false)
 
 	const copyHex = (hex: string) => {
 		navigator.clipboard.writeText(hex)
@@ -19,17 +18,11 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 		setTimeout(() => setCopied(null), 1200)
 	}
 
-	const copyAll = () => {
-		navigator.clipboard.writeText(shades.join('\n'))
-		setAllCopied(true)
-		setTimeout(() => setAllCopied(false), 1200)
-	}
-
 	return (
-		<div className='flex flex-col gap-2xs'>
-		<div className='flex flex-wrap gap-2xs'>
+		<div className='flex flex-wrap sm:flex-nowrap gap-px grow self-stretch'>
 			{shades.map((hexCode, index) => {
 				const isCopied = copied === hexCode
+				const textColor = colorUtils.readableTextColor(hexCode)
 				return (
 					<button
 						key={index}
@@ -37,41 +30,25 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 						onClick={() => copyHex(hexCode)}
 						aria-label={`Copy ${hexCode}`}
 						title={`Copy ${hexCode}`}
-						className='flex flex-col items-center w-[110px] group cursor-pointer focus:outline-hidden'
+						style={{ backgroundColor: hexCode, color: textColor }}
+						className='group relative flex-1 min-w-[64px] min-h-16 rounded-sm border border-black-100/40 flex flex-col justify-between p-3xs text-step--2 leading-tight cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-black-500'
 					>
-						<div
-							className='relative w-full h-12 rounded-sm color-scale-item border border-black-100 min-w-12 group-hover:ring-2 group-hover:ring-black-500 group-focus:ring-2 group-focus:ring-blue-500'
-							style={{ backgroundColor: hexCode }}
-						>
+						<span className='font-bold text-left'>
+							{colorUtils.shadeNumbers[index]}
+						</span>
+						<span className='hex-code text-left tabular-nums opacity-80'>
+							{hexCode}
+						</span>
+						{isCopied && (
 							<span
-								className={`absolute inset-0 flex items-center justify-center text-xs font-bold rounded-sm transition-opacity ${
-									isCopied
-										? 'opacity-100 bg-black-500/80 text-cream-100'
-										: 'opacity-0'
-								}`}
+								className='absolute inset-0 flex items-center justify-center text-xs font-bold rounded-sm bg-black-500/80 text-cream-100'
 							>
 								Copied!
 							</span>
-						</div>
-						<span className='flex justify-between px-px w-full'>
-							<span>{colorUtils.shadeNumbers[index]}</span>
-							<span className='hex-code'>{hexCode}</span>
-						</span>
+						)}
 					</button>
 				)
 			})}
-		</div>
-		<button
-			type='button'
-			onClick={copyAll}
-			className={`self-start px-xs py-3xs rounded-sm text-step--2 font-roboto-condensed border ${
-				allCopied
-					? 'border-green-600 bg-green-200 text-green-800'
-					: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
-			}`}
-		>
-			{allCopied ? 'All copied!' : 'Copy all'}
-		</button>
 		</div>
 	)
 }

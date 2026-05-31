@@ -355,6 +355,14 @@ export const colorUtils = {
         return (brightest + 0.05) / (darkest + 0.05)
     },
 
+    // Black or white, whichever reads better as text on the given background.
+    // Used for labels drawn on top of a swatch.
+    readableTextColor(bgHex: string): string {
+        const onBlack = colorUtils.getContrastRatio(bgHex, '#000000')
+        const onWhite = colorUtils.getContrastRatio(bgHex, '#FFFFFF')
+        return onBlack >= onWhite ? '#000000' : '#FFFFFF'
+    },
+
     // The dark-mode ramp: the same shade slots in reverse, so a light tint
     // (e.g. 50) takes the value of its opposite end (900) and vice versa,
     // keeping hue and chroma. shadeHexes is the ordered 50..900 list.
