@@ -430,6 +430,53 @@ export const colorUtils = {
         return colorUtils.wrapSvg(rows, width, SH * Math.max(scales.length, 1))
     },
 
+    // One accessible contrast pairing as an SVG card, mirroring the on-screen
+    // card: a background panel with sample text in the foreground color, plus a
+    // footer strip naming the foreground and the ratio. Named
+    // `<fgLabel>-on-<bgLabel>` so Figma shows the pairing as the layer name.
+    // `large` renders the sample bigger+bold (the AA Large preview).
+    pairToSvg(pair: {
+        fgHex: string
+        bgHex: string
+        fgLabel: string
+        bgLabel: string
+        ratio: number
+        large: boolean
+    }): string {
+        const W = 360
+        const PANEL_H = 90 // sample-text panel
+        const FOOT_H = 34 // footer strip
+        const H = PANEL_H + FOOT_H
+        const esc = colorUtils.escapeXml
+        const id = `${pair.fgLabel}-on-${pair.bgLabel}`
+        const sampleSize = pair.large ? 26 : 18
+        const sampleWeight = pair.large ? 700 : 400
+        const footInk = colorUtils.readableTextColor('#FFFFFF') // footer is light
+        const body =
+            `<rect x="0" y="0" width="${W}" height="${PANEL_H}" fill="${pair.bgHex}"/>` +
+            `<text x="20" y="${PANEL_H / 2 + sampleSize / 3}" ` +
+            `font-family="sans-serif" font-size="${sampleSize}" ` +
+            `font-weight="${sampleWeight}" fill="${pair.fgHex}">` +
+            `The quick brown fox</text>` +
+            `<rect x="0" y="${PANEL_H}" width="${W}" height="${FOOT_H}" fill="#FBFAF7"/>` +
+            `<rect x="14" y="${PANEL_H + 12}" width="10" height="10" fill="${pair.fgHex}" stroke="#D8D5CE"/>` +
+            `<text x="30" y="${PANEL_H + 21}" font-family="sans-serif" ` +
+            `font-size="13" fill="${footInk}">${esc(id)}</text>` +
+            `<text x="${W - 14}" y="${PANEL_H + 21}" text-anchor="end" ` +
+            `font-family="monospace" font-size="13" font-weight="700" ` +
+            `fill="${footInk}">${pair.ratio}:1</text>`
+        return colorUtils.wrapSvg(`<g id="${esc(id)}">${body}</g>`, W, H)
+    },
+
+    // Minimal XML-attribute/text escaping for values interpolated into SVG.
+    escapeXml(s: string): string {
+        return s
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+    },
+
     // The dark-mode ramp: the same shade slots in reverse, so a light tint
     // (e.g. 50) takes the value of its opposite end (900) and vice versa,
     // keeping hue and chroma. shadeHexes is the ordered 50..900 list.

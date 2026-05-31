@@ -75,11 +75,12 @@ src/
     App.tsx               Root island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
-    ContrastChecker.tsx   Builds & sorts all accessible shade pairings into a table.
+    ContrastChecker.tsx   Pick-a-background → legible-foregrounds cards; each card copies as an SVG.
     CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
   utils/
-    colorUtils.ts         All color math + shared types. The one place logic lives.
+    colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place logic lives.
+    clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
     reset.css             CSS reset (imported into the base layer).
@@ -270,11 +271,14 @@ the live page reflects the merged commit before calling anything fixed.
   (e.g. `blue-500`), which Figma reads as the layer name on import. The whole
   palette can also be copied at once (`colorUtils.paletteToSvg`, the **Copy
   palette SVG** button by the share link) — one row per scale, stacked in array
-  order. Both share `colorUtils.swatchRowSvg`. The `App.copySvg` helper writes
-  the markup to the clipboard under **both** `text/plain` and `image/svg+xml`
-  in one `ClipboardItem` (Figma-in-browser pastes the SVG from `text/plain` on
-  canvas; the desktop app / other tools read the `image/svg+xml` blob), falling
-  back to plain text where `ClipboardItem` is unavailable.
+  order. Both share `colorUtils.swatchRowSvg`. Individual contrast-checker
+  cards copy too (`colorUtils.pairToSvg` — a sample-text panel + footer naming
+  the pairing and ratio, group `id="<fg>-on-<bg>"`). The shared
+  `clipboard.copySvg` helper writes the markup under **both** `text/plain` and
+  `image/svg+xml` in one `ClipboardItem` (Figma-in-browser pastes the SVG from
+  `text/plain` on canvas; the desktop app / other tools read the
+  `image/svg+xml` blob), falling back to plain text where `ClipboardItem` is
+  unavailable.
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`
@@ -292,7 +296,9 @@ the live page reflects the merged commit before calling anything fixed.
   is a *pick-a-background → legible-foregrounds* flow (not a full pairings
   table). Results are the shades scoring ≥3:1 against the chosen background,
   grouped by tier. Contrast is symmetric, so foreground/background only matters
-  for the preview, not the ratio.
+  for the preview, not the ratio. Each result card is a button that copies the
+  pairing as an SVG (`colorUtils.pairToSvg`) for pasting into Figma — the AA
+  Large tier copies its larger/bold sample to match the on-screen preview.
 - **Contrast levels** — `AAA` (≥7:1), `AA` (≥4.5:1), `AA Large` (≥3.1:1). The
   table only lists pairs ≥3:1; anything lower is dropped, not shown as "Fail".
 - **Vision simulation (CVD)** — the fixed bottom bar

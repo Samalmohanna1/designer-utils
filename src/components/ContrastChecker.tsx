@@ -4,6 +4,7 @@ import {
 	type ColorInfo,
 	colorUtils,
 } from '../utils/colorUtils'
+import { copySvg } from '../utils/clipboard'
 
 interface ContrastCheckerProps {
 	colorScales: ColorScale[]
@@ -111,6 +112,27 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 			.sort((a, b) => b.contrast - a.contrast)
 	}, [uniqueColors, background])
 
+	const [copiedId, setCopiedId] = useState<string | null>(null)
+
+	const copyPair = (m: Match, large: boolean) => {
+		if (!background) return
+		const fgLabel = colorLabel(m.foreground)
+		const bgLabel = colorLabel(background)
+		const id = `${fgLabel}-on-${bgLabel}`
+		const svg = colorUtils.pairToSvg({
+			fgHex: m.foreground.hex,
+			bgHex: background.hex,
+			fgLabel,
+			bgLabel,
+			ratio: m.contrast,
+			large,
+		})
+		copySvg(svg, () => {
+			setCopiedId(id)
+			setTimeout(() => setCopiedId(null), 1200)
+		})
+	}
+
 	const grouped = useMemo(() => {
 		const groups: Record<Tier, Match[]> = {
 			AAA: [],
@@ -203,45 +225,76 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 										</span>
 									</div>
 									<ul className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2xs'>
-										{items.map((m) => (
-											<li
-												key={m.foreground.hex}
-												className='rounded-sm border border-black-100 overflow-hidden'
-											>
-												<div
-													className='px-xs py-2xs'
-													style={{
-														backgroundColor:
-															background.hex,
-														color: m.foreground.hex,
-													}}
-												>
-													<span
-														className={info.sampleClass}
+										{items.map((m) => {
+											const id = `${colorLabel(
+												m.foreground
+											)}-on-${colorLabel(background)}`
+											const isCopied = copiedId === id
+											return (
+												<li key={m.foreground.hex}>
+													<button
+														type='button'
+														onClick={() =>
+															copyPair(
+																m,
+																tier ===
+																	'AA Large'
+															)
+														}
+														aria-label={`Copy ${id} as SVG to paste into Figma`}
+														title='Copy as SVG (paste into Figma)'
+														className='group relative block w-full text-left rounded-sm border border-black-100 overflow-hidden cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-black-500'
 													>
-														The quick brown fox
-													</span>
-												</div>
-												<div className='flex items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
-													<span className='flex items-center gap-3xs'>
-														<span
-															className='w-3 h-3 rounded-xs border border-black-100'
+														<div
+															className='px-xs py-2xs'
 															style={{
 																backgroundColor:
-																	m.foreground
-																		.hex,
+																	background.hex,
+																color: m
+																	.foreground
+																	.hex,
 															}}
-														/>
-														{colorLabel(
-															m.foreground
+														>
+															<span
+																className={
+																	info.sampleClass
+																}
+															>
+																The quick brown
+																fox
+															</span>
+														</div>
+														<div className='flex items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
+															<span className='flex items-center gap-3xs'>
+																<span
+																	className='w-3 h-3 rounded-xs border border-black-100'
+																	style={{
+																		backgroundColor:
+																			m
+																				.foreground
+																				.hex,
+																	}}
+																/>
+																{colorLabel(
+																	m.foreground
+																)}
+															</span>
+															<span className='font-bold tabular-nums'>
+																{m.contrast}:1
+															</span>
+														</div>
+														<span className='pointer-events-none absolute top-3xs right-3xs px-2xs py-3xs rounded-xs bg-black-500/80 text-cream-100 text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity'>
+															Copy SVG
+														</span>
+														{isCopied && (
+															<span className='pointer-events-none absolute inset-0 flex items-center justify-center bg-black-500/80 text-cream-100 text-xs font-bold'>
+																Copied!
+															</span>
 														)}
-													</span>
-													<span className='font-bold tabular-nums'>
-														{m.contrast}:1
-													</span>
-												</div>
-											</li>
-										))}
+													</button>
+												</li>
+											)
+										})}
 									</ul>
 								</section>
 							)
