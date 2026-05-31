@@ -267,8 +267,12 @@ the live page reflects the merged commit before calling anything fixed.
   and each scale's ramp can be copied as a labeled-swatch SVG
   (`colorUtils.scaleToSvg`) written to the clipboard as `image/svg+xml`, so it
   pastes into Figma (or any vector tool) as named, editable rectangles —
-  groups named `<slug>-<shade>` (e.g. `blue-500`). Falls back to copying the
-  raw SVG markup as text where `ClipboardItem` is unavailable.
+  groups named `<slug>-<shade>` (e.g. `blue-500`). The whole palette can also
+  be copied at once (`colorUtils.paletteToSvg`, the **Copy palette SVG** button
+  by the share link) — one row per scale, stacked in array order. Both share
+  `colorUtils.swatchRowSvg`, and the `App.copySvg` helper writes the
+  `image/svg+xml` clipboard item, falling back to the raw markup as text where
+  `ClipboardItem` is unavailable.
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`

@@ -363,19 +363,21 @@ export const colorUtils = {
         return onBlack >= onWhite ? '#000000' : '#FFFFFF'
     },
 
-    // The whole 10-shade ramp as an SVG string: a row of labeled swatches.
-    // Built so a designer can copy it to the clipboard and paste straight into
-    // Figma (or any vector tool) as named, editable rectangles instead of
-    // rebuilding the palette by hand. Each swatch is a <g> named
-    // `<slug>-<shade>` (Figma uses the group's data-name / inkscape:label as the
-    // layer name), holding the fill rect plus the shade number and hex drawn in
+    // Swatch geometry shared by the SVG copy helpers.
+    SWATCH_W: 120,
+    SWATCH_H: 160,
+
+    // One scale as a horizontal row of labeled swatches, wrapped in a <g> named
+    // for the slug, offset down the canvas by `y`. The building block both
+    // scaleToSvg and paletteToSvg compose. Each swatch is itself a <g> named
+    // `<slug>-<shade>` (Figma uses data-name / inkscape:label as the layer
+    // name), holding the fill rect plus the shade number and hex drawn in
     // whichever of black/white reads on that color.
-    scaleToSvg(slug: string, baseColor: string): string {
-        const shades = colorUtils.generateShades(baseColor)
-        const SW = 120 // swatch width
-        const SH = 160 // swatch height
-        const width = SW * shades.length
-        const swatches = shades
+    swatchRowSvg(slug: string, baseColor: string, y: number): string {
+        const SW = colorUtils.SWATCH_W
+        const SH = colorUtils.SWATCH_H
+        const swatches = colorUtils
+            .generateShades(baseColor)
             .map((hex, i) => {
                 const shade = colorUtils.shadeNumbers[i]
                 const x = i * SW
@@ -384,20 +386,49 @@ export const colorUtils = {
                 return (
                     `<g data-name="${label}" inkscape:label="${label}">` +
                     `<title>${label} ${hex}</title>` +
-                    `<rect x="${x}" y="0" width="${SW}" height="${SH}" fill="${hex}"/>` +
-                    `<text x="${x + 12}" y="28" font-family="sans-serif" font-size="20" font-weight="700" fill="${ink}">${shade}</text>` +
-                    `<text x="${x + 12}" y="${SH - 16}" font-family="monospace" font-size="15" fill="${ink}" opacity="0.85">${hex}</text>` +
+                    `<rect x="${x}" y="${y}" width="${SW}" height="${SH}" fill="${hex}"/>` +
+                    `<text x="${x + 12}" y="${y + 28}" font-family="sans-serif" font-size="20" font-weight="700" fill="${ink}">${shade}</text>` +
+                    `<text x="${x + 12}" y="${y + SH - 16}" font-family="monospace" font-size="15" fill="${ink}" opacity="0.85">${hex}</text>` +
                     `</g>`
                 )
             })
             .join('')
+        return `<g data-name="${slug}" inkscape:label="${slug}">${swatches}</g>`
+    },
+
+    // Wraps row groups in a sized <svg>. width/height in user units.
+    wrapSvg(rows: string, width: number, height: number): string {
         return (
             `<svg xmlns="http://www.w3.org/2000/svg" ` +
             `xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" ` +
-            `width="${width}" height="${SH}" viewBox="0 0 ${width} ${SH}">` +
-            `<g data-name="${slug}" inkscape:label="${slug}">${swatches}</g>` +
-            `</svg>`
+            `width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
+            `${rows}</svg>`
         )
+    },
+
+    // A single scale's 10-shade ramp as an SVG of labeled swatches. Copied to
+    // the clipboard so a designer pastes it into Figma (or any vector tool) as
+    // named, editable rectangles instead of rebuilding the ramp by hand.
+    scaleToSvg(slug: string, baseColor: string): string {
+        const width = colorUtils.SWATCH_W * colorUtils.shadeNumbers.length
+        return colorUtils.wrapSvg(
+            colorUtils.swatchRowSvg(slug, baseColor, 0),
+            width,
+            colorUtils.SWATCH_H
+        )
+    },
+
+    // The whole palette as an SVG: one scale per row, stacked top to bottom in
+    // array (export) order, each row a named group. Pastes the entire system
+    // into Figma at once. `scales` carry a slug + base color; pass the de-duped
+    // slugs so layer names match the exports.
+    paletteToSvg(scales: { slug: string; color: string }[]): string {
+        const SH = colorUtils.SWATCH_H
+        const width = colorUtils.SWATCH_W * colorUtils.shadeNumbers.length
+        const rows = scales
+            .map((s, row) => colorUtils.swatchRowSvg(s.slug, s.color, row * SH))
+            .join('')
+        return colorUtils.wrapSvg(rows, width, SH * Math.max(scales.length, 1))
     },
 
     // The dark-mode ramp: the same shade slots in reverse, so a light tint

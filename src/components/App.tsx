@@ -37,6 +37,24 @@ const scalesFromEntries = (
 		nameEdited: true,
 	}))
 
+// Write an SVG string to the clipboard as image/svg+xml so it pastes into
+// Figma (and other vector tools) as named, editable rectangles — not as text
+// or a flat image. Falls back to copying the raw markup as text where
+// ClipboardItem is unavailable. Calls onDone once the write resolves.
+const copySvg = (svg: string, onDone: () => void): void => {
+	if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+		const blob = new Blob([svg], { type: 'image/svg+xml' })
+		navigator.clipboard
+			.write([new ClipboardItem({ 'image/svg+xml': blob })])
+			.then(onDone)
+			.catch(() => {
+				navigator.clipboard.writeText(svg).then(onDone)
+			})
+	} else {
+		navigator.clipboard.writeText(svg).then(onDone)
+	}
+}
+
 // Reads a palette from the URL hash, if present and valid. Client-only.
 const readHashPalette = (): ScaleState[] | null => {
 	if (typeof window === 'undefined') return null
@@ -133,34 +151,13 @@ const App = () => {
 	}, [])
 
 	const [copiedScaleId, setCopiedScaleId] = useState<number | null>(null)
-	// Copy the whole ramp as an SVG of labeled swatches, written to the
-	// clipboard as image/svg+xml so it pastes into Figma (and other vector
-	// tools) as named, editable rectangles — not as text or a flat image. The
-	// raw SVG markup is a text fallback where ClipboardItem is unavailable.
-	const copyScale = useCallback(
-		(id: number, slug: string, color: string) => {
-			const svg = colorUtils.scaleToSvg(slug, color)
-			const done = () => {
-				setCopiedScaleId(id)
-				setTimeout(() => setCopiedScaleId(null), 1200)
-			}
-			if (
-				typeof ClipboardItem !== 'undefined' &&
-				navigator.clipboard?.write
-			) {
-				const blob = new Blob([svg], { type: 'image/svg+xml' })
-				navigator.clipboard
-					.write([new ClipboardItem({ 'image/svg+xml': blob })])
-					.then(done)
-					.catch(() => {
-						navigator.clipboard.writeText(svg).then(done)
-					})
-			} else {
-				navigator.clipboard.writeText(svg).then(done)
-			}
-		},
-		[]
-	)
+	// Copy one scale's ramp as a labeled-swatch SVG (see copySvg).
+	const copyScale = useCallback((id: number, slug: string, color: string) => {
+		copySvg(colorUtils.scaleToSvg(slug, color), () => {
+			setCopiedScaleId(id)
+			setTimeout(() => setCopiedScaleId(null), 1200)
+		})
+	}, [])
 
 	const resetScales = useCallback(() => {
 		setColorScales(defaultScales())
@@ -173,6 +170,8 @@ const App = () => {
 		setLinkCopied(true)
 		setTimeout(() => setLinkCopied(false), 2000)
 	}, [])
+
+	const [paletteCopied, setPaletteCopied] = useState(false)
 
 	const [bulkOpen, setBulkOpen] = useState(false)
 	const [bulkText, setBulkText] = useState('')
@@ -197,6 +196,18 @@ const App = () => {
 	// De-duped slugs, matching the export/contrast naming.
 	const slugs = colorUtils.uniqueSlugs(colorScales.map((s) => s.name))
 
+	// Copy every scale as one SVG (a row per scale), so the whole palette pastes
+	// into Figma at once. Uses the same de-duped slugs as the exports.
+	const copyPalette = () => {
+		const svg = colorUtils.paletteToSvg(
+			colorScales.map((s, i) => ({ slug: slugs[i], color: s.color }))
+		)
+		copySvg(svg, () => {
+			setPaletteCopied(true)
+			setTimeout(() => setPaletteCopied(false), 2000)
+		})
+	}
+
 	return (
 		<>
 			<div className='flex flex-wrap items-center justify-between gap-2xs mb-2xs'>
@@ -204,6 +215,17 @@ const App = () => {
 					&#127912; Color Scale Generator
 				</h1>
 				<div className='flex items-center gap-2xs'>
+					<button
+						onClick={copyPalette}
+						title='Copy the whole palette as SVG (paste into Figma)'
+						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
+							paletteCopied
+								? 'border-green-600 bg-green-200 text-green-800'
+								: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+						}`}
+					>
+						{paletteCopied ? 'Palette copied!' : 'Copy palette SVG'}
+					</button>
 					<button
 						onClick={copyShareLink}
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
