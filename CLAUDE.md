@@ -288,7 +288,11 @@ the live page reflects the merged commit before calling anything fixed.
   [ContrastChecker](./src/components/ContrastChecker.tsx) labels go through
   `uniqueSlugs` so naming stays consistent. (This replaced the old positional
   `color1`/`color2` naming.) The Markdown export uses the human `name`
-  (capitalized) for section headings rather than the slug.
+  (capitalized) for section headings rather than the slug. When de-duping
+  renames a scale, its name input shows the resolved slug (e.g. `blue-2`) while
+  idle (via `ColorInput`'s `exportSlug` prop) so the real exported name is
+  visible; focusing the field reveals the editable name and selects it, so a
+  rename starts fresh instead of inheriting the `-2`.
 - **Shade** — one step on a scale, keyed by `shadeNumbers` `50 100 200 300 400
   500 600 700 800 900`. **500 is the unmodified base color.** The ramp is built
   in OKLCH: lighter shades step the lightness up, darker shades step it down,
