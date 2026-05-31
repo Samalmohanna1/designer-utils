@@ -264,7 +264,11 @@ the live page reflects the merged commit before calling anything fixed.
   `nameEdited` in `App`'s local state, *not* on the shared `ColorScale` type).
   **Array order is the export/contrast order** — up/down buttons reorder it.
   Scales can be bulk-created by pasting a hex list (`colorUtils.parseHexList`),
-  and each scale's ramp can be copied wholesale ("Copy all").
+  and each scale's ramp can be copied as a labeled-swatch SVG
+  (`colorUtils.scaleToSvg`) written to the clipboard as `image/svg+xml`, so it
+  pastes into Figma (or any vector tool) as named, editable rectangles —
+  groups named `<slug>-<shade>` (e.g. `blue-500`). Falls back to copying the
+  raw SVG markup as text where `ClipboardItem` is unavailable.
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`

@@ -133,13 +133,34 @@ const App = () => {
 	}, [])
 
 	const [copiedScaleId, setCopiedScaleId] = useState<number | null>(null)
-	const copyScale = useCallback((id: number, color: string) => {
-		navigator.clipboard.writeText(
-			colorUtils.generateShades(color).join('\n')
-		)
-		setCopiedScaleId(id)
-		setTimeout(() => setCopiedScaleId(null), 1200)
-	}, [])
+	// Copy the whole ramp as an SVG of labeled swatches, written to the
+	// clipboard as image/svg+xml so it pastes into Figma (and other vector
+	// tools) as named, editable rectangles — not as text or a flat image. The
+	// raw SVG markup is a text fallback where ClipboardItem is unavailable.
+	const copyScale = useCallback(
+		(id: number, slug: string, color: string) => {
+			const svg = colorUtils.scaleToSvg(slug, color)
+			const done = () => {
+				setCopiedScaleId(id)
+				setTimeout(() => setCopiedScaleId(null), 1200)
+			}
+			if (
+				typeof ClipboardItem !== 'undefined' &&
+				navigator.clipboard?.write
+			) {
+				const blob = new Blob([svg], { type: 'image/svg+xml' })
+				navigator.clipboard
+					.write([new ClipboardItem({ 'image/svg+xml': blob })])
+					.then(done)
+					.catch(() => {
+						navigator.clipboard.writeText(svg).then(done)
+					})
+			} else {
+				navigator.clipboard.writeText(svg).then(done)
+			}
+		},
+		[]
+	)
 
 	const resetScales = useCallback(() => {
 		setColorScales(defaultScales())
@@ -172,6 +193,9 @@ const App = () => {
 		setBulkText('')
 		setBulkOpen(false)
 	}, [bulkText, nextId])
+
+	// De-duped slugs, matching the export/contrast naming.
+	const slugs = colorUtils.uniqueSlugs(colorScales.map((s) => s.name))
 
 	return (
 		<>
@@ -223,9 +247,15 @@ const App = () => {
 							/>
 							<div className='flex gap-3xs'>
 								<button
-									onClick={() => copyScale(scale.id, scale.color)}
-									aria-label='Copy all shades'
-									title='Copy all shades'
+									onClick={() =>
+										copyScale(
+											scale.id,
+											slugs[index],
+											scale.color
+										)
+									}
+									aria-label='Copy as SVG to paste into Figma'
+									title='Copy as SVG (paste into Figma)'
 									className={`p-3xs border rounded-sm flex items-center justify-center ${
 										copiedScaleId === scale.id
 											? 'border-green-600 bg-green-200 text-green-800'

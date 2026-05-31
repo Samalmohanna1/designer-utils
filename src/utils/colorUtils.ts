@@ -363,6 +363,43 @@ export const colorUtils = {
         return onBlack >= onWhite ? '#000000' : '#FFFFFF'
     },
 
+    // The whole 10-shade ramp as an SVG string: a row of labeled swatches.
+    // Built so a designer can copy it to the clipboard and paste straight into
+    // Figma (or any vector tool) as named, editable rectangles instead of
+    // rebuilding the palette by hand. Each swatch is a <g> named
+    // `<slug>-<shade>` (Figma uses the group's data-name / inkscape:label as the
+    // layer name), holding the fill rect plus the shade number and hex drawn in
+    // whichever of black/white reads on that color.
+    scaleToSvg(slug: string, baseColor: string): string {
+        const shades = colorUtils.generateShades(baseColor)
+        const SW = 120 // swatch width
+        const SH = 160 // swatch height
+        const width = SW * shades.length
+        const swatches = shades
+            .map((hex, i) => {
+                const shade = colorUtils.shadeNumbers[i]
+                const x = i * SW
+                const label = `${slug}-${shade}`
+                const ink = colorUtils.readableTextColor(hex)
+                return (
+                    `<g data-name="${label}" inkscape:label="${label}">` +
+                    `<title>${label} ${hex}</title>` +
+                    `<rect x="${x}" y="0" width="${SW}" height="${SH}" fill="${hex}"/>` +
+                    `<text x="${x + 12}" y="28" font-family="sans-serif" font-size="20" font-weight="700" fill="${ink}">${shade}</text>` +
+                    `<text x="${x + 12}" y="${SH - 16}" font-family="monospace" font-size="15" fill="${ink}" opacity="0.85">${hex}</text>` +
+                    `</g>`
+                )
+            })
+            .join('')
+        return (
+            `<svg xmlns="http://www.w3.org/2000/svg" ` +
+            `xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" ` +
+            `width="${width}" height="${SH}" viewBox="0 0 ${width} ${SH}">` +
+            `<g data-name="${slug}" inkscape:label="${slug}">${swatches}</g>` +
+            `</svg>`
+        )
+    },
+
     // The dark-mode ramp: the same shade slots in reverse, so a light tint
     // (e.g. 50) takes the value of its opposite end (900) and vice versa,
     // keeping hue and chroma. shadeHexes is the ordered 50..900 list.
