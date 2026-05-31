@@ -37,15 +37,21 @@ const scalesFromEntries = (
 		nameEdited: true,
 	}))
 
-// Write an SVG string to the clipboard as image/svg+xml so it pastes into
-// Figma (and other vector tools) as named, editable rectangles — not as text
-// or a flat image. Falls back to copying the raw markup as text where
-// ClipboardItem is unavailable. Calls onDone once the write resolves.
+// Write an SVG string to the clipboard so it pastes into Figma (and other
+// vector tools) as named, editable rectangles. The markup goes on the
+// clipboard under BOTH text/plain and image/svg+xml in one ClipboardItem:
+// Figma-in-browser pastes the SVG it finds in text/plain on canvas, while the
+// desktop app / other tools read the image/svg+xml blob — covering both paths.
+// Falls back to plain text where ClipboardItem is unavailable. Calls onDone
+// once the write resolves.
 const copySvg = (svg: string, onDone: () => void): void => {
 	if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-		const blob = new Blob([svg], { type: 'image/svg+xml' })
+		const item = new ClipboardItem({
+			'text/plain': new Blob([svg], { type: 'text/plain' }),
+			'image/svg+xml': new Blob([svg], { type: 'image/svg+xml' }),
+		})
 		navigator.clipboard
-			.write([new ClipboardItem({ 'image/svg+xml': blob })])
+			.write([item])
 			.then(onDone)
 			.catch(() => {
 				navigator.clipboard.writeText(svg).then(onDone)

@@ -367,12 +367,12 @@ export const colorUtils = {
     SWATCH_W: 120,
     SWATCH_H: 160,
 
-    // One scale as a horizontal row of labeled swatches, wrapped in a <g> named
-    // for the slug, offset down the canvas by `y`. The building block both
-    // scaleToSvg and paletteToSvg compose. Each swatch is itself a <g> named
-    // `<slug>-<shade>` (Figma uses data-name / inkscape:label as the layer
-    // name), holding the fill rect plus the shade number and hex drawn in
-    // whichever of black/white reads on that color.
+    // One scale as a horizontal row of labeled swatches, wrapped in a <g>
+    // identified by the slug, offset down the canvas by `y`. The building block
+    // both scaleToSvg and paletteToSvg compose. Each swatch is itself a <g>
+    // with `id="<slug>-<shade>"` — Figma reads the `id` attribute as the layer
+    // name on import — holding the fill rect plus the shade number and hex drawn
+    // in whichever of black/white reads on that color.
     swatchRowSvg(slug: string, baseColor: string, y: number): string {
         const SW = colorUtils.SWATCH_W
         const SH = colorUtils.SWATCH_H
@@ -384,7 +384,7 @@ export const colorUtils = {
                 const label = `${slug}-${shade}`
                 const ink = colorUtils.readableTextColor(hex)
                 return (
-                    `<g data-name="${label}" inkscape:label="${label}">` +
+                    `<g id="${label}">` +
                     `<title>${label} ${hex}</title>` +
                     `<rect x="${x}" y="${y}" width="${SW}" height="${SH}" fill="${hex}"/>` +
                     `<text x="${x + 12}" y="${y + 28}" font-family="sans-serif" font-size="20" font-weight="700" fill="${ink}">${shade}</text>` +
@@ -393,14 +393,13 @@ export const colorUtils = {
                 )
             })
             .join('')
-        return `<g data-name="${slug}" inkscape:label="${slug}">${swatches}</g>`
+        return `<g id="${slug}">${swatches}</g>`
     },
 
     // Wraps row groups in a sized <svg>. width/height in user units.
     wrapSvg(rows: string, width: number, height: number): string {
         return (
             `<svg xmlns="http://www.w3.org/2000/svg" ` +
-            `xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" ` +
             `width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">` +
             `${rows}</svg>`
         )
