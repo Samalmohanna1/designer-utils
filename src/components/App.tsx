@@ -246,6 +246,15 @@ const App = () => {
 								color={scale.color}
 								name={scale.name}
 								autoName={colorUtils.nameFromHex(scale.color)}
+								exportSlug={
+									slugs[index] !==
+									colorUtils.slugify(
+										scale.name ||
+											colorUtils.nameFromHex(scale.color)
+									)
+										? slugs[index]
+										: undefined
+								}
 								onColorChange={(newColor) =>
 									handleColorChange(scale.id, newColor)
 								}
