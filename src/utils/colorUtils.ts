@@ -430,42 +430,126 @@ export const colorUtils = {
         return colorUtils.wrapSvg(rows, width, SH * Math.max(scales.length, 1))
     },
 
-    // One accessible contrast pairing as an SVG card, mirroring the on-screen
-    // card: a background panel with sample text in the foreground color, plus a
-    // footer strip naming the foreground and the ratio. Named
-    // `<fgLabel>-on-<bgLabel>` so Figma shows the pairing as the layer name.
-    // `large` renders the sample bigger+bold (the AA Large preview).
-    pairToSvg(pair: {
-        fgHex: string
-        bgHex: string
-        fgLabel: string
-        bgLabel: string
-        ratio: number
-        large: boolean
-    }): string {
-        const W = 360
-        const PANEL_H = 90 // sample-text panel
-        const FOOT_H = 34 // footer strip
-        const H = PANEL_H + FOOT_H
+    // Geometry shared by the contrast-grid SVG.
+    PAIR_CARD_W: 320,
+    PAIR_CARD_H: 124,
+    PAIR_GAP: 16,
+    PAIR_COLS: 3,
+
+    // One contrast pairing as a positioned <g> cell (no <svg> wrapper),
+    // mirroring the on-screen card: a background panel with the sample text in
+    // the foreground color, a tier badge, then a footer naming the pairing and
+    // its ratio. `large` renders the sample bigger+bold (the AA Large preview).
+    // Named `<fgLabel>-on-<bgLabel>` so Figma shows the pairing as the layer
+    // name. The building block gridToSvg lays out.
+    pairCardSvg(
+        pair: {
+            fgHex: string
+            bgHex: string
+            fgLabel: string
+            bgLabel: string
+            ratio: number
+            tier: string
+            large: boolean
+        },
+        x: number,
+        y: number
+    ): string {
+        const W = colorUtils.PAIR_CARD_W
+        const PANEL_H = 90
+        const FOOT_H = colorUtils.PAIR_CARD_H - PANEL_H
         const esc = colorUtils.escapeXml
         const id = `${pair.fgLabel}-on-${pair.bgLabel}`
-        const sampleSize = pair.large ? 26 : 18
+        const sampleSize = pair.large ? 24 : 17
         const sampleWeight = pair.large ? 700 : 400
-        const footInk = colorUtils.readableTextColor('#FFFFFF') // footer is light
-        const body =
+        const ink = '#000000' // footer is a light strip
+        const badgeW = 8 + pair.tier.length * 7
+        return (
+            `<g id="${esc(id)}" transform="translate(${x},${y})">` +
             `<rect x="0" y="0" width="${W}" height="${PANEL_H}" fill="${pair.bgHex}"/>` +
-            `<text x="20" y="${PANEL_H / 2 + sampleSize / 3}" ` +
+            `<text x="16" y="${PANEL_H / 2 + sampleSize / 3}" ` +
             `font-family="sans-serif" font-size="${sampleSize}" ` +
             `font-weight="${sampleWeight}" fill="${pair.fgHex}">` +
             `The quick brown fox</text>` +
+            // tier badge, top-right of the panel
+            `<rect x="${W - badgeW - 10}" y="10" width="${badgeW}" height="18" rx="3" fill="#FFFFFF" opacity="0.9"/>` +
+            `<text x="${W - badgeW / 2 - 10}" y="23" text-anchor="middle" ` +
+            `font-family="sans-serif" font-size="11" font-weight="700" fill="#1A1A1A">${esc(pair.tier)}</text>` +
+            // footer
             `<rect x="0" y="${PANEL_H}" width="${W}" height="${FOOT_H}" fill="#FBFAF7"/>` +
             `<rect x="14" y="${PANEL_H + 12}" width="10" height="10" fill="${pair.fgHex}" stroke="#D8D5CE"/>` +
             `<text x="30" y="${PANEL_H + 21}" font-family="sans-serif" ` +
-            `font-size="13" fill="${footInk}">${esc(id)}</text>` +
+            `font-size="13" fill="${ink}">${esc(id)}</text>` +
             `<text x="${W - 14}" y="${PANEL_H + 21}" text-anchor="end" ` +
             `font-family="monospace" font-size="13" font-weight="700" ` +
-            `fill="${footInk}">${pair.ratio}:1</text>`
-        return colorUtils.wrapSvg(`<g id="${esc(id)}">${body}</g>`, W, H)
+            `fill="${ink}">${pair.ratio}:1</text>` +
+            `</g>`
+        )
+    },
+
+    // The whole compliance grid as one SVG: every passing pairing laid out in
+    // the same 3-column grid, grouped under a tier header (AAA / AA / AA Large),
+    // each card tagged with its level. Pastes the full WCAG view into Figma at
+    // once. `tiers` are pre-grouped and pre-labeled by the caller.
+    contrastGridToSvg(
+        title: string,
+        tiers: {
+            tier: string
+            note: string
+            cards: {
+                fgHex: string
+                bgHex: string
+                fgLabel: string
+                bgLabel: string
+                ratio: number
+                large: boolean
+            }[]
+        }[]
+    ): string {
+        const CW = colorUtils.PAIR_CARD_W
+        const CH = colorUtils.PAIR_CARD_H
+        const GAP = colorUtils.PAIR_GAP
+        const COLS = colorUtils.PAIR_COLS
+        const PAD = 24
+        const HEADER_H = 30 // per-tier header row
+        const TITLE_H = 40
+        const esc = colorUtils.escapeXml
+        const width = PAD * 2 + COLS * CW + (COLS - 1) * GAP
+
+        let y = TITLE_H
+        const sections = tiers
+            .filter((t) => t.cards.length > 0)
+            .map((t) => {
+                const headerY = y
+                y += HEADER_H
+                const cells = t.cards
+                    .map((card, i) => {
+                        const col = i % COLS
+                        const row = Math.floor(i / COLS)
+                        const cx = PAD + col * (CW + GAP)
+                        const cy = y + row * (CH + GAP)
+                        return colorUtils.pairCardSvg(
+                            { ...card, tier: t.tier },
+                            cx,
+                            cy
+                        )
+                    })
+                    .join('')
+                const rows = Math.ceil(t.cards.length / COLS)
+                y += rows * CH + (rows - 1) * GAP + GAP
+                const header =
+                    `<text x="${PAD}" y="${headerY + 20}" font-family="sans-serif" ` +
+                    `font-size="15" font-weight="700" fill="#1A1A1A">` +
+                    `${esc(t.tier)} — ${esc(t.note)}</text>`
+                return `<g id="${esc(t.tier)}">${header}${cells}</g>`
+            })
+            .join('')
+
+        const titleEl =
+            `<text x="${PAD}" y="26" font-family="sans-serif" font-size="18" ` +
+            `font-weight="700" fill="#1A1A1A">${esc(title)}</text>`
+        const bg = `<rect x="0" y="0" width="${width}" height="${y}" fill="#FFFFFF"/>`
+        return colorUtils.wrapSvg(`${bg}${titleEl}${sections}`, width, y)
     },
 
     // Minimal XML-attribute/text escaping for values interpolated into SVG.

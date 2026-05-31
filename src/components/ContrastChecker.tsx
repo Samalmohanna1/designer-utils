@@ -112,27 +112,6 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 			.sort((a, b) => b.contrast - a.contrast)
 	}, [uniqueColors, background])
 
-	const [copiedId, setCopiedId] = useState<string | null>(null)
-
-	const copyPair = (m: Match, large: boolean) => {
-		if (!background) return
-		const fgLabel = colorLabel(m.foreground)
-		const bgLabel = colorLabel(background)
-		const id = `${fgLabel}-on-${bgLabel}`
-		const svg = colorUtils.pairToSvg({
-			fgHex: m.foreground.hex,
-			bgHex: background.hex,
-			fgLabel,
-			bgLabel,
-			ratio: m.contrast,
-			large,
-		})
-		copySvg(svg, () => {
-			setCopiedId(id)
-			setTimeout(() => setCopiedId(null), 1200)
-		})
-	}
-
 	const grouped = useMemo(() => {
 		const groups: Record<Tier, Match[]> = {
 			AAA: [],
@@ -142,6 +121,32 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 		matches.forEach((m) => groups[m.tier].push(m))
 		return groups
 	}, [matches])
+
+	const [gridCopied, setGridCopied] = useState(false)
+
+	const copyGrid = () => {
+		if (!background) return
+		const bgLabel = colorLabel(background)
+		const svg = colorUtils.contrastGridToSvg(
+			`Legible on ${bgLabel} (${background.hex})`,
+			(['AAA', 'AA', 'AA Large'] as Tier[]).map((tier) => ({
+				tier,
+				note: tierInfo[tier].note,
+				cards: grouped[tier].map((m) => ({
+					fgHex: m.foreground.hex,
+					bgHex: background.hex,
+					fgLabel: colorLabel(m.foreground),
+					bgLabel,
+					ratio: m.contrast,
+					large: tier === 'AA Large',
+				})),
+			}))
+		)
+		copySvg(svg, () => {
+			setGridCopied(true)
+			setTimeout(() => setGridCopied(false), 1500)
+		})
+	}
 
 	if (!background) return null
 
@@ -196,6 +201,20 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 					<span className='text-step--2 text-black-300'>
 						· {matches.length} pass (≥3:1)
 					</span>
+					{matches.length > 0 && (
+						<button
+							type='button'
+							onClick={copyGrid}
+							title='Copy the whole grid as SVG (paste into Figma)'
+							className={`ml-auto px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
+								gridCopied
+									? 'border-green-600 bg-green-200 text-green-800'
+									: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+							}`}
+						>
+							{gridCopied ? 'Grid copied!' : 'Copy grid SVG'}
+						</button>
+					)}
 				</div>
 
 				{matches.length === 0 ? (
@@ -225,76 +244,47 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 										</span>
 									</div>
 									<ul className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2xs'>
-										{items.map((m) => {
-											const id = `${colorLabel(
-												m.foreground
-											)}-on-${colorLabel(background)}`
-											const isCopied = copiedId === id
-											return (
-												<li key={m.foreground.hex}>
-													<button
-														type='button'
-														onClick={() =>
-															copyPair(
-																m,
-																tier ===
-																	'AA Large'
-															)
+										{items.map((m) => (
+											<li
+												key={m.foreground.hex}
+												className='rounded-sm border border-black-100 overflow-hidden'
+											>
+												<div
+													className='px-xs py-2xs'
+													style={{
+														backgroundColor:
+															background.hex,
+														color: m.foreground.hex,
+													}}
+												>
+													<span
+														className={
+															info.sampleClass
 														}
-														aria-label={`Copy ${id} as SVG to paste into Figma`}
-														title='Copy as SVG (paste into Figma)'
-														className='group relative block w-full text-left rounded-sm border border-black-100 overflow-hidden cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-black-500'
 													>
-														<div
-															className='px-xs py-2xs'
+														The quick brown fox
+													</span>
+												</div>
+												<div className='flex items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
+													<span className='flex items-center gap-3xs'>
+														<span
+															className='w-3 h-3 rounded-xs border border-black-100'
 															style={{
 																backgroundColor:
-																	background.hex,
-																color: m
-																	.foreground
-																	.hex,
-															}}
-														>
-															<span
-																className={
-																	info.sampleClass
-																}
-															>
-																The quick brown
-																fox
-															</span>
-														</div>
-														<div className='flex items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
-															<span className='flex items-center gap-3xs'>
-																<span
-																	className='w-3 h-3 rounded-xs border border-black-100'
-																	style={{
-																		backgroundColor:
-																			m
-																				.foreground
-																				.hex,
-																	}}
-																/>
-																{colorLabel(
 																	m.foreground
-																)}
-															</span>
-															<span className='font-bold tabular-nums'>
-																{m.contrast}:1
-															</span>
-														</div>
-														<span className='pointer-events-none absolute top-3xs right-3xs px-2xs py-3xs rounded-xs bg-black-500/80 text-cream-100 text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity'>
-															Copy SVG
-														</span>
-														{isCopied && (
-															<span className='pointer-events-none absolute inset-0 flex items-center justify-center bg-black-500/80 text-cream-100 text-xs font-bold'>
-																Copied!
-															</span>
+																		.hex,
+															}}
+														/>
+														{colorLabel(
+															m.foreground
 														)}
-													</button>
-												</li>
-											)
-										})}
+													</span>
+													<span className='font-bold tabular-nums'>
+														{m.contrast}:1
+													</span>
+												</div>
+											</li>
+										))}
 									</ul>
 								</section>
 							)
