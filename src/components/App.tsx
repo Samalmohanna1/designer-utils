@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
+import { copySvg } from '../utils/clipboard'
 import ColorInput from './ColorInput'
 import ColorScale2 from './ColorScale'
 import CodeBlock from './CodeBlock'
@@ -25,8 +26,10 @@ const makeScale = (id: number, index: number): ScaleState => {
 
 const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
 
-// Build ScaleState rows from decoded {name, color} entries. A shared name is
-// treated as authored (nameEdited), so it isn't overwritten by hue auto-naming.
+// Build ScaleState rows from decoded {name, color} entries. The shared name is
+// shown on load, but loads as not-yet-edited so recoloring still re-derives the
+// name from the hue — only a name the recipient types locks it. Otherwise a
+// loaded palette could keep a name that no longer matches its color.
 const scalesFromEntries = (
 	entries: { name: string; color: string }[]
 ): ScaleState[] =>
@@ -34,32 +37,8 @@ const scalesFromEntries = (
 		id: i + 1,
 		color: entry.color,
 		name: entry.name,
-		nameEdited: true,
+		nameEdited: false,
 	}))
-
-// Write an SVG string to the clipboard so it pastes into Figma (and other
-// vector tools) as named, editable rectangles. The markup goes on the
-// clipboard under BOTH text/plain and image/svg+xml in one ClipboardItem:
-// Figma-in-browser pastes the SVG it finds in text/plain on canvas, while the
-// desktop app / other tools read the image/svg+xml blob — covering both paths.
-// Falls back to plain text where ClipboardItem is unavailable. Calls onDone
-// once the write resolves.
-const copySvg = (svg: string, onDone: () => void): void => {
-	if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
-		const item = new ClipboardItem({
-			'text/plain': new Blob([svg], { type: 'text/plain' }),
-			'image/svg+xml': new Blob([svg], { type: 'image/svg+xml' }),
-		})
-		navigator.clipboard
-			.write([item])
-			.then(onDone)
-			.catch(() => {
-				navigator.clipboard.writeText(svg).then(onDone)
-			})
-	} else {
-		navigator.clipboard.writeText(svg).then(onDone)
-	}
-}
 
 // Reads a palette from the URL hash, if present and valid. Client-only.
 const readHashPalette = (): ScaleState[] | null => {
@@ -124,8 +103,9 @@ const App = () => {
 					? {
 							...s,
 							color: newColor,
-							// Keep the name in sync with the hue until the
-							// user takes ownership of it.
+							// Follow the hue until the user types a name of
+							// their own (nameEdited). Applies to loaded palettes
+							// too — they load as not-yet-edited.
 							name: s.nameEdited
 								? s.name
 								: colorUtils.nameFromHex(newColor),
@@ -266,6 +246,15 @@ const App = () => {
 								color={scale.color}
 								name={scale.name}
 								autoName={colorUtils.nameFromHex(scale.color)}
+								exportSlug={
+									slugs[index] !==
+									colorUtils.slugify(
+										scale.name ||
+											colorUtils.nameFromHex(scale.color)
+									)
+										? slugs[index]
+										: undefined
+								}
 								onColorChange={(newColor) =>
 									handleColorChange(scale.id, newColor)
 								}

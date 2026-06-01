@@ -2,179 +2,114 @@
 
 # Color Scale Generator
 
-A powerful web-based tool for creating accessible color palettes and generating ready-to-use code snippets for your design system. Built with accessibility in mind, this tool automatically generates color scales, checks WCAG contrast compliance, and exports code in multiple formats.
+A web-based tool for building accessible color palettes and exporting them as
+ready-to-paste code. Enter one or more base colors, get a perceptually even
+10-shade ramp for each, check WCAG contrast across every shade, and export to
+your design system — or copy the swatches straight into Figma as vector. Part of
+the **Designer Utils / MYOL Creative** suite.
+
+Live at **<https://tools.myol-creative.com/>**. No backend — a fully static
+Astro site with one client-rendered React island; all color math runs in the
+browser.
 
 ## ✨ Features
 
-### 🎨 Color Scale Generation
+### 🎨 Color scale generation
 
--   Input any base color and automatically generate a 10-shade color scale (50-900)
--   Smart algorithm creates harmonious color variations
--   Real-time preview of all generated shades
--   Support for multiple color scales in a single project
+-   Enter any base hex; it expands into a 10-step shade ramp (50–900).
+-   Ramps are built in **OKLCH** (a perceptual color space) so steps are visually
+    even and hue stays stable across the ramp. The base color you enter is always
+    the **500** swatch; out-of-gamut targets are gamut-mapped (chroma reduced,
+    hue preserved) rather than clamped.
+-   Multiple scales at once. Name them yourself or let them auto-name from the
+    hue (e.g. `blue`); reorder with up/down; bulk-create by pasting a hex list.
+-   Click any swatch to copy its hex.
 
-### ♿ WCAG Accessibility Testing
+### ♿ WCAG accessibility checking
 
--   Automatic contrast ratio calculation for all color combinations
--   WCAG AAA and AA compliance checking
--   Visual indicators for accessibility levels:
-    -   🔵 **AAA** (7:1 ratio) - Enhanced accessibility
-    -   🟡 **AA Normal** (4.5:1 ratio) - Normal text
-    -   🟢 **AA Large** (3:1 ratio) - Large text and UI elements
--   Combinations are sorted by accessibility level
+-   Pick a background; the tool lists every shade across every scale that's
+    legible on it (contrast ≥ 3:1), grouped by tier:
+    -   **AAA** — 7:1, passes at any text size
+    -   **AA** — 4.5:1, body text at 16px+
+    -   **AA Large** — 3:1, large text only (24px, or 18.66px bold)
+-   Each result shows a live preview, the pairing name, and the exact ratio.
 
-### 📋 Code Export
+### 🖼 Copy to Figma as SVG
 
-Generate ready-to-use code snippets in multiple formats:
+-   **Copy a scale**, **the whole palette**, or **the entire contrast grid** as
+    an SVG of named, editable rectangles. It's written to the clipboard as
+    vector, so pasting into Figma (or any vector tool) gives `id`-named layers
+    (`blue-500`, `blue-50-on-blue-900`, …) — no rebuilding swatches by hand.
 
--   **Tailwind CSS 3.4** - Standard colors object
--   **Tailwind 4** - Modern @theme directive
--   **CSS Variables** - Universal :root variables
+### 📋 Code export
 
-### 🎯 Color Format Support
+Export in four formats, with one-click copy:
 
-Export colors in your preferred format:
+-   **CSS + Dark Mode** — `:root` variables plus a `prefers-color-scheme: dark`
+    block with the ramp mirrored.
+-   **Tailwind 4** — `@theme` tokens, plus a `.dark` override.
+-   **Markdown style guide** — a Hex + HSL table per color with WCAG
+    text-on-white/black notes and a Dark column.
+-   **Design Tokens (DTCG) JSON** — W3C Design Tokens with top-level `light` and
+    `dark` groups, for Style Dictionary / Tokens Studio / Figma.
 
--   **HEX** - `#3b82f6`
--   **HSL** - `hsla(217, 91%, 60%, 1)`
--   **RGB** - `rgb(59, 130, 246)`
+Code formats (CSS / Tailwind) also let you pick the value encoding: **HEX**,
+**HSL**, or **RGB**.
 
-## 🚀 Getting Started
+### 🔗 Share & persist
 
-### Online Tool
+-   The palette lives in the URL hash (`#p=name:hex,…`), so editing updates the
+    link live and a shared link reopens the exact palette. Also autosaved to
+    `localStorage`.
 
-Visit [MYOL Tools](https://tools.myol-creative.com/) to use the tool directly in your browser.
+### 👁 Vision simulation
 
-## 📖 How to Use
+-   A fixed bottom bar simulates color blindness **page-wide** — protanopia,
+    deuteranopia, tritanopia, achromatopsia — so you can sanity-check the whole
+    palette as different viewers see it.
 
-### 1. Add Colors
+## 🚀 Getting started
 
--   Click the color picker or enter a hex value
--   Add multiple base colors to create comprehensive palettes
--   Each color automatically generates a 10-shade scale
+Use it online at **<https://tools.myol-creative.com/>**, or run it locally.
 
-### 2. Review Accessibility
+### Local development
 
--   Browse the contrast checker to see all color combinations
--   Sorted by WCAG compliance levels (AAA, AA, AA Large)
--   Each combination shows the contrast ratio and accessibility status
-
-### 3. Export Code
-
--   Choose your preferred theme format (Tailwind 3.4, Tailwind 4, or CSS Variables)
--   Select color format (HEX, HSL, or RGB)
--   Copy the generated code snippet
--   Paste directly into your project
-
-## 💻 Code Examples
-
-### Tailwind CSS 3.4
-
-```javascript
-// tailwind.config.js
-module.exports = {
-	theme: {
-		extend: {
-			colors: {
-				primary: {
-					50: '#eff6ff',
-					100: '#dbeafe',
-					200: '#bfdbfe',
-					300: '#93c5fd',
-					400: '#60a5fa',
-					500: '#3b82f6',
-					600: '#2563eb',
-					700: '#1d4ed8',
-					800: '#1e40af',
-					900: '#1e3a8a',
-				},
-			},
-		},
-	},
-}
+```bash
+npm install
+npm run dev      # dev server at http://localhost:4321
 ```
 
-### Tailwind 4
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Start the Astro dev server at `http://localhost:4321`. |
+| `npm run build` | Static production build (also the type check). |
+| `npm run preview` | Serve the built output locally. |
+| `npx playwright test` | Run the end-to-end test suite. |
 
-```css
-@theme {
-	--primary-50: #eff6ff;
-	--primary-100: #dbeafe;
-	--primary-200: #bfdbfe;
-	--primary-300: #93c5fd;
-	--primary-400: #60a5fa;
-	--primary-500: #3b82f6;
-	--primary-600: #2563eb;
-	--primary-700: #1d4ed8;
-	--primary-800: #1e40af;
-	--primary-900: #1e3a8a;
-}
-```
+There's no separate lint step — type checking runs as part of `npm run build`.
 
-### CSS Variables
+## 🛠 Built with
 
-```css
-:root {
-	--primary-50: #eff6ff;
-	--primary-100: #dbeafe;
-	--primary-200: #bfdbfe;
-	--primary-300: #93c5fd;
-	--primary-400: #60a5fa;
-	--primary-500: #3b82f6;
-	--primary-600: #2563eb;
-	--primary-700: #1d4ed8;
-	--primary-800: #1e40af;
-	--primary-900: #1e3a8a;
-}
-```
+-   **Astro 5** — static site generation
+-   **React 19** — the interactive island (`client:load`)
+-   **TypeScript** — strict throughout
+-   **Tailwind CSS 4** — CSS-first theming (no `tailwind.config`)
+-   **Prism.js** — syntax highlighting in the export block
+-   **Playwright** — end-to-end tests
 
-## 🎯 Use Cases
+All color and contrast math is hand-written in `src/utils/colorUtils.ts` — no
+color library, on purpose. See [CLAUDE.md](./CLAUDE.md) for architecture and
+conventions, and [PLAN.md](./PLAN.md) for tracked follow-up work.
 
-### Design Systems
+## 🚢 Deploy
 
--   Create consistent color palettes for your design system
--   Ensure all color combinations meet accessibility standards
--   Generate documentation-ready color scales
+The site is static and tracks `main` — merge a PR and production rebuilds at
+<https://tools.myol-creative.com/>.
 
-### Web Development
+## 🐛 Issues & feedback
 
--   Quick Tailwind CSS color configuration
--   CSS custom properties for flexible theming
--   Accessibility-first color selection
-
-### UI/UX Design
-
--   Validate color choices against WCAG guidelines
--   Explore accessible color combinations
--   Export developer-ready specifications
-
-## ♿ Accessibility Features
-
-This tool prioritizes accessibility in both its functionality and design:
-
--   **WCAG Compliance Testing**: All color combinations are automatically tested against WCAG 2.1 guidelines
--   **Clear Visual Indicators**: Accessibility levels are clearly marked with colors and text
-
-## 🛠 Technical Details
-
-### Built With
-
--   **Astro** - Static site generation
--   **React** - Interactive components
--   **TypeScript** - Type safety
--   **Tailwind CSS** - Styling
--   **Prism.js** - Syntax highlighting
-
-### Browser Support
-
--   Chrome 88+
--   Firefox 85+
--   Safari 14+
--   Edge 88+
-
-## 🐛 Issues & Feedback
-
-Found a bug or have a feature request? Please [open an issue](https://github.com/Samalmohanna1/designer-utils/issues) on GitHub.
+Found a bug or have a feature request? Please
+[open an issue](https://github.com/Samalmohanna1/designer-utils/issues) on GitHub.
 
 ---
 

@@ -33,10 +33,11 @@ generated demo and is not part of the suite.
 - [ ] Replace `tests/example.spec.ts` with specs that assert real behavior:
   - [ ] Entering a base hex renders the 10-step scale (50–900), with 500 = the base.
   - [ ] Adding / removing a color scale updates the page.
-  - [ ] The contrast table lists pairs and labels AAA / AA / AA Large correctly.
-  - [ ] Switching theme format (CSS / Tailwind 3.4 / Tailwind 4.1) and color
-        format (hex / HSL / RGB) changes the exported snippet.
-  - [ ] Copy-to-clipboard works.
+  - [ ] The contrast checker lists legible foregrounds and labels AAA / AA /
+        AA Large correctly.
+  - [ ] Switching format (CSS + Dark / Tailwind 4 / Markdown / Design Tokens)
+        and color format (hex / HSL / RGB) changes the exported snippet.
+  - [ ] Copy-to-clipboard works (text export + SVG copy).
 - [ ] Add unit-level coverage of [colorUtils.ts](./src/utils/colorUtils.ts):
       shade-ramp endpoints, contrast thresholds at 3.1 / 4.5 / 7, and
       hex↔RGB↔HSL conversion.
@@ -104,7 +105,20 @@ dropped from scope.
   bottom bar (`CvdBar`) toggles a page-wide SVG `feColorMatrix` filter via a
   `body.cvd-*` class for protanopia / deuteranopia / tritanopia / achromatopsia;
   the filter covers `main` + `footer`, leaving the bar itself unfiltered.
-- **Quick wins** (branch `feature/quick-wins`). Per-scale "Copy all" (10 hexes,
-  newline-separated); reorder scales with up/down buttons (export + URL order
+- **Quick wins** (branch `feature/quick-wins`). Per-scale copy (later changed to
+  SVG copy, below); reorder scales with up/down buttons (export + URL order
   follows); bulk-paste hex (`colorUtils.parseHexList`) to create several
   auto-named scales at once.
+- **Compact scale rows** (branch `style/compact-scale-row`). Redesigned the
+  color-selection rows: shade number + hex live inside each full-height swatch
+  (auto black/white label per `colorUtils.readableTextColor`), slimmed name/hex
+  inputs, tighter rows, and an icon cluster (copy / up / down / remove) under
+  the input so more scales fit on screen.
+- **SVG copy for Figma** (branch `feature/contrast-card-svg-copy`). Copy a
+  scale (`colorUtils.scaleToSvg`), the whole palette (`paletteToSvg`), or the
+  entire contrast grid (`contrastGridToSvg`) as an SVG of named, editable
+  rectangles — written to the clipboard under both `text/plain` and
+  `image/svg+xml` (`utils/clipboard.copySvg`) so it pastes into Figma as vector
+  with `id`-named layers. Same branch: loaded palettes re-derive their name on
+  recolor (fixes a stale-name bug), and a duplicate scale's name field shows
+  its de-duped export slug (e.g. `blue-2`).

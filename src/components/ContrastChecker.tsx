@@ -4,6 +4,7 @@ import {
 	type ColorInfo,
 	colorUtils,
 } from '../utils/colorUtils'
+import { copySvg } from '../utils/clipboard'
 
 interface ContrastCheckerProps {
 	colorScales: ColorScale[]
@@ -121,6 +122,32 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 		return groups
 	}, [matches])
 
+	const [gridCopied, setGridCopied] = useState(false)
+
+	const copyGrid = () => {
+		if (!background) return
+		const bgLabel = colorLabel(background)
+		const svg = colorUtils.contrastGridToSvg(
+			`Legible on ${bgLabel} (${background.hex})`,
+			(['AAA', 'AA', 'AA Large'] as Tier[]).map((tier) => ({
+				tier,
+				note: tierInfo[tier].note,
+				cards: grouped[tier].map((m) => ({
+					fgHex: m.foreground.hex,
+					bgHex: background.hex,
+					fgLabel: colorLabel(m.foreground),
+					bgLabel,
+					ratio: m.contrast,
+					large: tier === 'AA Large',
+				})),
+			}))
+		)
+		copySvg(svg, () => {
+			setGridCopied(true)
+			setTimeout(() => setGridCopied(false), 1500)
+		})
+	}
+
 	if (!background) return null
 
 	return (
@@ -174,6 +201,20 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 					<span className='text-step--2 text-black-300'>
 						· {matches.length} pass (≥3:1)
 					</span>
+					{matches.length > 0 && (
+						<button
+							type='button'
+							onClick={copyGrid}
+							title='Copy the whole grid as SVG (paste into Figma)'
+							className={`ml-auto px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
+								gridCopied
+									? 'border-green-600 bg-green-200 text-green-800'
+									: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
+							}`}
+						>
+							{gridCopied ? 'Grid copied!' : 'Copy grid SVG'}
+						</button>
+					)}
 				</div>
 
 				{matches.length === 0 ? (
@@ -217,7 +258,9 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 													}}
 												>
 													<span
-														className={info.sampleClass}
+														className={
+															info.sampleClass
+														}
 													>
 														The quick brown fox
 													</span>

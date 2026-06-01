@@ -4,6 +4,11 @@ interface ColorInputProps {
 	color: string
 	name: string
 	autoName: string
+	// The export/contrast slug after de-duping, passed only when it differs
+	// from this scale's own name (i.e. de-duping renamed it). Shown in the name
+	// field while idle so the user sees the real exported name (e.g. `blue-2`);
+	// focusing the field reveals the editable name so a rename starts fresh.
+	exportSlug?: string
 	onColorChange: (color: string) => void
 	onNameChange: (name: string) => void
 }
@@ -12,6 +17,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 	color,
 	name,
 	autoName,
+	exportSlug,
 	onColorChange,
 	onNameChange,
 }) => {
@@ -23,6 +29,13 @@ const ColorInput: React.FC<ColorInputProps> = ({
 	useEffect(() => {
 		setDraft(color.toUpperCase())
 	}, [color])
+
+	// While the name field is idle and de-duping renamed this scale, show the
+	// resolved export slug (e.g. `blue-2`) so it matches the exports/contrast.
+	// On focus, swap to the editable name and select it so a rename starts
+	// fresh rather than inheriting the derived `-2` suffix.
+	const [nameFocused, setNameFocused] = useState(false)
+	const showExportSlug = !nameFocused && exportSlug !== undefined
 
 	const updateColor = (newColor: string) => {
 		const formatted = newColor.toUpperCase()
@@ -45,7 +58,15 @@ const ColorInput: React.FC<ColorInputProps> = ({
 				id={`name-${inputId}`}
 				className='h-8 w-36 px-2xs rounded-sm border border-black-100 text-step--2'
 				placeholder={autoName}
-				value={name}
+				value={showExportSlug ? exportSlug : name}
+				onFocus={(e) => {
+					setNameFocused(true)
+					// Select after React swaps the value to the editable name,
+					// so the first keystroke replaces it (rename starts fresh).
+					const el = e.target
+					requestAnimationFrame(() => el.select())
+				}}
+				onBlur={() => setNameFocused(false)}
 				onChange={(e) => onNameChange(e.target.value)}
 			/>
 
