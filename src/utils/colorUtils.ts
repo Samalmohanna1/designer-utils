@@ -282,12 +282,34 @@ export const colorUtils = {
     LIGHTEST_L: 0.97,
     DARKEST_L: 0.25,
 
+    // Minimum lightness gap between adjacent shades. When the base sits close to
+    // an endpoint (e.g. a near-white like #EEF6FF, L≈0.97), fanning to the fixed
+    // endpoint would squeeze the short side into a range too small to produce
+    // distinct hexes — so several shades collapse to one color. Each side's
+    // endpoint is pushed out to clear this gap (clamped at white/black), keeping
+    // every step distinct while the base stays at 500.
+    MIN_STEP_L: 0.012,
+
     // Index of the 500 shade, which is the unmodified base color.
     BASE_INDEX: 5,
 
     generateShades(baseColor: string): string[] {
         const base = colorUtils.hexToOklch(baseColor)
-        const { BASE_INDEX, LIGHTEST_L, DARKEST_L } = colorUtils
+        const { BASE_INDEX, LIGHTEST_L, DARKEST_L, MIN_STEP_L } = colorUtils
+        const lastIndex = colorUtils.shadeNumbers.length - 1
+        const lightSteps = BASE_INDEX // 50..400
+        const darkSteps = lastIndex - BASE_INDEX // 600..900
+
+        // Push each endpoint past the fixed target if the base is too close to
+        // it to keep MIN_STEP_L between shades, clamped to the gamut limits.
+        const lightEnd = Math.min(
+            1,
+            Math.max(LIGHTEST_L, base.l + MIN_STEP_L * lightSteps)
+        )
+        const darkEnd = Math.max(
+            0,
+            Math.min(DARKEST_L, base.l - MIN_STEP_L * darkSteps)
+        )
 
         return colorUtils.shadeNumbers.map((_shade, i) => {
             if (i === BASE_INDEX) {
@@ -299,12 +321,11 @@ export const colorUtils = {
             // light/dark endpoint, so the ramp is monotonic for any input.
             let targetL: number
             if (i < BASE_INDEX) {
-                const t = (BASE_INDEX - i) / BASE_INDEX
-                targetL = base.l + (LIGHTEST_L - base.l) * t
+                const t = (BASE_INDEX - i) / lightSteps
+                targetL = base.l + (lightEnd - base.l) * t
             } else {
-                const lastIndex = colorUtils.shadeNumbers.length - 1
-                const t = (i - BASE_INDEX) / (lastIndex - BASE_INDEX)
-                targetL = base.l + (DARKEST_L - base.l) * t
+                const t = (i - BASE_INDEX) / darkSteps
+                targetL = base.l + (darkEnd - base.l) * t
             }
 
             // Taper chroma toward the very light / very dark ends so the
