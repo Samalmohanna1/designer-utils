@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro'
+import SiteNav from '../components/SiteNav.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+import TypeScale from '../components/TypeScale'
+---
+
+<Layout
+	title='Type Scale Calculator | MYOL Creative'
+	description='Build a fluid, responsive type scale with CSS clamp(). Set min and max viewport, font size, and modular-scale ratio, preview every step, and copy the CSS.'
+	path='/type'
+>
+	<SiteNav active='type' />
+	<main class='mx-auto p-s bg-cream-100 rounded-b-md shadow-xs container'>
+		<TypeScale client:load />
+	</main>
+	<SiteFooter />
+</Layout>
