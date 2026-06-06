@@ -95,7 +95,7 @@ src/
     TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig; renders inputs, live preview, and the CSS export.
   utils/
     colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place color logic lives.
-    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios. The one place type-scale logic lives.
+    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. The one place type-scale logic lives.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
@@ -368,7 +368,12 @@ the live page reflects the merged commit before calling anything fixed.
   `ratioName` back the modular-scale picker (Minor Third, etc.). The island owns
   a `TypeScaleConfig` (min/max viewport, font size, ratio; steps up/down) and a
   preview-viewport slider that renders each step at its interpolated px size
-  (`sizeAtViewport`). Output matches utopia.fyi for the same inputs.
+  (`sizeAtViewport`). Output matches utopia.fyi for the same inputs. Three
+  export formats (a Format selector, Prism-highlighted like the color tool):
+  `toCss` (`:root` custom properties), `toTailwind` (`@theme` with
+  `--text-step-N`, so steps become `text-step-N` utilities — the repo's own
+  convention), and `toTokens` (DTCG `dimension` tokens under a `font-size`
+  group). No dark mode — a type scale isn't theme-dependent.
 
 ---
 

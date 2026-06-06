@@ -1,14 +1,20 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import Prism from 'prismjs'
+import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
+import 'prismjs/components/prism-json'
 import {
 	generateTypeScale,
 	toCss,
+	toTailwind,
+	toTokens,
 	sizeAtViewport,
 	NAMED_RATIOS,
 	ratioName,
 	type TypeScaleConfig,
 } from '../utils/typeScale'
+
+type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const DEFAULT_CONFIG: TypeScaleConfig = {
 	minViewport: 320,
@@ -118,7 +124,19 @@ const TypeScale = () => {
 	)
 
 	const steps = useMemo(() => generateTypeScale(config), [config])
-	const css = useMemo(() => toCss(steps), [steps])
+
+	const [format, setFormat] = useState<ExportFormat>('css')
+	const code = useMemo(() => {
+		switch (format) {
+			case 'tailwind4':
+				return toTailwind(steps)
+			case 'tokens':
+				return toTokens(steps)
+			default:
+				return toCss(steps)
+		}
+	}, [steps, format])
+	const language = format === 'tokens' ? 'json' : 'css'
 
 	// Preview viewport, defaulting to the midpoint between the anchors.
 	const [preview, setPreview] = useState(
@@ -129,12 +147,12 @@ const TypeScale = () => {
 	useEffect(() => setIsClient(true), [])
 	useEffect(() => {
 		if (isClient) Prism.highlightAll()
-	}, [css, isClient])
+	}, [code, language, isClient])
 
 	const [copied, setCopied] = useState(false)
-	useEffect(() => setCopied(false), [css])
+	useEffect(() => setCopied(false), [code])
 	const copy = () => {
-		navigator.clipboard.writeText(css)
+		navigator.clipboard.writeText(code)
 		setCopied(true)
 		setTimeout(() => setCopied(false), 2000)
 	}
@@ -294,11 +312,33 @@ const TypeScale = () => {
 				</ul>
 			</section>
 
-			{/* CSS export */}
+			{/* Code export */}
 			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128187; CSS
+				&#128187; Code Snippet
 			</h3>
 			<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
+				<div className='p-xs'>
+					<div className='space-y-3xs'>
+						<label
+							htmlFor='type-format'
+							className='block text-step--2 font-roboto-condensed'
+						>
+							Format
+						</label>
+						<select
+							id='type-format'
+							value={format}
+							onChange={(e) =>
+								setFormat(e.target.value as ExportFormat)
+							}
+							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+						>
+							<option value='css'>CSS Variables</option>
+							<option value='tailwind4'>Tailwind 4.1</option>
+							<option value='tokens'>Design Tokens (JSON)</option>
+						</select>
+					</div>
+				</div>
 				<div className='relative bg-[#2d2d2d] text-cream-100'>
 					<button
 						onClick={copy}
@@ -308,15 +348,15 @@ const TypeScale = () => {
 								: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
 						}`}
 					>
-						{copied ? 'CSS Copied!' : 'Copy CSS'}
+						{copied ? 'Code Copied!' : 'Copy Code'}
 					</button>
 					<pre className='p-s max-h-128 overflow-auto'>
 						<code
 							className={`text-sm sm:text-lg ${
-								isClient ? 'language-css' : ''
+								isClient ? `language-${language}` : ''
 							}`}
 						>
-							{css}
+							{code}
 						</code>
 					</pre>
 				</div>

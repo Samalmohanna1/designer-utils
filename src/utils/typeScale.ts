@@ -102,10 +102,25 @@ export const generateTypeScale = (config: TypeScaleConfig): TypeStep[] => {
 // variable namespace (e.g. `step` -> `--step-0`). Negative steps read
 // `--step--1` (Utopia's convention).
 export const toCss = (steps: TypeStep[], prefix = 'step'): string => {
-	const lines = steps.map(
-		(s) => `  --${prefix}-${s.step}: ${s.clamp};`
-	)
+	const lines = steps.map((s) => `  --${prefix}-${s.step}: ${s.clamp};`)
 	return `:root {\n${lines.join('\n')}\n}`
+}
+
+// Tailwind 4 @theme block. Uses --text-step-N so each step becomes a
+// `text-step-N` utility (the convention this repo's own global.css uses).
+export const toTailwind = (steps: TypeStep[]): string => {
+	const lines = steps.map((s) => `  --text-step-${s.step}: ${s.clamp};`)
+	return `@theme {\n${lines.join('\n')}\n}`
+}
+
+// W3C Design Tokens (DTCG): one dimension token per step, value = the clamp().
+// Keyed `step-N` (negatives as `step--1`) under a `font-size` group.
+export const toTokens = (steps: TypeStep[]): string => {
+	const sizes: Record<string, { $type: 'dimension'; $value: string }> = {}
+	for (const s of steps) {
+		sizes[`step-${s.step}`] = { $type: 'dimension', $value: s.clamp }
+	}
+	return JSON.stringify({ 'font-size': sizes }, null, 2)
 }
 
 // The px size at an arbitrary viewport width, for the live preview. Linearly
