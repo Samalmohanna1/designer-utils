@@ -1,0 +1,39 @@
+---
+// Top nav shared across the tool pages. `active` marks the current tool so its
+// link reads as selected. Add new tools here as the suite grows.
+interface Props {
+	active: 'color' | 'type'
+}
+const { active } = Astro.props
+
+const links: { href: string; label: string; key: Props['active'] }[] = [
+	{ href: '/', label: 'Color Scales', key: 'color' },
+	{ href: '/type', label: 'Type Scales', key: 'type' },
+]
+---
+
+<nav
+	aria-label='Tools'
+	class='mx-auto px-s py-2xs bg-cream-100 rounded-b-md shadow-xs container mb-m'
+>
+	<ul class='flex flex-wrap gap-2xs'>
+		{
+			links.map(({ href, label, key }) => (
+				<li>
+					<a
+						href={href}
+						aria-current={active === key ? 'page' : undefined}
+						class:list={[
+							'inline-block px-xs py-3xs rounded-sm font-roboto-condensed font-bold uppercase text-step--2 tracking-tight',
+							active === key
+								? 'bg-black-500 text-cream-100'
+								: 'border border-black-100 hover:bg-black-500 hover:text-cream-100',
+						]}
+					>
+						{label}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>

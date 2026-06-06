@@ -8,12 +8,21 @@ about architecture or conventions.
 
 ## What this is
 
-**Color Scale Generator** — a single-page web tool (part of the "Designer Utils"
-/ MYOL Creative tools suite) that lets designers and developers build color
-scales from base colors, check WCAG contrast across all generated shades, and
-export the result as ready-to-paste code.
+**Designer Utils** (MYOL Creative tools suite) — a small set of designer/dev
+tools, each its own route, linked by a shared top nav ([SiteNav](./src/components/SiteNav.astro)):
 
-What the app does, top to bottom on one page:
+- **Color Scales** (`/`, the original tool) — build color scales, check WCAG
+  contrast, export code, copy swatches to Figma. The bulk of this doc.
+- **Type Scales** (`/type`) — a fluid type-scale calculator: set min/max
+  viewport, font size, and modular-scale ratio, preview every step, and copy a
+  `:root` block of `clamp()` custom properties. See the **Type Scale** entry.
+
+The repo is still named "color-scale-generator"; the color tool is the primary
+surface and most of this file describes it.
+
+### Color Scales tool
+
+What the color tool does, top to bottom on one page:
 
 1. **Generate scales.** Enter one or more base hex colors; each expands into a
    10-step shade ramp (50–900). A fixed bottom bar can simulate color blindness
@@ -50,8 +59,9 @@ command — the doc update is **part of that change, not a follow-up**.
 
 - **Astro 5** static site (`output` default = static). Config in
   [astro.config.mjs](./astro.config.mjs).
-- **React 19** for interactivity, via `@astrojs/react`. The entire app is one
-  React island mounted with `client:load` in [src/pages/index.astro](./src/pages/index.astro).
+- **React 19** for interactivity, via `@astrojs/react`. Each tool is one React
+  island mounted with `client:load` from its `.astro` route ([index.astro](./src/pages/index.astro)
+  → `App`; [type.astro](./src/pages/type.astro) → `TypeScale`).
 - **Tailwind CSS 4** via the `@tailwindcss/vite` plugin (no `tailwind.config`
   file — theme is defined in CSS with `@theme`, see
   [src/styles/global.css](./src/styles/global.css)).
@@ -69,24 +79,30 @@ No database, no auth, no API. All color math runs in the browser.
 
 ```
 src/
-  pages/index.astro       Single route. Wraps <App> in the layout + footer.
-  layouts/Layout.astro    HTML shell: meta/OG tags, PostHog, bg pattern, CVD SVG filters + CvdBar.
+  pages/
+    index.astro           Color tool route. SiteNav + <App> + SiteFooter in the layout.
+    type.astro            Type Scale tool route. SiteNav + <TypeScale> + SiteFooter.
+  layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
-    App.tsx               Root island. Owns colorScales state; composes the three sections.
+    SiteNav.astro         Shared top nav (Color Scales | Type Scales); `active` marks the current tool.
+    SiteFooter.astro      Shared footer (support / credit links), used by both routes.
+    App.tsx               Color-tool island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
     ContrastChecker.tsx   Pick-a-background → legible-foregrounds cards; the whole grid copies as one SVG.
     CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
+    TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig; renders inputs, live preview, and the CSS export.
   utils/
-    colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place logic lives.
+    colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place color logic lives.
+    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. The one place type-scale logic lives.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
 public/                   Static files served as-is: fonts/, favicon.svg, og-image.png.
-tests/                    Playwright specs.
+tests/                    Playwright specs (smoke.spec.ts covers both tools + nav).
 tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
@@ -339,8 +355,25 @@ the live page reflects the merged commit before calling anything fixed.
   `colorScales` effect live-syncs back to the hash via `history.replaceState`
   (no history spam) and to `localStorage`. A `hydrated` ref gates that effect so
   it can't overwrite the hash before the initial read. Shared scales load with
-  `nameEdited: true` (the name is authored, so a later recolor won't rename it).
+  `nameEdited: false` (the shared name is shown, but recoloring re-derives it
+  from the hue until the recipient types one — see `handleColorChange`).
   Malformed pairs are dropped; if nothing valid decodes, the default loads.
+- **Type Scale** — the second tool ([TypeScale](./src/components/TypeScale.tsx)
+  at `/type`). Math lives in [typeScale.ts](./src/utils/typeScale.ts) (the
+  engine, mirroring `colorUtils`): `generateTypeScale(config)` builds each step
+  (`size = fontSize × ratio^step` at each viewport), `toCss` emits the `:root`
+  block of `--step-N: clamp(...)` custom properties, and `clampFor` builds the
+  Utopia-style `clamp(min, intercept + slopeVw, max)` (slope/intercept of the
+  line through the two viewport anchors; px→rem at 16px). `NAMED_RATIOS` /
+  `ratioName` back the modular-scale picker (Minor Third, etc.). The island owns
+  a `TypeScaleConfig` (min/max viewport, font size, ratio; steps up/down) and a
+  preview-viewport slider that renders each step at its interpolated px size
+  (`sizeAtViewport`). Output matches utopia.fyi for the same inputs. Three
+  export formats (a Format selector, Prism-highlighted like the color tool):
+  `toCss` (`:root` custom properties), `toTailwind` (`@theme` with
+  `--text-step-N`, so steps become `text-step-N` utilities — the repo's own
+  convention), and `toTokens` (DTCG `dimension` tokens under a `font-size`
+  group). No dark mode — a type scale isn't theme-dependent.
 
 ---
 

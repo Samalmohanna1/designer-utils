@@ -21,26 +21,24 @@ or anything else — the live contrast UI is [ContrastChecker.tsx](./src/compone
 - [ ] Delete `ContrastLevel.tsx` (and `ColorCombo` if a stub turns up).
 - [ ] `npm run build` passes (no broken imports / type errors).
 
-### 2. Replace scaffolding e2e tests with real coverage
+### 2. Expand e2e / unit coverage
 
-**Status:** not started · **Type:** `test`
+**Status:** in progress · **Type:** `test`
 
-[tests/example.spec.ts](./tests/example.spec.ts) is Playwright starter
-scaffolding — it asserts a "get started" / "Installation" flow that does not
-exist in this app. [tests-examples/](./tests-examples/) is Playwright's
-generated demo and is not part of the suite.
+The scaffolding `example.spec.ts` was replaced with real smoke tests
+([tests/smoke.spec.ts](./tests/smoke.spec.ts): both tools load with correct
+titles, the color tool renders its 10 shades, the type tool outputs the
+reference CSS, and the nav moves between them). Still wanted:
 
-- [ ] Replace `tests/example.spec.ts` with specs that assert real behavior:
-  - [ ] Entering a base hex renders the 10-step scale (50–900), with 500 = the base.
-  - [ ] Adding / removing a color scale updates the page.
-  - [ ] The contrast checker lists legible foregrounds and labels AAA / AA /
-        AA Large correctly.
-  - [ ] Switching format (CSS + Dark / Tailwind 4 / Markdown / Design Tokens)
-        and color format (hex / HSL / RGB) changes the exported snippet.
-  - [ ] Copy-to-clipboard works (text export + SVG copy).
-- [ ] Add unit-level coverage of [colorUtils.ts](./src/utils/colorUtils.ts):
-      shade-ramp endpoints, contrast thresholds at 3.1 / 4.5 / 7, and
-      hex↔RGB↔HSL conversion.
+- [ ] Deeper color-tool specs: add/remove a scale, contrast tiers labeled
+      correctly, format + color-format switching changes the snippet, copy
+      (text export + SVG copy).
+- [ ] Type-tool specs: changing ratio/viewport/size updates the clamps; steps
+      up/down change the count.
+- [ ] Unit coverage of [colorUtils.ts](./src/utils/colorUtils.ts) (shade-ramp
+      endpoints, distinct shades for near-white/near-black bases, contrast
+      thresholds at 3.1 / 4.5 / 7, hex↔RGB↔HSL) and
+      [typeScale.ts](./src/utils/typeScale.ts) (clamp matches Utopia).
 - [ ] Remove or ignore the `tests-examples/` demo so it isn't mistaken for real tests.
 - [ ] `npx playwright test` passes.
 
@@ -79,6 +77,19 @@ dropped from scope.
 
 ## Done
 
+- **Type Scale calculator** (branch `feature/type-scale-calculator`). A second
+  tool at `/type`: fluid type-scale math in `utils/typeScale.ts`
+  (`generateTypeScale` / `toCss` / named ratios), a `TypeScale` island with
+  min/max viewport + size + ratio inputs, steps up/down, a preview-viewport
+  slider, and a copyable `:root` block of `clamp()` custom properties
+  (matches utopia.fyi). Added a shared top nav (`SiteNav`) and footer
+  (`SiteFooter`) across both tools, per-page titles/descriptions in `Layout`,
+  and replaced the scaffolding spec with real smoke tests (`smoke.spec.ts`).
+- **Ramp collapse fix for near-endpoint bases** (branch
+  `fix/ramp-collapse-light-base`). A base whose OKLCH lightness sat at an
+  endpoint (e.g. near-white `#EEF6FF`) collapsed the short side of the ramp to
+  one repeated color; each side's endpoint is now pushed out to keep a minimum
+  per-step lightness gap (`MIN_STEP_L`), clamped at white/black.
 - **Color selection: naming + designer optimizations** (branch
   `feature/contrast-picker-redesign`). Editable, hue-auto-named scales; names
   flow into the export (slugified + de-duped) and contrast labels; varied

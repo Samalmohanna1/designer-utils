@@ -9,8 +9,15 @@ your design system — or copy the swatches straight into Figma as vector. Part 
 the **Designer Utils / MYOL Creative** suite.
 
 Live at **<https://tools.myol-creative.com/>**. No backend — a fully static
-Astro site with one client-rendered React island; all color math runs in the
-browser.
+Astro site; all math runs in the browser.
+
+The suite has two tools, linked by a top nav:
+
+- **Color Scales** (`/`) — everything below.
+- **Type Scales** (`/type`) — a fluid type-scale calculator. Set a font size and
+  modular-scale ratio at a min and max viewport, preview every step live, and
+  export `clamp()` steps as CSS custom properties, a Tailwind 4 `@theme` block,
+  or W3C Design Tokens JSON (Utopia-style output).
 
 ## ✨ Features
 

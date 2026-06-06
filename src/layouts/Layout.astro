@@ -3,12 +3,17 @@ import '../styles/global.css'
 import CvdBar from '../components/CvdBar'
 interface Props {
 	title: string
+	description?: string
+	path?: string // route path for the canonical/OG URL, e.g. '/type'
 }
 
-const { title } = Astro.props
-const description =
-	'Create color scales, WCAG-compliant text contrast ratios, and export code snippets for Tailwind 3.4 Themes and CSS Variables. Perfect for designers and developers.'
-const canonicalURL = 'https://tools.myol-creative.com/'
+const {
+	title,
+	description = 'Create color scales, WCAG-compliant text contrast ratios, and export code snippets for Tailwind 4 themes, CSS, Markdown, and Design Tokens. Perfect for designers and developers.',
+	path = '/',
+} = Astro.props
+const SITE = 'https://tools.myol-creative.com'
+const canonicalURL = `${SITE}${path}`
 const image = '/og-image.png'
 ---
 
