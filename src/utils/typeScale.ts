@@ -138,3 +138,54 @@ export const sizeAtViewport = (
 	const raw = step.minSize + (step.maxSize - step.minSize) * t
 	return Math.min(Math.max(raw, lo), hi)
 }
+
+// --- Shareable config serialization ---
+// The config encodes to a fixed, comma-separated list of its eight numbers,
+// for the URL hash (e.g. `320,1240,18,20,1.2,1.25,5,2`). Mirrors colorUtils'
+// encodePalette/decodePalette. Round-trips through encode/decode.
+
+const CONFIG_ORDER = [
+	'minViewport',
+	'maxViewport',
+	'minFontSize',
+	'maxFontSize',
+	'minRatio',
+	'maxRatio',
+	'stepsUp',
+	'stepsDown',
+] as const
+
+export const encodeConfig = (config: TypeScaleConfig): string =>
+	CONFIG_ORDER.map((k) => config[k]).join(',')
+
+// Parses the encoded string back into a config. Returns null if it doesn't
+// hold all eight finite numbers, so the caller can fall back to a default.
+// Viewports/sizes/steps are coerced sane (steps non-negative integers; ratios
+// kept >= 1) so a malformed hash can't produce a broken scale.
+export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
+	if (!encoded) return null
+	const parts = encoded.split(',').map((p) => parseFloat(p.trim()))
+	if (parts.length !== CONFIG_ORDER.length || parts.some((n) => !Number.isFinite(n))) {
+		return null
+	}
+	const [
+		minViewport,
+		maxViewport,
+		minFontSize,
+		maxFontSize,
+		minRatio,
+		maxRatio,
+		stepsUp,
+		stepsDown,
+	] = parts
+	return {
+		minViewport,
+		maxViewport,
+		minFontSize,
+		maxFontSize,
+		minRatio: Math.max(1, minRatio),
+		maxRatio: Math.max(1, maxRatio),
+		stepsUp: Math.max(0, Math.round(stepsUp)),
+		stepsDown: Math.max(0, Math.round(stepsDown)),
+	}
+}

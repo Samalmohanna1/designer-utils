@@ -373,7 +373,11 @@ the live page reflects the merged commit before calling anything fixed.
   `toCss` (`:root` custom properties), `toTailwind` (`@theme` with
   `--text-step-N`, so steps become `text-step-N` utilities — the repo's own
   convention), and `toTokens` (DTCG `dimension` tokens under a `font-size`
-  group). No dark mode — a type scale isn't theme-dependent.
+  group). No dark mode — a type scale isn't theme-dependent. The config
+  serializes to the URL hash under `#t=` (`encodeConfig` / `decodeConfig`, the
+  eight numbers comma-joined) with the same mount-read + `replaceState`
+  live-sync + `hydrated` ref gate as the color tool's palette sharing; a
+  malformed hash falls back to the default.
 
 ---
 

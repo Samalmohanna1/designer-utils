@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
 import Prism from 'prismjs'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
@@ -9,12 +9,16 @@ import {
 	toTailwind,
 	toTokens,
 	sizeAtViewport,
+	encodeConfig,
+	decodeConfig,
 	NAMED_RATIOS,
 	ratioName,
 	type TypeScaleConfig,
 } from '../utils/typeScale'
 
 type ExportFormat = 'css' | 'tailwind4' | 'tokens'
+
+const HASH_PREFIX = '#t='
 
 const DEFAULT_CONFIG: TypeScaleConfig = {
 	minViewport: 320,
@@ -25,6 +29,14 @@ const DEFAULT_CONFIG: TypeScaleConfig = {
 	maxRatio: 1.25,
 	stepsUp: 5,
 	stepsDown: 2,
+}
+
+// Reads a config from the URL hash, if present and valid. Client-only.
+const readHashConfig = (): TypeScaleConfig | null => {
+	if (typeof window === 'undefined') return null
+	const hash = window.location.hash
+	if (!hash.startsWith(HASH_PREFIX)) return null
+	return decodeConfig(decodeURIComponent(hash.slice(HASH_PREFIX.length)))
 }
 
 // A labeled number input wired to one config field. Empty/NaN keeps the last
@@ -123,6 +135,10 @@ const TypeScale = () => {
 		[]
 	)
 
+	// Gates the sync effect so it can't overwrite the hash before the initial
+	// read on mount (same pattern as the color tool).
+	const hydrated = useRef(false)
+
 	const steps = useMemo(() => generateTypeScale(config), [config])
 
 	const [format, setFormat] = useState<ExportFormat>('css')
@@ -142,6 +158,27 @@ const TypeScale = () => {
 	const [preview, setPreview] = useState(
 		Math.round((DEFAULT_CONFIG.minViewport + DEFAULT_CONFIG.maxViewport) / 2)
 	)
+
+	// On mount: a config in the URL wins; otherwise keep the default. Centers
+	// the preview on the loaded anchors.
+	useEffect(() => {
+		const fromHash = readHashConfig()
+		if (fromHash) {
+			setConfig(fromHash)
+			setPreview(
+				Math.round((fromHash.minViewport + fromHash.maxViewport) / 2)
+			)
+		}
+		hydrated.current = true
+	}, [])
+
+	// Live-sync the config to the URL hash (replaceState, so edits don't spam
+	// history). Runs only after the initial load.
+	useEffect(() => {
+		if (!hydrated.current) return
+		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encodeConfig(config)}`
+		window.history.replaceState(null, '', url)
+	}, [config])
 
 	const [isClient, setIsClient] = useState(false)
 	useEffect(() => setIsClient(true), [])
