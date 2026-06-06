@@ -17,7 +17,8 @@ The suite has two tools, linked by a top nav:
 - **Type Scales** (`/type`) — a fluid type-scale calculator. Set a font size and
   modular-scale ratio at a min and max viewport, preview every step live, and
   export `clamp()` steps as CSS custom properties, a Tailwind 4 `@theme` block,
-  or W3C Design Tokens JSON (Utopia-style output).
+  or W3C Design Tokens JSON (Utopia-style output). The config lives in the URL,
+  so a shared link reopens the exact scale.
 
 ## ✨ Features
 
