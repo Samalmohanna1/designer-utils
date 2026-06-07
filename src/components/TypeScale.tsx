@@ -357,7 +357,7 @@ const TypeScale = () => {
 						const device = deviceForWidth(clamped)
 						const icon = DEVICE_ICON[device]
 						return (
-							<div className='relative flex-1 min-w-40 h-8'>
+							<div className='relative flex-1 min-w-40 h-10'>
 								{/* thick track */}
 								<div className='pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-black-100'>
 									<div
@@ -365,19 +365,20 @@ const TypeScale = () => {
 										style={{ width: `${pct}%` }}
 									/>
 								</div>
-								{/* device-icon handle, tracks the value. Fixed height
-								    with auto width so each device keeps its true
-								    proportions. Travel inset ~18px each side so the
-								    icon center stays on the bar at 0% and 100%. */}
+								{/* device-icon handle, tracks the value. Sized in em
+								    off text-step-2 so it matches the heading emoji
+								    glyphs; shrink-0 so a wide icon (laptop) never gets
+								    compressed near the track ends. Travel inset ~18px
+								    each side keeps the icon center on the bar. */}
 								<div
-									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center text-black-500'
+									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center shrink-0 text-step-2 text-black-500'
 									style={{ left: `calc(18px + ${pct}% - ${pct / 100} * 36px)` }}
 									aria-hidden='true'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
 										viewBox={icon.viewBox}
-										className='h-8 w-auto fill-current'
+										className='h-[0.85em] w-auto shrink-0 fill-current'
 									>
 										{icon.screen && (
 											<rect
