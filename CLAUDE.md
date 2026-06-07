@@ -85,7 +85,7 @@ src/
   layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
     SiteNav.astro         Shared top nav (Color Scales | Type Scales); `active` marks the current tool.
-    SiteFooter.astro      Shared footer (support / credit links), used by both routes.
+    SiteFooter.astro      Shared footer (the author credit link), used by both routes.
     App.tsx               Color-tool island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
