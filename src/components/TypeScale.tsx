@@ -367,12 +367,18 @@ const TypeScale = () => {
 								</div>
 								{/* device-icon handle, tracks the value. Sized in em
 								    off text-step-2 so it matches the heading emoji
-								    glyphs; shrink-0 so a wide icon (laptop) never gets
-								    compressed near the track ends. Travel inset ~18px
-								    each side keeps the icon center on the bar. */}
+								    glyphs. `width:max-content` so the absolutely-
+								    positioned box sizes to its icon regardless of how
+								    close `left` is to the container's right edge —
+								    otherwise the available width collapses there and
+								    the wide laptop icon gets squished. Travel inset
+								    ~18px each side keeps the icon center on the bar. */}
 								<div
-									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center shrink-0 text-step-2 text-black-500'
-									style={{ left: `calc(18px + ${pct}% - ${pct / 100} * 36px)` }}
+									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center text-step-2 text-black-500'
+									style={{
+										left: `calc(18px + ${pct}% - ${pct / 100} * 36px)`,
+										width: 'max-content',
+									}}
 									aria-hidden='true'
 								>
 									<svg
