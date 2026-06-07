@@ -24,12 +24,33 @@ test('type tool loads and outputs fluid CSS', async ({ page }) => {
 	)
 })
 
-test('nav moves between the two tools', async ({ page }) => {
+test('space tool loads and outputs a space scale + grid', async ({ page }) => {
+	await page.goto(`${BASE}/space`)
+	await expect(page).toHaveTitle(/Space & Grid Calculator/)
+	await expect(
+		page.getByRole('heading', { name: /Space & Grid Calculator/i })
+	).toBeVisible()
+	const code = page.locator('pre code')
+	// Default 8pt @min space scale (16 -> 20px fluid).
+	await expect(code).toContainText(
+		'--space-s: clamp(1rem, 0.9286rem + 0.3571vw, 1.25rem)'
+	)
+	// The grid block with the container utility.
+	await expect(code).toContainText('--grid-columns: 12;')
+	await expect(code).toContainText('.u-container {')
+})
+
+test('nav moves between the three tools', async ({ page }) => {
 	await page.goto(BASE)
 	await page.getByRole('link', { name: 'Type Scales' }).click()
 	await expect(page).toHaveURL(/\/type\/?$/)
 	await expect(
 		page.getByRole('heading', { name: /Type Scale Calculator/i })
+	).toBeVisible()
+	await page.getByRole('link', { name: 'Space & Grid' }).click()
+	await expect(page).toHaveURL(/\/space\/?$/)
+	await expect(
+		page.getByRole('heading', { name: /Space & Grid Calculator/i })
 	).toBeVisible()
 	await page.getByRole('link', { name: 'Color Scales' }).click()
 	await expect(

@@ -77,6 +77,14 @@ dropped from scope.
 
 ## Done
 
+- **Space & Grid calculator** (branch `feature/space-grid-calculator`). A third
+  tool at `/space`: fluid spacing scale (T-shirt sizes 3xs–3xl on an 8pt grid
+  by default + one-up pairs) and a matching column grid, in
+  `utils/spaceScale.ts` (reusing `typeScale`'s `clampFor`/`pxToRem`/`round`).
+  A `SpaceScale` island with own inputs (viewport 320–1440), a size table with
+  blue preview swatches, pair bars, a grid section (gutter/container/columns +
+  @min-column rounding), CSS/Tailwind/Tokens export, and `#s=` URL sync. Added
+  to the nav (ruler icon) and the smoke suite. Output matches utopia.fyi.
 - **Type Scale calculator** (branch `feature/type-scale-calculator`). A second
   tool at `/type`: fluid type-scale math in `utils/typeScale.ts`
   (`generateTypeScale` / `toCss` / named ratios), a `TypeScale` island with
