@@ -396,6 +396,10 @@ the live page reflects the merged commit before calling anything fixed.
 - Always create a new branch; never work on `main`.
 - Run `npm run build` (type check) and `npx playwright test` before calling a
   change complete.
+- **Never start, restart, or kill the user's dev server** (and never
+  `taskkill node.exe`) to take screenshots or for any other reason, unless the
+  user asks or grants permission. The user runs their own dev server — rely on
+  them for visual feedback; describe the change and ask them to confirm.
 - Never add AI co-author trailers.
 - Commit after checks pass, but never push — the user opens the PR after review.
 - When in doubt about architecture, re-read this file.
