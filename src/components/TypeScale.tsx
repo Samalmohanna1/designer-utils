@@ -28,19 +28,24 @@ const deviceForWidth = (px: number): Device =>
 
 // Device icons (FontAwesome 7). Phone and tablet share the portrait body —
 // tablet is the wider version — so they read as one family at different sizes.
-// `screen`, when set, is a filled rect drawn behind the path to tint a screen.
+// `screen` is a filled rect drawn behind the path so the device's screen
+// cutout shows blue; all three are tinted.
 const SCREEN_BLUE = '#5799DB'
 const DEVICE_ICON: Record<
 	Device,
 	{ viewBox: string; path: string; screen?: { x: number; y: number; w: number; h: number } }
 > = {
 	mobile: {
+		// Portrait phone with a framed screen; screen tinted blue.
 		viewBox: '0 0 640 640',
-		path: 'M208 64C172.7 64 144 92.7 144 128L144 512C144 547.3 172.7 576 208 576L432 576C467.3 576 496 547.3 496 512L496 128C496 92.7 467.3 64 432 64L208 64zM280 480L360 480C373.3 480 384 490.7 384 504C384 517.3 373.3 528 360 528L280 528C266.7 528 256 517.3 256 504C256 490.7 266.7 480 280 480z',
+		path: 'M144 128C144 92.7 172.7 64 208 64L432 64C467.3 64 496 92.7 496 128L496 512C496 547.3 467.3 576 432 576L208 576C172.7 576 144 547.3 144 512L144 128zM208 128L208 432L432 432L432 128L208 128zM320 536C337.7 536 352 521.7 352 504C352 486.3 337.7 472 320 472C302.3 472 288 486.3 288 504C288 521.7 302.3 536 320 536z',
+		screen: { x: 208, y: 128, w: 224, h: 304 },
 	},
 	tablet: {
+		// Wider portrait tablet with a framed screen; screen tinted blue.
 		viewBox: '0 0 640 640',
-		path: 'M160 64C124.7 64 96 92.7 96 128L96 512C96 547.3 124.7 576 160 576L480 576C515.3 576 544 547.3 544 512L544 128C544 92.7 515.3 64 480 64L160 64zM280 464L360 464C373.3 464 384 474.7 384 488C384 501.3 373.3 512 360 512L280 512C266.7 512 256 501.3 256 488C256 474.7 266.7 464 280 464z',
+		path: 'M96 128C96 92.7 124.7 64 160 64L480 64C515.3 64 544 92.7 544 128L544 512C544 547.3 515.3 576 480 576L160 576C124.7 576 96 547.3 96 512L96 128zM352 496C352 478.3 337.7 464 320 464C302.3 464 288 478.3 288 496C288 513.7 302.3 528 320 528C337.7 528 352 513.7 352 496zM480 128L160 128L160 416L480 416L480 128z',
+		screen: { x: 160, y: 128, w: 320, h: 288 },
 	},
 	laptop: {
 		// Current laptop, with the lid interior tinted blue behind the outline.
