@@ -366,13 +366,15 @@ const TypeScale = () => {
 									/>
 								</div>
 								{/* device-icon handle, tracks the value. Sized in em
-								    off text-step-2 so it matches the heading emoji
-								    glyphs. `width:max-content` so the absolutely-
-								    positioned box sizes to its icon regardless of how
-								    close `left` is to the container's right edge —
-								    otherwise the available width collapses there and
-								    the wide laptop icon gets squished. Travel inset
-								    ~18px each side keeps the icon center on the bar. */}
+								    off text-step-2 at 1.2em — emoji glyphs render
+								    ~1.2x their font-size, so this matches the heading
+								    emoji glyph height. `width:max-content` so the
+								    absolutely-positioned box sizes to its icon
+								    regardless of how close `left` is to the
+								    container's right edge — otherwise the available
+								    width collapses there and the wide laptop icon
+								    gets squished. Travel inset ~18px each side keeps
+								    the icon center on the bar. */}
 								<div
 									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center text-step-2 text-black-500'
 									style={{
@@ -384,7 +386,7 @@ const TypeScale = () => {
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
 										viewBox={icon.viewBox}
-										className='h-[0.85em] w-auto shrink-0 fill-current'
+										className='h-[1.2em] w-auto shrink-0 fill-current'
 									>
 										{icon.screen && (
 											<rect
