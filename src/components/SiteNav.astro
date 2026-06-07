@@ -6,7 +6,18 @@ interface Props {
 }
 const { active } = Astro.props
 
-const links: { href: string; label: string; key: Props['active'] }[] = [
+// FontAwesome solid paths (viewBox 0 0 512 512): palette for the color tool,
+// a typography "T" for the type tool.
+const icons: Record<Props['active'], string> = {
+	color: 'M204.3 5C104.9 24.4 24.8 104.3 5.2 203.4c-37 187 131.7 326.4 258.8 306.7 41.2-6.4 61.4-54.6 42.5-91.7-23.1-45.4 9.9-98.4 60.9-98.4l79.7 0c35.8 0 64.8-29.6 64.9-65.3C511.5 97.1 368.1-26.9 204.3 5zM96 320a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm32-128a32 32 0 1 1 -64 0 32 32 0 1 1 64 0zm128-64a32 32 0 1 1 0-64 32 32 0 1 1 0 64zm128 64a32 32 0 1 1 -64 0 32 32 0 1 1 64 0z',
+	type: 'M254 52.8C249.3 40.3 237.3 32 224 32s-25.3 8.3-30 20.8L57.8 416 32 416c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-3.1 0 18-48 152.2 0 18 48-3.1 0c-17.7 0-32 14.3-32 32s14.3 32 32 32l96 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-25.8 0L254 52.8zM279.8 304l-111.6 0L224 155.1 279.8 304z',
+}
+
+const links: {
+	href: string
+	label: string
+	key: Props['active']
+}[] = [
 	{ href: '/', label: 'Color Scales', key: 'color' },
 	{ href: '/type', label: 'Type Scales', key: 'type' },
 ]
@@ -24,12 +35,20 @@ const links: { href: string; label: string; key: Props['active'] }[] = [
 						href={href}
 						aria-current={active === key ? 'page' : undefined}
 						class:list={[
-							'inline-block px-xs py-3xs rounded-sm font-roboto-condensed font-bold uppercase text-step--2 tracking-tight',
+							'inline-flex items-center gap-2xs px-xs py-3xs rounded-sm font-roboto-condensed font-bold uppercase text-step--2 tracking-tight',
 							active === key
 								? 'bg-black-500 text-cream-100'
 								: 'border border-black-100 hover:bg-black-500 hover:text-cream-100',
 						]}
 					>
+						<svg
+							xmlns='http://www.w3.org/2000/svg'
+							viewBox='0 0 512 512'
+							class='w-3.5 h-3.5 fill-current shrink-0'
+							aria-hidden='true'
+						>
+							<path d={icons[key]} />
+						</svg>
 						{label}
 					</a>
 				</li>

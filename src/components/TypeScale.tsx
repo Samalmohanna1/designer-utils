@@ -20,6 +20,46 @@ type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const HASH_PREFIX = '#t='
 
+// Specimen text shown at every step's size in the preview, so the same words
+// are compared across the scale. Short so it doesn't truncate at large steps.
+const SAMPLE_TEXT = '“Less, but better”'
+const SAMPLE_AUTHOR = 'Dieter Rams'
+
+// The preview slider's draggable handle is a device icon that reflects the
+// previewed width: phone below 768px, tablet 768–1023, laptop at 1024+.
+type Device = 'mobile' | 'tablet' | 'laptop'
+const deviceForWidth = (px: number): Device =>
+	px < 768 ? 'mobile' : px < 1024 ? 'tablet' : 'laptop'
+
+// Device icons (FontAwesome 7). Phone and tablet share the portrait body —
+// tablet is the wider version — so they read as one family at different sizes.
+// `screen` is a filled rect drawn behind the path so the device's screen
+// cutout shows blue; all three are tinted.
+const SCREEN_BLUE = '#5799DB'
+const DEVICE_ICON: Record<
+	Device,
+	{ viewBox: string; path: string; screen?: { x: number; y: number; w: number; h: number } }
+> = {
+	mobile: {
+		// Portrait phone with a framed screen; screen tinted blue.
+		viewBox: '0 0 640 640',
+		path: 'M144 128C144 92.7 172.7 64 208 64L432 64C467.3 64 496 92.7 496 128L496 512C496 547.3 467.3 576 432 576L208 576C172.7 576 144 547.3 144 512L144 128zM208 128L208 432L432 432L432 128L208 128zM320 536C337.7 536 352 521.7 352 504C352 486.3 337.7 472 320 472C302.3 472 288 486.3 288 504C288 521.7 302.3 536 320 536z',
+		screen: { x: 208, y: 128, w: 224, h: 304 },
+	},
+	tablet: {
+		// Wider portrait tablet with a framed screen; screen tinted blue.
+		viewBox: '0 0 640 640',
+		path: 'M96 128C96 92.7 124.7 64 160 64L480 64C515.3 64 544 92.7 544 128L544 512C544 547.3 515.3 576 480 576L160 576C124.7 576 96 547.3 96 512L96 128zM352 496C352 478.3 337.7 464 320 464C302.3 464 288 478.3 288 496C288 513.7 302.3 528 320 528C337.7 528 352 513.7 352 496zM480 128L160 128L160 416L480 416L480 128z',
+		screen: { x: 160, y: 128, w: 320, h: 288 },
+	},
+	laptop: {
+		// Current laptop, with the lid interior tinted blue behind the outline.
+		viewBox: '0 0 640 512',
+		path: 'M128 96l384 0 0 256 64 0 0-256c0-35.3-28.7-64-64-64L128 32C92.7 32 64 60.7 64 96l0 256 64 0 0-256zM19.2 384C8.6 384 0 392.6 0 403.2C0 445.6 34.4 480 76.8 480l486.4 0c42.4 0 76.8-34.4 76.8-76.8c0-10.6-8.6-19.2-19.2-19.2L19.2 384z',
+		screen: { x: 128, y: 96, w: 384, h: 256 },
+	},
+}
+
 const DEFAULT_CONFIG: TypeScaleConfig = {
 	minViewport: 320,
 	maxViewport: 1240,
@@ -309,18 +349,78 @@ const TypeScale = () => {
 					>
 						Previewing at
 					</label>
-					<input
-						id='preview-vw'
-						type='range'
-						min={config.minViewport}
-						max={config.maxViewport}
-						value={Math.min(
+					{(() => {
+						const clamped = Math.min(
 							Math.max(preview, config.minViewport),
 							config.maxViewport
-						)}
-						onChange={(e) => setPreview(parseInt(e.target.value, 10))}
-						className='flex-1 min-w-40 accent-yellow-500'
-					/>
+						)
+						const span = config.maxViewport - config.minViewport
+						const pct =
+							span > 0
+								? ((clamped - config.minViewport) / span) * 100
+								: 0
+						const device = deviceForWidth(clamped)
+						const icon = DEVICE_ICON[device]
+						return (
+							<div className='relative flex-1 min-w-40 h-10'>
+								{/* thick track */}
+								<div className='pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-black-100'>
+									<div
+										className='h-full rounded-full bg-yellow-500'
+										style={{ width: `${pct}%` }}
+									/>
+								</div>
+								{/* device-icon handle, tracks the value. Sized in em
+								    off text-step-2 at 1.2em — emoji glyphs render
+								    ~1.2x their font-size, so this matches the heading
+								    emoji glyph height. `width:max-content` so the
+								    absolutely-positioned box sizes to its icon
+								    regardless of how close `left` is to the
+								    container's right edge — otherwise the available
+								    width collapses there and the wide laptop icon
+								    gets squished. Travel inset ~18px each side keeps
+								    the icon center on the bar. */}
+								<div
+									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center text-step-2 text-black-500'
+									style={{
+										left: `calc(18px + ${pct}% - ${pct / 100} * 36px)`,
+										width: 'max-content',
+									}}
+									aria-hidden='true'
+								>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										viewBox={icon.viewBox}
+										className='h-[1.2em] w-auto shrink-0 fill-current'
+									>
+										{icon.screen && (
+											<rect
+												x={icon.screen.x}
+												y={icon.screen.y}
+												width={icon.screen.w}
+												height={icon.screen.h}
+												fill={SCREEN_BLUE}
+											/>
+										)}
+										<path d={icon.path} />
+									</svg>
+								</div>
+								{/* the real, accessible input — transparent, sits on top */}
+								<input
+									id='preview-vw'
+									type='range'
+									min={config.minViewport}
+									max={config.maxViewport}
+									value={clamped}
+									onChange={(e) =>
+										setPreview(parseInt(e.target.value, 10))
+									}
+									aria-label={`Preview viewport width, ${clamped} pixels (${device})`}
+									className='device-range absolute inset-0 w-full h-full cursor-pointer opacity-0'
+								/>
+							</div>
+						)
+					})()}
 					<span className='text-step--1 font-bold tabular-nums'>
 						{preview}px
 					</span>
@@ -334,11 +434,19 @@ const TypeScale = () => {
 								key={s.step}
 								className='flex items-baseline justify-between gap-s border-b border-black-50 pb-2xs'
 							>
-								<span
-									className='font-roboto-condensed text-black-500 leading-none truncate'
-									style={{ fontSize: `${px}px` }}
-								>
-									Step {s.step}
+								<span className='flex items-baseline gap-2xs min-w-0'>
+									<span className='text-step--2 text-black-300 font-roboto-condensed uppercase tracking-tight shrink-0'>
+										Step {s.step}
+									</span>
+									<span
+										className='font-roboto-condensed font-bold text-black-500 leading-tight truncate pr-[0.15em]'
+										style={{ fontSize: `${px}px` }}
+									>
+										{SAMPLE_TEXT}{' '}
+										<span className='font-normal italic'>
+											— {SAMPLE_AUTHOR}
+										</span>
+									</span>
 								</span>
 								<span className='text-step--2 text-black-300 tabular-nums shrink-0'>
 									{px.toFixed(2)}px
