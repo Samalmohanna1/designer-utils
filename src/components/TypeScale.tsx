@@ -26,20 +26,27 @@ type Device = 'mobile' | 'tablet' | 'laptop'
 const deviceForWidth = (px: number): Device =>
 	px < 768 ? 'mobile' : px < 1024 ? 'tablet' : 'laptop'
 
-// FontAwesome solid paths (viewBox 0 0 640/512). Distinct outlines so the
-// device reads at a glance even small.
-const DEVICE_ICON: Record<Device, { viewBox: string; path: string }> = {
+// Device icons (FontAwesome 7). Phone and tablet share the portrait body —
+// tablet is the wider version — so they read as one family at different sizes.
+// `screen`, when set, is a filled rect drawn behind the path to tint a screen.
+const SCREEN_BLUE = '#5799DB'
+const DEVICE_ICON: Record<
+	Device,
+	{ viewBox: string; path: string; screen?: { x: number; y: number; w: number; h: number } }
+> = {
 	mobile: {
-		viewBox: '0 0 384 512',
-		path: 'M16 64C16 28.7 44.7 0 80 0L304 0c35.3 0 64 28.7 64 64l0 384c0 35.3-28.7 64-64 64L80 512c-35.3 0-64-28.7-64-64L16 64zM224 448a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM304 64L80 64l0 320 224 0 0-320z',
+		viewBox: '0 0 640 640',
+		path: 'M208 64C172.7 64 144 92.7 144 128L144 512C144 547.3 172.7 576 208 576L432 576C467.3 576 496 547.3 496 512L496 128C496 92.7 467.3 64 432 64L208 64zM280 480L360 480C373.3 480 384 490.7 384 504C384 517.3 373.3 528 360 528L280 528C266.7 528 256 517.3 256 504C256 490.7 266.7 480 280 480z',
 	},
 	tablet: {
-		viewBox: '0 0 448 512',
-		path: 'M0 64C0 28.7 28.7 0 64 0L384 0c35.3 0 64 28.7 64 64l0 384c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 64zM256 448a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zM384 64L64 64l0 320 320 0 0-320z',
+		viewBox: '0 0 640 640',
+		path: 'M160 64C124.7 64 96 92.7 96 128L96 512C96 547.3 124.7 576 160 576L480 576C515.3 576 544 547.3 544 512L544 128C544 92.7 515.3 64 480 64L160 64zM280 464L360 464C373.3 464 384 474.7 384 488C384 501.3 373.3 512 360 512L280 512C266.7 512 256 501.3 256 488C256 474.7 266.7 464 280 464z',
 	},
 	laptop: {
+		// Current laptop, with the lid interior tinted blue behind the outline.
 		viewBox: '0 0 640 512',
 		path: 'M128 96l384 0 0 256 64 0 0-256c0-35.3-28.7-64-64-64L128 32C92.7 32 64 60.7 64 96l0 256 64 0 0-256zM19.2 384C8.6 384 0 392.6 0 403.2C0 445.6 34.4 480 76.8 480l486.4 0c42.4 0 76.8-34.4 76.8-76.8c0-10.6-8.6-19.2-19.2-19.2L19.2 384z',
+		screen: { x: 128, y: 96, w: 384, h: 256 },
 	},
 }
 
@@ -353,19 +360,29 @@ const TypeScale = () => {
 										style={{ width: `${pct}%` }}
 									/>
 								</div>
-								{/* device-icon handle, tracks the value. The travel is
-								    inset by half the 20px icon on each side so its
-								    center stays on the bar at 0% and 100%. */}
+								{/* device-icon handle, tracks the value. Fixed height
+								    with auto width so each device keeps its true
+								    proportions. Travel inset ~18px each side so the
+								    icon center stays on the bar at 0% and 100%. */}
 								<div
-									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center w-5 h-5 text-black-500'
-									style={{ left: `calc(10px + ${pct}% - ${pct / 100} * 20px)` }}
+									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center text-black-500'
+									style={{ left: `calc(18px + ${pct}% - ${pct / 100} * 36px)` }}
 									aria-hidden='true'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
 										viewBox={icon.viewBox}
-										className='w-5 h-5 fill-current'
+										className='h-8 w-auto fill-current'
 									>
+										{icon.screen && (
+											<rect
+												x={icon.screen.x}
+												y={icon.screen.y}
+												width={icon.screen.w}
+												height={icon.screen.h}
+												fill={SCREEN_BLUE}
+											/>
+										)}
 										<path d={icon.path} />
 									</svg>
 								</div>
