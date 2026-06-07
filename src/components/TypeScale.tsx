@@ -20,6 +20,11 @@ type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const HASH_PREFIX = '#t='
 
+// Specimen text shown at every step's size in the preview, so the same words
+// are compared across the scale. Short so it doesn't truncate at large steps.
+const SAMPLE_TEXT = '“Less, but better”'
+const SAMPLE_AUTHOR = 'Dieter Rams'
+
 // The preview slider's draggable handle is a device icon that reflects the
 // previewed width: phone below 768px, tablet 768–1023, laptop at 1024+.
 type Device = 'mobile' | 'tablet' | 'laptop'
@@ -429,11 +434,19 @@ const TypeScale = () => {
 								key={s.step}
 								className='flex items-baseline justify-between gap-s border-b border-black-50 pb-2xs'
 							>
-								<span
-									className='font-roboto-condensed text-black-500 leading-none truncate'
-									style={{ fontSize: `${px}px` }}
-								>
-									Step {s.step}
+								<span className='flex items-baseline gap-2xs min-w-0'>
+									<span className='text-step--2 text-black-300 font-roboto-condensed uppercase tracking-tight shrink-0'>
+										Step {s.step}
+									</span>
+									<span
+										className='font-roboto-condensed font-bold text-black-500 leading-tight truncate pr-[0.15em]'
+										style={{ fontSize: `${px}px` }}
+									>
+										{SAMPLE_TEXT}{' '}
+										<span className='font-normal italic'>
+											— {SAMPLE_AUTHOR}
+										</span>
+									</span>
 								</span>
 								<span className='text-step--2 text-black-300 tabular-nums shrink-0'>
 									{px.toFixed(2)}px
