@@ -84,7 +84,7 @@ src/
     type.astro            Type Scale tool route. SiteNav + <TypeScale> + SiteFooter.
   layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
-    SiteNav.astro         Shared top nav (Color Scales | Type Scales); `active` marks the current tool.
+    SiteNav.astro         Shared top nav (icon + label per tool: Color Scales | Type Scales); `active` marks the current tool.
     SiteFooter.astro      Shared footer (the author credit link), used by both routes.
     App.tsx               Color-tool island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
@@ -368,7 +368,11 @@ the live page reflects the merged commit before calling anything fixed.
   `ratioName` back the modular-scale picker (Minor Third, etc.). The island owns
   a `TypeScaleConfig` (min/max viewport, font size, ratio; steps up/down) and a
   preview-viewport slider that renders each step at its interpolated px size
-  (`sizeAtViewport`). Output matches utopia.fyi for the same inputs. Three
+  (`sizeAtViewport`). The slider's draggable handle is a device icon
+  (`deviceForWidth`: mobile <768, tablet <1024, laptop ≥1024) — a transparent
+  native range input over a custom thick track, with the icon overlaid at the
+  value position (so it stays accessible/keyboard-operable). Output matches
+  utopia.fyi for the same inputs. Three
   export formats (a Format selector, Prism-highlighted like the color tool):
   `toCss` (`:root` custom properties), `toTailwind` (`@theme` with
   `--text-step-N`, so steps become `text-step-N` utilities — the repo's own
