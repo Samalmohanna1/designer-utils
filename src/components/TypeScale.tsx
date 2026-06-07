@@ -353,18 +353,18 @@ const TypeScale = () => {
 										style={{ width: `${pct}%` }}
 									/>
 								</div>
-								{/* device-icon handle, tracks the value. The track is
-								    inset by half the 32px handle on each side so the
-								    icon center stays on the bar at 0% and 100%. */}
+								{/* device-icon handle, tracks the value. The travel is
+								    inset by half the 20px icon on each side so its
+								    center stays on the bar at 0% and 100%. */}
 								<div
-									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center w-8 h-8 rounded-full bg-black-500 text-cream-100 shadow-xs'
-									style={{ left: `calc(16px + ${pct}% - ${pct / 100} * 32px)` }}
+									className='pointer-events-none absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center justify-center w-5 h-5 text-black-500'
+									style={{ left: `calc(10px + ${pct}% - ${pct / 100} * 20px)` }}
 									aria-hidden='true'
 								>
 									<svg
 										xmlns='http://www.w3.org/2000/svg'
 										viewBox={icon.viewBox}
-										className='w-4 h-4 fill-current'
+										className='w-5 h-5 fill-current'
 									>
 										<path d={icon.path} />
 									</svg>
