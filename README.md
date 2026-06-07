@@ -11,7 +11,7 @@ the **Designer Utils / MYOL Creative** suite.
 Live at **<https://tools.myol-creative.com/>**. No backend — a fully static
 Astro site; all math runs in the browser.
 
-The suite has two tools, linked by a top nav:
+The suite has three tools, linked by a top nav:
 
 - **Color Scales** (`/`) — everything below.
 - **Type Scales** (`/type`) — a fluid type-scale calculator. Set a font size and
@@ -19,6 +19,11 @@ The suite has two tools, linked by a top nav:
   export `clamp()` steps as CSS custom properties, a Tailwind 4 `@theme` block,
   or W3C Design Tokens JSON (Utopia-style output). The config lives in the URL,
   so a shared link reopens the exact scale.
+- **Space & Grid** (`/space`) — a fluid spacing scale (T-shirt sizes 3xs–3xl on
+  an 8pt grid by default, plus one-up pairs) and a matching column grid. Set the
+  base size and grid at a min and max viewport; export the `--space-*` ramp and
+  a `.u-container`/`.u-grid` layout as CSS, Tailwind 4, or Design Tokens. Config
+  lives in the URL too.
 
 ## ✨ Features
 

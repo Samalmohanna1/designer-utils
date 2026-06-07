@@ -25,12 +25,13 @@ export interface TypeStep {
 const REM = 16
 
 // Trim trailing zeros from a fixed-precision number (1.2500 -> 1.25, 1.0 -> 1).
-const round = (n: number, places = 4): string => {
+// Exported so the space/grid engine shares the same rounding + clamp math.
+export const round = (n: number, places = 4): string => {
 	const v = Number(n.toFixed(places))
 	return String(v)
 }
 
-const pxToRem = (px: number): string => `${round(px / REM)}rem`
+export const pxToRem = (px: number): string => `${round(px / REM)}rem`
 
 // Common modular-scale ratios, for a labeled picker. Value is the multiplier.
 export const NAMED_RATIOS: { value: number; label: string }[] = [
@@ -52,7 +53,8 @@ export const ratioName = (ratio: number): string =>
 // slope/intercept are the line through (minViewport, minSize) and
 // (maxViewport, maxSize); the preferred term is intercept + slope*100vw, fenced
 // by the min/max sizes. Guards a zero viewport span (returns a fixed size).
-const clampFor = (
+// Exported so the space/grid engine reuses the exact same fluid formula.
+export const clampFor = (
 	minSize: number,
 	maxSize: number,
 	minViewport: number,

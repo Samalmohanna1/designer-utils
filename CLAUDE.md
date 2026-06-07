@@ -16,6 +16,10 @@ tools, each its own route, linked by a shared top nav ([SiteNav](./src/component
 - **Type Scales** (`/type`) — a fluid type-scale calculator: set min/max
   viewport, font size, and modular-scale ratio, preview every step, and copy a
   `:root` block of `clamp()` custom properties. See the **Type Scale** entry.
+- **Space & Grid** (`/space`) — a fluid spacing scale (T-shirt sizes 3xs–3xl on
+  an 8pt grid by default, plus one-up pairs) and a matching column grid, both
+  interpolating between min/max viewport via `clamp()`. See the **Space & Grid**
+  entry.
 
 The repo is still named "color-scale-generator"; the color tool is the primary
 surface and most of this file describes it.
@@ -61,7 +65,8 @@ command — the doc update is **part of that change, not a follow-up**.
   [astro.config.mjs](./astro.config.mjs).
 - **React 19** for interactivity, via `@astrojs/react`. Each tool is one React
   island mounted with `client:load` from its `.astro` route ([index.astro](./src/pages/index.astro)
-  → `App`; [type.astro](./src/pages/type.astro) → `TypeScale`).
+  → `App`; [type.astro](./src/pages/type.astro) → `TypeScale`;
+  [space.astro](./src/pages/space.astro) → `SpaceScale`).
 - **Tailwind CSS 4** via the `@tailwindcss/vite` plugin (no `tailwind.config`
   file — theme is defined in CSS with `@theme`, see
   [src/styles/global.css](./src/styles/global.css)).
@@ -82,10 +87,11 @@ src/
   pages/
     index.astro           Color tool route. SiteNav + <App> + SiteFooter in the layout.
     type.astro            Type Scale tool route. SiteNav + <TypeScale> + SiteFooter.
+    space.astro           Space & Grid tool route. SiteNav + <SpaceScale> + SiteFooter.
   layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
-    SiteNav.astro         Shared top nav (icon + label per tool: Color Scales | Type Scales); `active` marks the current tool.
-    SiteFooter.astro      Shared footer (the author credit link), used by both routes.
+    SiteNav.astro         Shared top nav (icon + label per tool: Color Scales | Type Scales | Space & Grid); `active` marks the current tool.
+    SiteFooter.astro      Shared footer (the author credit link), used by all routes.
     App.tsx               Color-tool island. Owns colorScales state; composes the three sections.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
@@ -93,9 +99,11 @@ src/
     CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
     TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig; renders inputs, live preview, and the CSS export.
+    SpaceScale.tsx        Space & Grid island. Owns SpaceConfig + GridConfig; size table + pairs + grid + the CSS export.
   utils/
     colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place color logic lives.
-    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. The one place type-scale logic lives.
+    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round (shared with spaceScale).
+    spaceScale.ts         Fluid space + grid math: T-shirt sizes + one-up pairs + column/grid calc + CSS/Tailwind/Tokens emitters. Reuses typeScale's clampFor. The one place space/grid logic lives.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
@@ -382,6 +390,24 @@ the live page reflects the merged commit before calling anything fixed.
   eight numbers comma-joined) with the same mount-read + `replaceState`
   live-sync + `hydrated` ref gate as the color tool's palette sharing; a
   malformed hash falls back to the default.
+- **Space & Grid** — the third tool ([SpaceScale](./src/components/SpaceScale.tsx)
+  at `/space`). Math lives in [spaceScale.ts](./src/utils/spaceScale.ts), which
+  **reuses `typeScale`'s `clampFor`/`pxToRem`/`round`** so all the fluid math is
+  in one place. **Sizes:** `SPACE_SIZES` is the T-shirt ladder (3xs–3xl) with
+  multipliers 0.25–6; `generateSpaceSizes` = `base × multiplier`, fluid between
+  the viewports. With the default `@min` base 16 the ramp is a clean 4/8pt grid
+  (4 8 12 16 24 32 48 64 96); `@max` base 20 makes it fluid. **Pairs:**
+  `generateSpacePairs` are one-up steps (3xs-2xs, …) that clamp from size N's
+  `@min` to size N+1's `@max`. **Grid:** `columnWidth = (container − (cols+1)
+  gutters) / cols` (one gutter of inline padding each side + between columns);
+  `computeGrid` returns the `@min`/`@max` container/gutter/column, with optional
+  `@min`-column rounding (up/down). `gutterClampFor` is the fluid gutter.
+  **Exports** match the type tool (`toCss` → `--space-*` + the grid `:root` plus
+  `.u-container`/`.u-grid`; `toTailwind` → `@theme` with `--spacing-*`;
+  `toTokens` → DTCG under `space`/`grid` groups). Preview swatches/bars use the
+  project blue `#5799DB` (not Utopia's pink). The config serializes to `#s=`
+  (`encodeSpaceGrid`/`decodeSpaceGrid`, ten numbers) with the same hash-sync
+  pattern. Output matches utopia.fyi for the same inputs.
 
 ---
 
