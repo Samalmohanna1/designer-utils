@@ -58,6 +58,21 @@ test('space tool loads and outputs a space scale + grid', async ({ page }) => {
 	await expect(code).toContainText('.u-container {')
 })
 
+test('code snippet downloads as a txt file', async ({ page }) => {
+	await page.goto(BASE)
+	await page.getByLabel('Format', { exact: true }).selectOption('tokens')
+	const [download] = await Promise.all([
+		page.waitForEvent('download'),
+		page.getByRole('button', { name: 'Download .txt' }).click(),
+	])
+	expect(download.suggestedFilename()).toBe('color-scales-tokens.txt')
+	const stream = await download.createReadStream()
+	const chunks: Buffer[] = []
+	for await (const chunk of stream) chunks.push(chunk as Buffer)
+	// The downloaded file is the same snippet shown in the code block.
+	expect(Buffer.concat(chunks).toString()).toContain('"colorSpace": "srgb"')
+})
+
 test('nav moves between the three tools', async ({ page }) => {
 	await page.goto(BASE)
 	await page.getByRole('link', { name: 'Type Scales' }).click()

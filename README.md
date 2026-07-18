@@ -56,7 +56,8 @@ The suite has three tools, linked by a top nav:
 
 ### 📋 Code export
 
-Export in four formats, with one-click copy:
+Export in four formats — copy with one click, or download the snippet as a
+`.txt` file:
 
 -   **CSS + Dark Mode** — `:root` variables plus a `prefers-color-scheme: dark`
     block with the ramp mirrored.
@@ -70,7 +71,8 @@ Export in four formats, with one-click copy:
     native variables importer expects.
 
 Code formats (CSS / Tailwind) also let you pick the value encoding: **HEX**,
-**HSL**, or **RGB**.
+**HSL**, or **RGB**. The Type and Space tools have the same copy/download pair
+on their export blocks.
 
 ### 🔗 Share & persist
 
