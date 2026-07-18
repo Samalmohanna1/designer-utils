@@ -205,13 +205,16 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 			}
 
 			case 'tokens': {
-				// W3C Design Tokens (DTCG): top-level `light` and `dark` groups,
-				// each keyed by slug -> shade -> { $type, $value }. Dark uses the
-				// mirrored ramp. Always hex.
-				type Group = Record<
-					string,
-					Record<string, { $type: 'color'; $value: string }>
-				>
+				// W3C Design Tokens (DTCG 2025.10): top-level `light` and `dark`
+				// groups, each keyed by slug -> shade -> { $type, $value }, where
+				// $value is a color object (colorSpace/components/alpha/hex) —
+				// the format Figma's native variables importer expects. Dark uses
+				// the mirrored ramp.
+				type ColorToken = {
+					$type: 'color'
+					$value: ReturnType<typeof colorUtils.hexToDtcgColor>
+				}
+				type Group = Record<string, Record<string, ColorToken>>
 				const light: Group = {}
 				const dark: Group = {}
 				colorData.forEach(({ slug, shades }) => {
@@ -221,10 +224,13 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 						shades.map((s) => s.hex)
 					)
 					shades.forEach(({ shade, hex }, i) => {
-						light[slug][shade] = { $type: 'color', $value: hex }
+						light[slug][shade] = {
+							$type: 'color',
+							$value: colorUtils.hexToDtcgColor(hex),
+						}
 						dark[slug][shade] = {
 							$type: 'color',
-							$value: mirrored[i],
+							$value: colorUtils.hexToDtcgColor(mirrored[i]),
 						}
 					})
 				})

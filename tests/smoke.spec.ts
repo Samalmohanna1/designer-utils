@@ -12,6 +12,24 @@ test('color tool loads and generates a scale', async ({ page }) => {
 	await expect(page.locator('.hex-code')).toHaveCount(10)
 })
 
+test('design tokens export uses the DTCG 2025.10 color object', async ({
+	page,
+}) => {
+	await page.goto(BASE)
+	// "Format" (not "Color Format", which is a separate selector).
+	await page.getByLabel('Format', { exact: true }).selectOption('tokens')
+	const code = page.locator('pre code')
+	// $value must be a color object, not a bare hex string — Figma's native
+	// variables importer rejects the pre-2025.10 style.
+	await expect(code).toContainText('"$type": "color"')
+	await expect(code).toContainText('"colorSpace": "srgb"')
+	await expect(code).toContainText('"components": [')
+	await expect(code).toContainText('"alpha": 1')
+	await expect(code).toContainText('"hex": "#')
+	// The old shape (a hex directly as $value) must be gone.
+	await expect(code).not.toContainText(/"\$value": "#/)
+})
+
 test('type tool loads and outputs fluid CSS', async ({ page }) => {
 	await page.goto(`${BASE}/type`)
 	await expect(page).toHaveTitle(/Type Scale Calculator/)
