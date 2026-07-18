@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
+import { downloadText } from '../utils/download'
 import Prism from 'prismjs'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
@@ -264,6 +265,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 		}, 2000)
 	}
 
+	const download = () => {
+		downloadText(`color-scales-${themeFormat}.txt`, formattedCode)
+	}
+
 	return (
 		<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
 			<div className='p-xs space-y-s'>
@@ -315,16 +320,24 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ colorScales }) => {
 				</div>
 			</div>
 			<div className='relative bg-[#2d2d2d] text-cream-100'>
-				<button
-					onClick={copyToClipboard}
-					className={`absolute top-6 right-6 z-10 px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
-						isCopied
-							? 'bg-green-200 text-green-800'
-							: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
-					}`}
-				>
-					{isCopied ? 'Code Copied!' : 'Copy Code'}
-				</button>
+				<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
+					<button
+						onClick={copyToClipboard}
+						className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
+							isCopied
+								? 'bg-green-200 text-green-800'
+								: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
+						}`}
+					>
+						{isCopied ? 'Code Copied!' : 'Copy Code'}
+					</button>
+					<button
+						onClick={download}
+						className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500'
+					>
+						Download .txt
+					</button>
+				</div>
 				<pre className='p-s max-h-128 overflow-auto'>
 					<code
 						className={`text-sm sm:text-lg ${

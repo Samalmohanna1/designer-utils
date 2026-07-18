@@ -3,6 +3,7 @@ import Prism from 'prismjs'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-json'
+import { downloadText } from '../utils/download'
 import {
 	generateTypeScale,
 	toCss,
@@ -233,6 +234,7 @@ const TypeScale = () => {
 		setCopied(true)
 		setTimeout(() => setCopied(false), 2000)
 	}
+	const download = () => downloadText(`type-scale-${format}.txt`, code)
 
 	return (
 		<>
@@ -485,16 +487,24 @@ const TypeScale = () => {
 					</div>
 				</div>
 				<div className='relative bg-[#2d2d2d] text-cream-100'>
-					<button
-						onClick={copy}
-						className={`absolute top-6 right-6 z-10 px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
-							copied
-								? 'bg-green-200 text-green-800'
-								: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
-						}`}
-					>
-						{copied ? 'Code Copied!' : 'Copy Code'}
-					</button>
+					<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
+						<button
+							onClick={copy}
+							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
+								copied
+									? 'bg-green-200 text-green-800'
+									: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
+							}`}
+						>
+							{copied ? 'Code Copied!' : 'Copy Code'}
+						</button>
+						<button
+							onClick={download}
+							className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500'
+						>
+							Download .txt
+						</button>
+					</div>
 					<pre className='p-s max-h-128 overflow-auto'>
 						<code
 							className={`text-sm sm:text-lg ${

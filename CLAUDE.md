@@ -39,7 +39,7 @@ What the color tool does, top to bottom on one page:
    `@theme` tokens (in **hex / HSL / RGB**), a **Markdown style guide** (a
    Hex + HSL table per color with WCAG text-on-white/black notes), or **W3C
    Design Tokens (DTCG 2025.10) JSON** (color objects, Figma-importable), with
-   one-click copy.
+   one-click copy or download as a `.txt` file.
 4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
    updates the link live and a shared link reopens the exact palette. Also
    autosaved to `localStorage` (written, but not auto-restored — the URL or the
@@ -106,6 +106,7 @@ src/
     typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round (shared with spaceScale).
     spaceScale.ts         Fluid space + grid math: T-shirt sizes + one-up pairs + column/grid calc + CSS/Tailwind/Tokens emitters. Reuses typeScale's clampFor. The one place space/grid logic lives.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
+    download.ts           downloadText: saves a code snippet as a file via a Blob URL. Shared by all three export blocks.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
     reset.css             CSS reset (imported into the base layer).
@@ -355,6 +356,14 @@ the live page reflects the merged commit before calling anything fixed.
   variables importer expects — a bare hex string is the old style and no longer
   imports. The Prism language switches
   `css` / `markdown` / `json` by format (`cssDark`, `tailwind4` use `css`).
+- **Snippet download** — every export block (color, type, space) pairs **Copy
+  Code** with **Download .txt**, which saves the exact snippet on screen via
+  `download.ts`'s `downloadText` (a Blob URL + synthetic `<a download>`; no
+  backend). Filenames are `<tool>-<format>.txt` (e.g. `color-scales-tokens.txt`,
+  `type-scale-css.txt`), so downloading several formats doesn't collide. The
+  `.txt` extension is deliberate per issue #46 — note Figma's *native* variables
+  importer and most token plugins filter their file picker to `.json`, so a
+  `.txt` token export may need renaming before import.
 - **Dark mode in exports** — the dark ramp is the light ramp **mirrored**
   (`colorUtils.mirrorHexes` — 50↔900, 100↔800, …), so light tints become dark
   and vice versa, keeping hue/chroma. Where each format puts it: `cssDark` →
