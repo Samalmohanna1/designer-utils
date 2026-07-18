@@ -38,7 +38,8 @@ What the color tool does, top to bottom on one page:
    `prefers-color-scheme: dark` block with the ramp inverted), **Tailwind 4.1**
    `@theme` tokens (in **hex / HSL / RGB**), a **Markdown style guide** (a
    Hex + HSL table per color with WCAG text-on-white/black notes), or **W3C
-   Design Tokens (DTCG) JSON** (always hex), with one-click copy.
+   Design Tokens (DTCG 2025.10) JSON** (color objects, Figma-importable), with
+   one-click copy.
 4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
    updates the link live and a shared link reopens the exact palette. Also
    autosaved to `localStorage` (written, but not auto-restored — the URL or the
@@ -345,9 +346,14 @@ the live page reflects the merged commit before calling anything fixed.
   `tailwind4`, `markdown`, `tokens`; `cssDark` is the default); *color format* is
   the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`,
   except the color format is hidden for the fixed-value formats (`markdown` →
-  Hex + HSL table; `tokens` → always hex). Those two build from raw-hex shade
-  data, not the `convertColor` pipeline the code formats use. `tokens` emits W3C
-  Design Tokens (DTCG), keyed by the de-duped slug. The Prism language switches
+  Hex + HSL table; `tokens` → a fixed DTCG color object). Those two build from
+  raw-hex shade data, not the `convertColor` pipeline the code formats use.
+  `tokens` emits W3C Design Tokens (**DTCG 2025.10**), keyed by the de-duped
+  slug: each `$value` is a color *object*
+  (`colorUtils.hexToDtcgColor` → `{ colorSpace: 'srgb', components, alpha, hex }`,
+  components normalized 0..1 at 6 decimals), which is what Figma's native
+  variables importer expects — a bare hex string is the old style and no longer
+  imports. The Prism language switches
   `css` / `markdown` / `json` by format (`cssDark`, `tailwind4` use `css`).
 - **Dark mode in exports** — the dark ramp is the light ramp **mirrored**
   (`colorUtils.mirrorHexes` — 50↔900, 100↔800, …), so light tints become dark

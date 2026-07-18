@@ -63,8 +63,11 @@ Export in four formats, with one-click copy:
 -   **Tailwind 4** — `@theme` tokens, plus a `.dark` override.
 -   **Markdown style guide** — a Hex + HSL table per color with WCAG
     text-on-white/black notes and a Dark column.
--   **Design Tokens (DTCG) JSON** — W3C Design Tokens with top-level `light` and
-    `dark` groups, for Style Dictionary / Tokens Studio / Figma.
+-   **Design Tokens (DTCG 2025.10) JSON** — W3C Design Tokens with top-level
+    `light` and `dark` groups, for Style Dictionary / Tokens Studio / Figma.
+    Colors use the 2025.10 color-object `$value`
+    (`colorSpace` / `components` / `alpha` / `hex`), which is what Figma's
+    native variables importer expects.
 
 Code formats (CSS / Tailwind) also let you pick the value encoding: **HEX**,
 **HSL**, or **RGB**.

@@ -582,6 +582,28 @@ export const colorUtils = {
             .replace(/"/g, '&quot;')
     },
 
+    // A hex as a DTCG 2025.10 color object. The spec (and Figma's native
+    // variables importer) requires `$value` to be an object — a bare hex string
+    // is the pre-2025.10 style and no longer imports. `components` are the sRGB
+    // channels normalized to 0..1, rounded to 6 decimals with trailing zeros
+    // dropped; `hex` stays as the human-readable fallback.
+    hexToDtcgColor(hex: string): {
+        colorSpace: 'srgb'
+        components: number[]
+        alpha: number
+        hex: string
+    } {
+        const components = colorUtils
+            .hexToRgb(hex)
+            .map((channel) => Number((channel / 255).toFixed(6)))
+        return {
+            colorSpace: 'srgb',
+            components,
+            alpha: 1,
+            hex: hex.toUpperCase(),
+        }
+    },
+
     // The dark-mode ramp: the same shade slots in reverse, so a light tint
     // (e.g. 50) takes the value of its opposite end (900) and vice versa,
     // keeping hue and chroma. shadeHexes is the ordered 50..900 list.
