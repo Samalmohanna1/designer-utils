@@ -43,6 +43,7 @@ const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 						</span>
 						{isCopied && (
 							<span
+								role='status'
 								className='absolute inset-0 flex items-center justify-center text-xs font-bold rounded-sm bg-black-500/80 text-cream-100'
 							>
 								Copied!

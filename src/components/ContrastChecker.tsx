@@ -205,6 +205,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 						<button
 							type='button'
 							onClick={copyGrid}
+							aria-live='polite'
 							title='Copy the whole grid as SVG (paste into Figma)'
 							className={`ml-auto px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 								gridCopied

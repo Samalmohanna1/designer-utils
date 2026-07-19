@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import { copySvg } from '../utils/clipboard'
 import { useHashSync } from '../hooks/useHashSync'
@@ -52,8 +52,44 @@ const App = () => {
 	const [colorScales, setColorScales] = useState<ScaleState[]>(defaultScales)
 	const [nextId, setNextId] = useState(2)
 
-	// URL-hash persistence + localStorage autosave (write-only; restoring is
-	// offered by the banner below, and a palette in the URL always wins).
+	// The previous session's autosave, captured in a lazy initializer so it's
+	// read BEFORE the sync effect's first write overwrites it. Null when the
+	// URL carries a palette (URL wins), nothing was saved, or the save is just
+	// the default.
+	const [savedEntries] = useState<{ name: string; color: string }[] | null>(
+		() => {
+			if (typeof window === 'undefined') return null
+			if (window.location.hash.startsWith(HASH_PREFIX)) return null
+			let raw: string | null = null
+			try {
+				raw = window.localStorage.getItem(STORAGE_KEY)
+			} catch {
+				return null
+			}
+			if (!raw || raw === colorUtils.encodePalette(defaultScales())) {
+				return null
+			}
+			const entries = colorUtils.decodePalette(raw)
+			return entries.length > 0 ? entries : null
+		}
+	)
+	const [restoreOpen, setRestoreOpen] = useState(false)
+	// Banner appears only after hydration so server and first client render
+	// match.
+	useEffect(() => {
+		if (savedEntries) setRestoreOpen(true)
+	}, [savedEntries])
+
+	const restoreSaved = () => {
+		if (!savedEntries) return
+		const scales = scalesFromEntries(savedEntries)
+		setColorScales(scales)
+		setNextId(scales.length + 1)
+		setRestoreOpen(false)
+	}
+
+	// URL-hash persistence + localStorage autosave (a palette in the URL
+	// always wins; the banner above offers the autosave back).
 	useHashSync({
 		prefix: HASH_PREFIX,
 		value: colorScales,
@@ -187,6 +223,7 @@ const App = () => {
 				<div className='flex items-center gap-2xs'>
 					<button
 						onClick={copyPalette}
+						aria-live='polite'
 						title='Copy the whole palette as SVG (paste into Figma)'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							paletteCopied
@@ -198,6 +235,7 @@ const App = () => {
 					</button>
 					<button
 						onClick={copyShareLink}
+						aria-live='polite'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							linkCopied
 								? 'border-green-600 bg-green-200 text-green-800'
@@ -219,7 +257,56 @@ const App = () => {
 					)}
 				</div>
 			</div>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50'>
+
+			{/* In-page jump links — the page is long. */}
+			<nav
+				aria-label='Page sections'
+				className='flex flex-wrap gap-2xs mb-s text-step--2 font-roboto-condensed'
+			>
+				{[
+					['#scales', 'Scales'],
+					['#contrast', 'Contrast'],
+					['#export', 'Export'],
+				].map(([href, label]) => (
+					<a
+						key={href}
+						href={href}
+						className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 uppercase tracking-tight'
+					>
+						{label}
+					</a>
+				))}
+			</nav>
+
+			{restoreOpen && (
+				<div
+					role='status'
+					className='flex flex-wrap items-center gap-2xs mb-s p-xs bg-yellow-100 border border-yellow-600 rounded-lg text-step--2'
+				>
+					<span className='font-roboto-condensed'>
+						You have a palette saved from last time. Restore it?
+					</span>
+					<div className='flex gap-2xs ml-auto'>
+						<button
+							onClick={restoreSaved}
+							className='px-xs py-3xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed'
+						>
+							Restore
+						</button>
+						<button
+							onClick={() => setRestoreOpen(false)}
+							className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 font-roboto-condensed'
+						>
+							Dismiss
+						</button>
+					</div>
+				</div>
+			)}
+
+			<section
+				id='scales'
+				className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50 scroll-mt-m'
+			>
 				{colorScales.map((scale, index) => (
 					<div
 						key={scale.id}
@@ -376,12 +463,18 @@ const App = () => {
 				)}
 			</section>
 
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h2
+				id='contrast'
+				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
+			>
 				&#128064; WCAG Compliant Combinations
 			</h2>
 			<ContrastChecker colorScales={colorScales} />
 
-			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3
+				id='export'
+				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
+			>
 				&#128187; Code Snippet
 			</h3>
 			<CodeBlock colorScales={colorScales} />

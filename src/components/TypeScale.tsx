@@ -4,6 +4,7 @@ import ExportBlock from './ExportBlock'
 import {
 	DEFAULT_TYPE_CONFIG,
 	generateTypeScale,
+	pxToRem,
 	toCss,
 	toTailwind,
 	toTokens,
@@ -409,7 +410,7 @@ const TypeScale = () => {
 									</span>
 								</span>
 								<span className='text-step--2 text-black-300 tabular-nums shrink-0'>
-									{px.toFixed(2)}px
+									{px.toFixed(2)}px · {pxToRem(px)}
 								</span>
 							</li>
 						)

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
 import ExportBlock from './ExportBlock'
+import { pxToRem } from '../utils/typeScale'
 import {
 	DEFAULT_SPACE,
 	DEFAULT_GRID,
@@ -375,7 +376,7 @@ const SizeRow: React.FC<{
 			</span>
 			<div className='space-y-3xs'>
 				<span className='block text-step--2 text-black-400 tabular-nums'>
-					{px(size.minSize)}
+					{px(size.minSize)} · {pxToRem(size.minSize)}
 				</span>
 				<span
 					className='block rounded-xs'
@@ -388,7 +389,7 @@ const SizeRow: React.FC<{
 			</div>
 			<div className='space-y-3xs'>
 				<span className='block text-step--2 text-black-400 tabular-nums'>
-					{px(size.maxSize)}
+					{px(size.maxSize)} · {pxToRem(size.maxSize)}
 				</span>
 				<span
 					className='block rounded-xs'
