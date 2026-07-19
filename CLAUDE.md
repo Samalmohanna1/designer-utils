@@ -356,6 +356,17 @@ the live page reflects the merged commit before calling anything fixed.
   variables importer expects — a bare hex string is the old style and no longer
   imports. The Prism language switches
   `css` / `markdown` / `json` by format (`cssDark`, `tailwind4` use `css`).
+- **Fluid values as tokens** — DTCG 2025.10 requires a `dimension` `$value` to
+  be an **object**, `{ value: <number>, unit: 'px' | 'rem' }` — never a string.
+  A `clamp()` therefore has no representation as a dimension token (one number,
+  one unit), and Figma variables have no viewport concept to bind it to either.
+  So the Type and Space tools' `toTokens` flatten each fluid value to its two
+  viewport anchors under top-level **`min`** and **`max`** groups, which import
+  as Figma modes — deliberately mirroring the color tool's `light`/`dark`
+  groups. `typeScale.remDimension(px)` (+ the `DimensionToken` type) builds the
+  object and is shared by both engines; `grid.columns` stays `$type: 'number'`,
+  which is already spec-valid. The `clamp()` strings live only in the CSS and
+  Tailwind formats, which is where they're actually consumable.
 - **Snippet download** — every export block (color, type, space) pairs **Copy
   Code** with **Download .txt**, which saves the exact snippet on screen via
   `download.ts`'s `downloadText` (a Blob URL + synthetic `<a download>`; no
@@ -399,8 +410,8 @@ the live page reflects the merged commit before calling anything fixed.
   export formats (a Format selector, Prism-highlighted like the color tool):
   `toCss` (`:root` custom properties), `toTailwind` (`@theme` with
   `--text-step-N`, so steps become `text-step-N` utilities — the repo's own
-  convention), and `toTokens` (DTCG `dimension` tokens under a `font-size`
-  group). No dark mode — a type scale isn't theme-dependent. The config
+  convention), and `toTokens` (DTCG dimension tokens under a `font-size` group
+  — see **Fluid values as tokens**). No dark mode — a type scale isn't theme-dependent. The config
   serializes to the URL hash under `#t=` (`encodeConfig` / `decodeConfig`, the
   eight numbers comma-joined) with the same mount-read + `replaceState`
   live-sync + `hydrated` ref gate as the color tool's palette sharing; a
@@ -419,7 +430,8 @@ the live page reflects the merged commit before calling anything fixed.
   `@min`-column rounding (up/down). `gutterClampFor` is the fluid gutter.
   **Exports** match the type tool (`toCss` → `--space-*` + the grid `:root` plus
   `.u-container`/`.u-grid`; `toTailwind` → `@theme` with `--spacing-*`;
-  `toTokens` → DTCG under `space`/`grid` groups). Preview swatches/bars use the
+  `toTokens` → DTCG under `space`/`grid` groups, see **Fluid values as
+  tokens**). Preview swatches/bars use the
   project blue `#5799DB` (not Utopia's pink). The config serializes to `#s=`
   (`encodeSpaceGrid`/`decodeSpaceGrid`, ten numbers) with the same hash-sync
   pattern. Output matches utopia.fyi for the same inputs.

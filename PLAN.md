@@ -77,6 +77,13 @@ dropped from scope.
 
 ## Done
 
+- **DTCG 2025.10 compliance across all three tools** (branches
+  `fix/dtcg-color-object` #45, `feature/download-code-snippet` #46). Color
+  `$value`s became color objects (`colorUtils.hexToDtcgColor`). Type and Space
+  dimension `$value`s became `{ value, unit }` objects
+  (`typeScale.remDimension`); since a `clamp()` can't be a DTCG dimension, both
+  flatten to `min`/`max` anchor groups that import as Figma modes. Every export
+  block also gained a **Download .txt** button (`utils/download.ts`).
 - **Space & Grid calculator** (branch `feature/space-grid-calculator`). A third
   tool at `/space`: fluid spacing scale (T-shirt sizes 3xs–3xl on an 8pt grid
   by default + one-up pairs) and a matching column grid, in
@@ -108,7 +115,7 @@ dropped from scope.
   over default on load; malformed hashes fall back to the default.
 - **Design Tokens (DTCG) JSON export** (branch `feature/design-tokens-export`).
   New `tokens` format in `CodeBlock` emitting W3C Design Tokens
-  (`{ slug: { shade: { $type, $value } } }`, always hex) for Style Dictionary /
+  (`{ slug: { shade: { $type, $value } } }`) for Style Dictionary /
   Tokens Studio / Figma; JSON syntax-highlighted; color-format selector hidden.
 - **OKLCH shade generation** (branch `feature/oklch-ramp`). Ramps built in OKLCH
   (perceptual): base anchors 500, lightness interpolates to fixed light/dark

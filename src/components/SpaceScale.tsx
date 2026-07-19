@@ -135,7 +135,7 @@ const SpaceScale = () => {
 			case 'tailwind4':
 				return toTailwind(sizes, pairs, gridResult, gutterClamp)
 			case 'tokens':
-				return toTokens(sizes, pairs, gridResult, gutterClamp)
+				return toTokens(sizes, pairs, gridResult)
 			default:
 				return toCss(sizes, pairs, gridResult, gutterClamp)
 		}

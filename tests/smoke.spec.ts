@@ -1,6 +1,15 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 
 const BASE = 'http://localhost:4321'
+
+// Pick a Format ("Format", not "Color Format", which is a separate selector).
+// The export block only reacts once the island has hydrated — Prism adds the
+// `language-*` class at that point — so selecting any earlier fires a change
+// event that nothing is listening to yet and the format silently stays put.
+const selectFormat = async (page: Page, value: string): Promise<void> => {
+	await expect(page.locator('pre code')).toHaveClass(/language-/)
+	await page.getByLabel('Format', { exact: true }).selectOption(value)
+}
 
 test('color tool loads and generates a scale', async ({ page }) => {
 	await page.goto(BASE)
@@ -16,8 +25,7 @@ test('design tokens export uses the DTCG 2025.10 color object', async ({
 	page,
 }) => {
 	await page.goto(BASE)
-	// "Format" (not "Color Format", which is a separate selector).
-	await page.getByLabel('Format', { exact: true }).selectOption('tokens')
+	await selectFormat(page, 'tokens')
 	const code = page.locator('pre code')
 	// $value must be a color object, not a bare hex string — Figma's native
 	// variables importer rejects the pre-2025.10 style.
@@ -28,6 +36,27 @@ test('design tokens export uses the DTCG 2025.10 color object', async ({
 	await expect(code).toContainText('"hex": "#')
 	// The old shape (a hex directly as $value) must be gone.
 	await expect(code).not.toContainText(/"\$value": "#/)
+})
+
+test('type and space tokens use DTCG 2025.10 dimension objects', async ({
+	page,
+}) => {
+	for (const [path, sample] of [
+		['/type', '"step-0"'],
+		['/space', '"s"'],
+	]) {
+		await page.goto(`${BASE}${path}`)
+		await selectFormat(page, 'tokens')
+		const code = page.locator('pre code')
+		// Fluid values flatten to min/max anchor groups — a clamp() can't be a
+		// DTCG dimension, and Figma variables have no viewport concept.
+		await expect(code).toContainText('"min": {')
+		await expect(code).toContainText('"max": {')
+		await expect(code).toContainText(sample)
+		// $value must be a { value, unit } object, never a string.
+		await expect(code).toContainText('"unit": "rem"')
+		await expect(code).not.toContainText(/"\$value": "/)
+	}
 })
 
 test('type tool loads and outputs fluid CSS', async ({ page }) => {
@@ -60,7 +89,7 @@ test('space tool loads and outputs a space scale + grid', async ({ page }) => {
 
 test('code snippet downloads as a txt file', async ({ page }) => {
 	await page.goto(BASE)
-	await page.getByLabel('Format', { exact: true }).selectOption('tokens')
+	await selectFormat(page, 'tokens')
 	const [download] = await Promise.all([
 		page.waitForEvent('download'),
 		page.getByRole('button', { name: 'Download .txt' }).click(),
