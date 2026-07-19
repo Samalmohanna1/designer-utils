@@ -11,6 +11,21 @@ export interface ColorInfo {
     scaleIndex: number
 }
 
+export type ColorValueFormat = 'hex' | 'hsl' | 'rgb'
+
+export interface ShadeDatum {
+    shade: number
+    hex: string
+}
+
+// One scale's export-ready shade data: display name, de-duped slug, and the
+// shades that survived palette-wide dedupe.
+export interface PaletteShadeData {
+    name: string
+    slug: string
+    shades: ShadeDatum[]
+}
+
 export interface ColorCombination {
     color1: ColorInfo
     color2: ColorInfo
@@ -587,7 +602,10 @@ export const colorUtils = {
     // is the pre-2025.10 style and no longer imports. `components` are the sRGB
     // channels normalized to 0..1, rounded to 6 decimals with trailing zeros
     // dropped; `hex` stays as the human-readable fallback.
-    hexToDtcgColor(hex: string): {
+    hexToDtcgColor(
+        hex: string,
+        alpha = 1
+    ): {
         colorSpace: 'srgb'
         components: number[]
         alpha: number
@@ -599,7 +617,7 @@ export const colorUtils = {
         return {
             colorSpace: 'srgb',
             components,
-            alpha: 1,
+            alpha,
             hex: hex.toUpperCase(),
         }
     },
@@ -629,6 +647,225 @@ export const colorUtils = {
             }
         })
         return { onWhite, onBlack }
+    },
+
+    // --- Export builders ---
+    // The four Code Snippet formats, extracted here so components stay
+    // presentational and the unified system export can reuse them.
+
+    // A hex in the chosen value encoding.
+    convertColor(hex: string, format: ColorValueFormat): string {
+        switch (format) {
+            case 'hsl':
+                return colorUtils.hexToHSL(hex)
+            case 'rgb':
+                return `rgb(${colorUtils.hexToRgb(hex)})`
+            default:
+                return hex
+        }
+    },
+
+    // Raw, deduped shade data in hex — the single source every export format
+    // builds on. Dedupe is palette-wide (a hex appears once; first scale
+    // wins); scales left with no shades are dropped.
+    paletteShadeData(
+        scales: { name: string; color: string }[]
+    ): PaletteShadeData[] {
+        const seenColors = new Set<string>()
+        const slugs = colorUtils.uniqueSlugs(scales.map((s) => s.name))
+        return scales
+            .map((scale, index): PaletteShadeData => {
+                const shades = colorUtils
+                    .generateShades(scale.color)
+                    .map((hex, i) => ({
+                        shade: colorUtils.shadeNumbers[i] as number,
+                        hex,
+                    }))
+                    .filter(({ hex }) => {
+                        if (seenColors.has(hex)) return false
+                        seenColors.add(hex)
+                        return true
+                    })
+                return {
+                    name: scale.name.trim() || slugs[index],
+                    slug: slugs[index],
+                    shades,
+                }
+            })
+            .filter((item) => item.shades.length > 0)
+    },
+
+    // CSS + Dark Mode: a :root block plus a prefers-color-scheme override
+    // where each shade takes its mirror value. `prefix` prepends a namespace
+    // (e.g. `brand` -> --brand-blue-500).
+    paletteCss(
+        data: PaletteShadeData[],
+        colorFormat: ColorValueFormat = 'hex',
+        prefix = ''
+    ): string {
+        const p = prefix ? `${prefix}-` : ''
+        const light = data
+            .flatMap(({ slug, shades }) =>
+                shades.map(
+                    ({ shade, hex }) =>
+                        `  --${p}${slug}-${shade}: ${colorUtils.convertColor(
+                            hex,
+                            colorFormat
+                        )};`
+                )
+            )
+            .join('\n')
+
+        // Dark mode mirrors the ramp (see mirrorHexes).
+        const dark = data
+            .flatMap(({ slug, shades }) => {
+                const mirrored = colorUtils.mirrorHexes(
+                    shades.map((s) => s.hex)
+                )
+                return shades.map(
+                    ({ shade }, i) =>
+                        `    --${p}${slug}-${shade}: ${colorUtils.convertColor(
+                            mirrored[i],
+                            colorFormat
+                        )};`
+                )
+            })
+            .join('\n')
+
+        return [
+            `:root {\n${light}\n}`,
+            '',
+            '@media (prefers-color-scheme: dark) {',
+            '  :root {',
+            dark,
+            '  }',
+            '}',
+        ].join('\n')
+    },
+
+    // Tailwind 4 @theme tokens plus a .dark override (class-based dark
+    // variant) with the mirrored ramp.
+    paletteTailwind(
+        data: PaletteShadeData[],
+        colorFormat: ColorValueFormat = 'hex',
+        prefix = ''
+    ): string {
+        const p = prefix ? `${prefix}-` : ''
+        const body = data
+            .flatMap(({ slug, shades }) =>
+                shades.map(
+                    ({ shade, hex }) =>
+                        `  --color-${p}${slug}-${shade}: ${colorUtils.convertColor(
+                            hex,
+                            colorFormat
+                        )};`
+                )
+            )
+            .join('\n')
+
+        const dark = data
+            .flatMap(({ slug, shades }) => {
+                const mirrored = colorUtils.mirrorHexes(
+                    shades.map((s) => s.hex)
+                )
+                return shades.map(
+                    ({ shade }, i) =>
+                        `  --color-${p}${slug}-${shade}: ${colorUtils.convertColor(
+                            mirrored[i],
+                            colorFormat
+                        )};`
+                )
+            })
+            .join('\n')
+
+        return `@theme {\n${body}\n}\n\n.dark {\n${dark}\n}`
+    },
+
+    // Markdown style guide: a Hex + HSL + Dark table per color with WCAG
+    // text-on-white/black notes. Uses the human name for headings.
+    paletteMarkdown(data: PaletteShadeData[]): string {
+        const capitalize = (s: string) =>
+            s.charAt(0).toUpperCase() + s.slice(1)
+
+        const sections = data.map(({ name, shades }) => {
+            // Dark column: the value each shade maps to in dark mode.
+            const dark = colorUtils.mirrorHexes(shades.map((s) => s.hex))
+            const rows = shades
+                .map(
+                    ({ shade, hex }, i) =>
+                        `| ${shade} | \`${hex}\` | \`${colorUtils.hexToHSL(
+                            hex
+                        )}\` | \`${dark[i]}\` |`
+                )
+                .join('\n')
+
+            const safe = colorUtils.textSafeShades(shades.map((s) => s.hex))
+
+            return [
+                `## ${capitalize(name)}`,
+                '',
+                '| Shade | Hex | HSL | Dark |',
+                '| ----: | --- | --- | --- |',
+                rows,
+                '',
+                `- **Text on white** (AA): ${colorUtils.formatShadeRanges(
+                    safe.onWhite
+                )}`,
+                `- **Text on black** (AA): ${colorUtils.formatShadeRanges(
+                    safe.onBlack
+                )}`,
+            ].join('\n')
+        })
+
+        return [
+            '# Color Palette',
+            '',
+            'Generated color scales. The **Dark** column is the value each',
+            'shade maps to in dark mode (the ramp mirrored). Accessibility',
+            'notes list the shades that pass WCAG AA (≥4.5:1) as text on a',
+            'white or black background.',
+            '',
+            ...sections,
+        ].join('\n\n')
+    },
+
+    // W3C Design Tokens (DTCG 2025.10) as an object: top-level `light` and
+    // `dark` mode groups (Figma modes), each slug -> shade -> color-object
+    // token. A prefix nests one group level inside each mode so token paths
+    // read light.<prefix>.<slug>.<shade>.
+    paletteTokensObject(
+        data: PaletteShadeData[],
+        prefix = ''
+    ): Record<string, unknown> {
+        type ColorToken = {
+            $type: 'color'
+            $value: ReturnType<typeof colorUtils.hexToDtcgColor>
+        }
+        type Group = Record<string, Record<string, ColorToken>>
+        const light: Group = {}
+        const dark: Group = {}
+        data.forEach(({ slug, shades }) => {
+            light[slug] = {}
+            dark[slug] = {}
+            const mirrored = colorUtils.mirrorHexes(shades.map((s) => s.hex))
+            shades.forEach(({ shade, hex }, i) => {
+                light[slug][shade] = {
+                    $type: 'color',
+                    $value: colorUtils.hexToDtcgColor(hex),
+                }
+                dark[slug][shade] = {
+                    $type: 'color',
+                    $value: colorUtils.hexToDtcgColor(mirrored[i]),
+                }
+            })
+        })
+        return prefix
+            ? { light: { [prefix]: light }, dark: { [prefix]: dark } }
+            : { light, dark }
+    },
+
+    paletteTokens(data: PaletteShadeData[], prefix = ''): string {
+        return JSON.stringify(colorUtils.paletteTokensObject(data, prefix), null, 2)
     },
 
     // Compresses a sorted list of shade numbers into a readable range string,

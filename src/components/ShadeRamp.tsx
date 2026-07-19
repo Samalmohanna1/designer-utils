@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { colorUtils } from '../utils/colorUtils'
 
-interface ColorScaleProps {
+interface ShadeRampProps {
 	baseColor: string
 }
 
-const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
+// The 10-swatch shade ramp for one base color (formerly named ColorScale,
+// which collided with the ColorScale type from colorUtils).
+const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 	const shades = useMemo(() => {
 		return colorUtils.generateShades(baseColor)
 	}, [baseColor])
@@ -53,4 +55,4 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	)
 }
 
-export default ColorScale
+export default ShadeRamp

@@ -1,9 +1,6 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
-import Prism from 'prismjs'
-import 'prismjs/themes/prism-tomorrow.css'
-import 'prismjs/components/prism-css'
-import 'prismjs/components/prism-json'
-import { downloadText } from '../utils/download'
+import { useMemo, useState } from 'react'
+import { useHashSync } from '../hooks/useHashSync'
+import ExportBlock from './ExportBlock'
 import {
 	generateSpaceSizes,
 	generateSpacePairs,
@@ -43,16 +40,11 @@ const DEFAULT_GRID: GridConfig = {
 	roundMinColumn: 'none',
 }
 
-// The preview swatch/bar fill. The project's signature blue (same #5799DB the
-// color tool and the type tool's device screens use), not Utopia's pink.
-const SWATCH = '#5799DB'
-
-const readHash = (): { space: SpaceConfig; grid: GridConfig } | null => {
-	if (typeof window === 'undefined') return null
-	const hash = window.location.hash
-	if (!hash.startsWith(HASH_PREFIX)) return null
-	return decodeSpaceGrid(decodeURIComponent(hash.slice(HASH_PREFIX.length)))
-}
+// The preview swatch/bar fill — the project blue token (not Utopia's pink).
+// The pair-bar taper uses color-mix since a var() can't take a hex alpha
+// suffix.
+const SWATCH = 'var(--color-blue-500)'
+const SWATCH_FADED = 'color-mix(in srgb, var(--color-blue-500) 40%, transparent)'
 
 const Field: React.FC<{
 	id: string
@@ -92,7 +84,6 @@ const Field: React.FC<{
 const SpaceScale = () => {
 	const [space, setSpace] = useState<SpaceConfig>(DEFAULT_SPACE)
 	const [grid, setGrid] = useState<GridConfig>(DEFAULT_GRID)
-	const hydrated = useRef(false)
 
 	const setSpaceField = (key: keyof SpaceConfig, value: number) => {
 		setSpace((s) => {
@@ -107,22 +98,20 @@ const SpaceScale = () => {
 	const setGridField = (key: keyof GridConfig, value: number) =>
 		setGrid((g) => ({ ...g, [key]: value }))
 
-	// On mount: a config in the URL wins; otherwise keep the default.
-	useEffect(() => {
-		const fromHash = readHash()
-		if (fromHash) {
-			setSpace(fromHash.space)
-			setGrid(fromHash.grid)
-		}
-		hydrated.current = true
-	}, [])
-
-	// Live-sync to the URL hash (replaceState, no history spam).
-	useEffect(() => {
-		if (!hydrated.current) return
-		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encodeSpaceGrid(space, grid)}`
-		window.history.replaceState(null, '', url)
-	}, [space, grid])
+	// URL-hash persistence + autosave (the unified system export reads the
+	// saved config).
+	const combined = useMemo(() => ({ space, grid }), [space, grid])
+	useHashSync({
+		prefix: HASH_PREFIX,
+		value: combined,
+		encode: (v) => encodeSpaceGrid(v.space, v.grid),
+		decode: decodeSpaceGrid,
+		onLoad: (v) => {
+			setSpace(v.space)
+			setGrid(v.grid)
+		},
+		storageKey: 'designer-utils:space-grid',
+	})
 
 	const sizes = useMemo(() => generateSpaceSizes(space), [space])
 	const pairs = useMemo(() => generateSpacePairs(space), [space])
@@ -130,32 +119,18 @@ const SpaceScale = () => {
 	const gutterClamp = useMemo(() => gutterClampFor(grid), [grid])
 
 	const [format, setFormat] = useState<ExportFormat>('css')
+	const [prefix, setPrefix] = useState('')
 	const code = useMemo(() => {
 		switch (format) {
 			case 'tailwind4':
-				return toTailwind(sizes, pairs, gridResult, gutterClamp)
+				return toTailwind(sizes, pairs, gridResult, gutterClamp, prefix)
 			case 'tokens':
-				return toTokens(sizes, pairs, gridResult)
+				return toTokens(sizes, pairs, gridResult, prefix)
 			default:
-				return toCss(sizes, pairs, gridResult, gutterClamp)
+				return toCss(sizes, pairs, gridResult, gutterClamp, prefix)
 		}
-	}, [sizes, pairs, gridResult, gutterClamp, format])
+	}, [sizes, pairs, gridResult, gutterClamp, format, prefix])
 	const language = format === 'tokens' ? 'json' : 'css'
-
-	const [isClient, setIsClient] = useState(false)
-	useEffect(() => setIsClient(true), [])
-	useEffect(() => {
-		if (isClient) Prism.highlightAll()
-	}, [code, language, isClient])
-
-	const [copied, setCopied] = useState(false)
-	useEffect(() => setCopied(false), [code])
-	const copy = () => {
-		navigator.clipboard.writeText(code)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 2000)
-	}
-	const download = () => downloadText(`space-grid-${format}.txt`, code)
 
 	// Largest size's max, to scale the preview swatches proportionally.
 	const maxPreview = sizes[sizes.length - 1].maxSize
@@ -275,7 +250,7 @@ const SpaceScale = () => {
 								<span
 									className='h-3 grow min-w-[12px]'
 									style={{
-										backgroundColor: `${SWATCH}66`,
+										backgroundColor: SWATCH_FADED,
 									}}
 								/>
 								<span
@@ -385,59 +360,20 @@ const SpaceScale = () => {
 			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128187; Code Snippet
 			</h3>
-			<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
-				<div className='p-xs'>
-					<div className='space-y-3xs'>
-						<label
-							htmlFor='space-format'
-							className='block text-step--2 font-roboto-condensed'
-						>
-							Format
-						</label>
-						<select
-							id='space-format'
-							value={format}
-							onChange={(e) =>
-								setFormat(e.target.value as ExportFormat)
-							}
-							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
-						>
-							<option value='css'>CSS Variables</option>
-							<option value='tailwind4'>Tailwind 4.1</option>
-							<option value='tokens'>Design Tokens (JSON)</option>
-						</select>
-					</div>
-				</div>
-				<div className='relative bg-[#2d2d2d] text-cream-100'>
-					<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
-						<button
-							onClick={copy}
-							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
-								copied
-									? 'bg-green-200 text-green-800'
-									: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
-							}`}
-						>
-							{copied ? 'Code Copied!' : 'Copy Code'}
-						</button>
-						<button
-							onClick={download}
-							className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500'
-						>
-							Download .txt
-						</button>
-					</div>
-					<pre className='p-s max-h-128 overflow-auto'>
-						<code
-							className={`text-sm sm:text-lg ${
-								isClient ? `language-${language}` : ''
-							}`}
-						>
-							{code}
-						</code>
-					</pre>
-				</div>
-			</div>
+			<ExportBlock
+				id='space-format'
+				formats={[
+					{ value: 'css', label: 'CSS Variables' },
+					{ value: 'tailwind4', label: 'Tailwind 4.1' },
+					{ value: 'tokens', label: 'Design Tokens (JSON)' },
+				]}
+				format={format}
+				onFormatChange={(v) => setFormat(v as ExportFormat)}
+				code={code}
+				language={language}
+				filename={`space-grid-${format}.txt`}
+				onPrefixChange={setPrefix}
+			/>
 		</>
 	)
 }

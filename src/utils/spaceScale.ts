@@ -8,6 +8,7 @@ import {
 	pxToRem,
 	remDimension,
 	round,
+	withPrefix,
 	type DimensionToken,
 } from './typeScale'
 
@@ -203,18 +204,20 @@ export const toTailwind = (
 	sizes: SpaceSize[],
 	pairs: SpacePair[],
 	grid: GridResult,
-	gutterClamp: string
+	gutterClamp: string,
+	prefix = ''
 ): string => {
+	const p = withPrefix(prefix)
 	const lines = [
-		...sizes.map((s) => `  --spacing-${s.label}: ${s.clamp};`),
+		...sizes.map((s) => `  --spacing-${p}${s.label}: ${s.clamp};`),
 		'',
 		'  /* One-up pairs */',
-		...pairs.map((p) => `  --spacing-${p.label}: ${p.clamp};`),
+		...pairs.map((pr) => `  --spacing-${p}${pr.label}: ${pr.clamp};`),
 		'',
 		'  /* Grid */',
-		`  --grid-max-width: ${pxToRem(grid.maxContainer)};`,
-		`  --grid-gutter: ${gutterClamp};`,
-		`  --grid-columns: ${grid.columns};`,
+		`  --${p}grid-max-width: ${pxToRem(grid.maxContainer)};`,
+		`  --${p}grid-gutter: ${gutterClamp};`,
+		`  --${p}grid-columns: ${grid.columns};`,
 	]
 	return `@theme {\n${lines.join('\n')}\n}`
 }
@@ -222,12 +225,14 @@ export const toTailwind = (
 // W3C Design Tokens (DTCG 2025.10). A dimension token holds a single number +
 // unit, so the fluid clamp()s flatten to their two anchors as `min` and `max`
 // groups — see typeScale's toTokens for the reasoning. Each group carries the
-// space scale and the grid values at that viewport.
-export const toTokens = (
+// space scale and the grid values at that viewport. A prefix nests one group
+// level inside each mode (min.<prefix>.space…).
+export const spaceTokensObject = (
 	sizes: SpaceSize[],
 	pairs: SpacePair[],
-	grid: GridResult
-): string => {
+	grid: GridResult,
+	prefix = ''
+): Record<string, unknown> => {
 	const spaceGroup = (anchor: 'minSize' | 'maxSize') => {
 		const space: Record<string, DimensionToken> = {}
 		for (const s of sizes) space[s.label] = remDimension(s[anchor])
@@ -239,21 +244,28 @@ export const toTokens = (
 		gutter: remDimension(gutter),
 		columns: { $type: 'number' as const, $value: grid.columns },
 	})
-	return JSON.stringify(
-		{
-			min: {
-				space: spaceGroup('minSize'),
-				grid: gridGroup(grid.minContainer, grid.minGutter),
-			},
-			max: {
-				space: spaceGroup('maxSize'),
-				grid: gridGroup(grid.maxContainer, grid.maxGutter),
-			},
-		},
-		null,
-		2
-	)
+	const mode = (space: Record<string, DimensionToken>, gridValues: object) =>
+		prefix
+			? { [prefix]: { space, grid: gridValues } }
+			: { space, grid: gridValues }
+	return {
+		min: mode(
+			spaceGroup('minSize'),
+			gridGroup(grid.minContainer, grid.minGutter)
+		),
+		max: mode(
+			spaceGroup('maxSize'),
+			gridGroup(grid.maxContainer, grid.maxGutter)
+		),
+	}
 }
+
+export const toTokens = (
+	sizes: SpaceSize[],
+	pairs: SpacePair[],
+	grid: GridResult,
+	prefix = ''
+): string => JSON.stringify(spaceTokensObject(sizes, pairs, grid, prefix), null, 2)
 
 // The gutter is itself a fluid value (min gutter -> max gutter), reused by the
 // grid CSS and the preview.

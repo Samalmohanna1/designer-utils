@@ -1,9 +1,6 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
-import Prism from 'prismjs'
-import 'prismjs/themes/prism-tomorrow.css'
-import 'prismjs/components/prism-css'
-import 'prismjs/components/prism-json'
-import { downloadText } from '../utils/download'
+import { useMemo, useState, useCallback } from 'react'
+import { useHashSync } from '../hooks/useHashSync'
+import ExportBlock from './ExportBlock'
 import {
 	generateTypeScale,
 	toCss,
@@ -35,8 +32,8 @@ const deviceForWidth = (px: number): Device =>
 // Device icons (FontAwesome 7). Phone and tablet share the portrait body —
 // tablet is the wider version — so they read as one family at different sizes.
 // `screen` is a filled rect drawn behind the path so the device's screen
-// cutout shows blue; all three are tinted.
-const SCREEN_BLUE = '#5799DB'
+// cutout shows the project blue; all three are tinted.
+const SCREEN_BLUE = 'var(--color-blue-500)'
 const DEVICE_ICON: Record<
 	Device,
 	{ viewBox: string; path: string; screen?: { x: number; y: number; w: number; h: number } }
@@ -70,14 +67,6 @@ const DEFAULT_CONFIG: TypeScaleConfig = {
 	maxRatio: 1.25,
 	stepsUp: 5,
 	stepsDown: 2,
-}
-
-// Reads a config from the URL hash, if present and valid. Client-only.
-const readHashConfig = (): TypeScaleConfig | null => {
-	if (typeof window === 'undefined') return null
-	const hash = window.location.hash
-	if (!hash.startsWith(HASH_PREFIX)) return null
-	return decodeConfig(decodeURIComponent(hash.slice(HASH_PREFIX.length)))
 }
 
 // A labeled number input wired to one config field. Empty/NaN keeps the last
@@ -176,23 +165,20 @@ const TypeScale = () => {
 		[]
 	)
 
-	// Gates the sync effect so it can't overwrite the hash before the initial
-	// read on mount (same pattern as the color tool).
-	const hydrated = useRef(false)
-
 	const steps = useMemo(() => generateTypeScale(config), [config])
 
 	const [format, setFormat] = useState<ExportFormat>('css')
+	const [prefix, setPrefix] = useState('')
 	const code = useMemo(() => {
 		switch (format) {
 			case 'tailwind4':
-				return toTailwind(steps)
+				return toTailwind(steps, prefix)
 			case 'tokens':
-				return toTokens(steps)
+				return toTokens(steps, prefix)
 			default:
-				return toCss(steps)
+				return toCss(steps, prefix)
 		}
-	}, [steps, format])
+	}, [steps, format, prefix])
 	const language = format === 'tokens' ? 'json' : 'css'
 
 	// Preview viewport, defaulting to the midpoint between the anchors.
@@ -200,41 +186,21 @@ const TypeScale = () => {
 		Math.round((DEFAULT_CONFIG.minViewport + DEFAULT_CONFIG.maxViewport) / 2)
 	)
 
-	// On mount: a config in the URL wins; otherwise keep the default. Centers
-	// the preview on the loaded anchors.
-	useEffect(() => {
-		const fromHash = readHashConfig()
-		if (fromHash) {
-			setConfig(fromHash)
+	// URL-hash persistence + autosave (the unified system export reads the
+	// saved config). A loaded config recenters the preview on its anchors.
+	useHashSync({
+		prefix: HASH_PREFIX,
+		value: config,
+		encode: encodeConfig,
+		decode: decodeConfig,
+		onLoad: (loaded) => {
+			setConfig(loaded)
 			setPreview(
-				Math.round((fromHash.minViewport + fromHash.maxViewport) / 2)
+				Math.round((loaded.minViewport + loaded.maxViewport) / 2)
 			)
-		}
-		hydrated.current = true
-	}, [])
-
-	// Live-sync the config to the URL hash (replaceState, so edits don't spam
-	// history). Runs only after the initial load.
-	useEffect(() => {
-		if (!hydrated.current) return
-		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encodeConfig(config)}`
-		window.history.replaceState(null, '', url)
-	}, [config])
-
-	const [isClient, setIsClient] = useState(false)
-	useEffect(() => setIsClient(true), [])
-	useEffect(() => {
-		if (isClient) Prism.highlightAll()
-	}, [code, language, isClient])
-
-	const [copied, setCopied] = useState(false)
-	useEffect(() => setCopied(false), [code])
-	const copy = () => {
-		navigator.clipboard.writeText(code)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 2000)
-	}
-	const download = () => downloadText(`type-scale-${format}.txt`, code)
+		},
+		storageKey: 'designer-utils:type-scale',
+	})
 
 	return (
 		<>
@@ -463,59 +429,20 @@ const TypeScale = () => {
 			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128187; Code Snippet
 			</h3>
-			<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
-				<div className='p-xs'>
-					<div className='space-y-3xs'>
-						<label
-							htmlFor='type-format'
-							className='block text-step--2 font-roboto-condensed'
-						>
-							Format
-						</label>
-						<select
-							id='type-format'
-							value={format}
-							onChange={(e) =>
-								setFormat(e.target.value as ExportFormat)
-							}
-							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
-						>
-							<option value='css'>CSS Variables</option>
-							<option value='tailwind4'>Tailwind 4.1</option>
-							<option value='tokens'>Design Tokens (JSON)</option>
-						</select>
-					</div>
-				</div>
-				<div className='relative bg-[#2d2d2d] text-cream-100'>
-					<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
-						<button
-							onClick={copy}
-							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
-								copied
-									? 'bg-green-200 text-green-800'
-									: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
-							}`}
-						>
-							{copied ? 'Code Copied!' : 'Copy Code'}
-						</button>
-						<button
-							onClick={download}
-							className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500'
-						>
-							Download .txt
-						</button>
-					</div>
-					<pre className='p-s max-h-128 overflow-auto'>
-						<code
-							className={`text-sm sm:text-lg ${
-								isClient ? `language-${language}` : ''
-							}`}
-						>
-							{code}
-						</code>
-					</pre>
-				</div>
-			</div>
+			<ExportBlock
+				id='type-format'
+				formats={[
+					{ value: 'css', label: 'CSS Variables' },
+					{ value: 'tailwind4', label: 'Tailwind 4.1' },
+					{ value: 'tokens', label: 'Design Tokens (JSON)' },
+				]}
+				format={format}
+				onFormatChange={(v) => setFormat(v as ExportFormat)}
+				code={code}
+				language={language}
+				filename={`type-scale-${format}.txt`}
+				onPrefixChange={setPrefix}
+			/>
 		</>
 	)
 }

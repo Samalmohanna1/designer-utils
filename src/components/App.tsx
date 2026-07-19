@@ -1,8 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import { copySvg } from '../utils/clipboard'
+import { useHashSync } from '../hooks/useHashSync'
 import ColorInput from './ColorInput'
-import ColorScale2 from './ColorScale'
+import ShadeRamp from './ShadeRamp'
 import CodeBlock from './CodeBlock'
 import ContrastChecker from './ContrastChecker'
 
@@ -40,12 +41,9 @@ const scalesFromEntries = (
 		nameEdited: false,
 	}))
 
-// Reads a palette from the URL hash, if present and valid. Client-only.
-const readHashPalette = (): ScaleState[] | null => {
-	if (typeof window === 'undefined') return null
-	const hash = window.location.hash
-	if (!hash.startsWith(HASH_PREFIX)) return null
-	const encoded = decodeURIComponent(hash.slice(HASH_PREFIX.length))
+// Decodes an encoded palette into ScaleState rows, or null when nothing
+// valid decodes (so the caller falls back to the default).
+const decodeScales = (encoded: string): ScaleState[] | null => {
 	const entries = colorUtils.decodePalette(encoded)
 	return entries.length > 0 ? scalesFromEntries(entries) : null
 }
@@ -53,34 +51,20 @@ const readHashPalette = (): ScaleState[] | null => {
 const App = () => {
 	const [colorScales, setColorScales] = useState<ScaleState[]>(defaultScales)
 	const [nextId, setNextId] = useState(2)
-	// Becomes true after the initial URL read, so the sync effect doesn't
-	// clobber the hash before we've had a chance to load from it.
-	const hydrated = useRef(false)
 
-	// On mount: a palette in the URL wins; otherwise keep the default.
-	// (Autosave is written below but intentionally not auto-restored.)
-	useEffect(() => {
-		const fromHash = readHashPalette()
-		if (fromHash) {
-			setColorScales(fromHash)
-			setNextId(fromHash.length + 1)
-		}
-		hydrated.current = true
-	}, [])
-
-	// Live-sync to the URL hash (replaceState, so edits don't spam history)
-	// and autosave to localStorage. Runs only after the initial load.
-	useEffect(() => {
-		if (!hydrated.current) return
-		const encoded = colorUtils.encodePalette(colorScales)
-		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encoded}`
-		window.history.replaceState(null, '', url)
-		try {
-			window.localStorage.setItem(STORAGE_KEY, encoded)
-		} catch {
-			// localStorage may be unavailable (private mode); ignore.
-		}
-	}, [colorScales])
+	// URL-hash persistence + localStorage autosave (write-only; restoring is
+	// offered by the banner below, and a palette in the URL always wins).
+	useHashSync({
+		prefix: HASH_PREFIX,
+		value: colorScales,
+		encode: colorUtils.encodePalette,
+		decode: decodeScales,
+		onLoad: (scales) => {
+			setColorScales(scales)
+			setNextId(scales.length + 1)
+		},
+		storageKey: STORAGE_KEY,
+	})
 
 	const addColorScale = useCallback(() => {
 		setColorScales((prevScales) => [
@@ -235,7 +219,7 @@ const App = () => {
 					)}
 				</div>
 			</div>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50'>
 				{colorScales.map((scale, index) => (
 					<div
 						key={scale.id}
@@ -315,7 +299,7 @@ const App = () => {
 											onClick={() => removeColorScale(scale.id)}
 											aria-label='Remove color'
 											title='Remove color'
-											className='p-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] flex items-center justify-center'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-red-500 hover:text-red-50 flex items-center justify-center'
 										>
 											<svg
 												xmlns='http://www.w3.org/2000/svg'
@@ -329,14 +313,14 @@ const App = () => {
 								)}
 							</div>
 						</div>
-						<ColorScale2 baseColor={scale.color} />
+						<ShadeRamp baseColor={scale.color} />
 					</div>
 				))}
 
 				<div className='mt-s flex flex-wrap gap-xs'>
 					<button
 						onClick={addColorScale}
-						className='px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
+						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
 					>
 						<span className='inline-block mr-2xs'>
 							<svg
@@ -379,7 +363,7 @@ const App = () => {
 							disabled={
 								colorUtils.parseHexList(bulkText).length === 0
 							}
-							className='self-start px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
+							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
 						>
 							Add{' '}
 							{colorUtils.parseHexList(bulkText).length || ''}{' '}

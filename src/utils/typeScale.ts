@@ -113,18 +113,25 @@ export const generateTypeScale = (config: TypeScaleConfig): TypeStep[] => {
 	return steps
 }
 
-// The CSS :root block of custom properties, one per step. Prefix is the
-// variable namespace (e.g. `step` -> `--step-0`). Negative steps read
-// `--step--1` (Utopia's convention).
-export const toCss = (steps: TypeStep[], prefix = 'step'): string => {
-	const lines = steps.map((s) => `  --${prefix}-${s.step}: ${s.clamp};`)
+// An optional user namespace ahead of a variable name: '' stays '', 'brand'
+// becomes 'brand-'. Shared by every export builder in the suite.
+export const withPrefix = (prefix: string): string =>
+	prefix ? `${prefix}-` : ''
+
+// The CSS :root block of custom properties, one per step (`--step-0`; with a
+// prefix, `--brand-step-0`). Negative steps read `--step--1` (Utopia's
+// convention).
+export const toCss = (steps: TypeStep[], prefix = ''): string => {
+	const p = withPrefix(prefix)
+	const lines = steps.map((s) => `  --${p}step-${s.step}: ${s.clamp};`)
 	return `:root {\n${lines.join('\n')}\n}`
 }
 
 // Tailwind 4 @theme block. Uses --text-step-N so each step becomes a
 // `text-step-N` utility (the convention this repo's own global.css uses).
-export const toTailwind = (steps: TypeStep[]): string => {
-	const lines = steps.map((s) => `  --text-step-${s.step}: ${s.clamp};`)
+export const toTailwind = (steps: TypeStep[], prefix = ''): string => {
+	const p = withPrefix(prefix)
+	const lines = steps.map((s) => `  --text-${p}step-${s.step}: ${s.clamp};`)
 	return `@theme {\n${lines.join('\n')}\n}`
 }
 
@@ -133,19 +140,23 @@ export const toTailwind = (steps: TypeStep[]): string => {
 // viewport concept either. The scale therefore flattens to its two anchors as
 // `min` and `max` groups, which import as Figma modes (mirroring the color
 // tool's light/dark groups). Steps are keyed `step-N` (negatives as `step--1`).
-export const toTokens = (steps: TypeStep[]): string => {
+export const typeTokensObject = (
+	steps: TypeStep[],
+	prefix = ''
+): Record<string, unknown> => {
 	const min: Record<string, DimensionToken> = {}
 	const max: Record<string, DimensionToken> = {}
 	for (const s of steps) {
 		min[`step-${s.step}`] = remDimension(s.minSize)
 		max[`step-${s.step}`] = remDimension(s.maxSize)
 	}
-	return JSON.stringify(
-		{ min: { 'font-size': min }, max: { 'font-size': max } },
-		null,
-		2
-	)
+	const group = (g: Record<string, DimensionToken>) =>
+		prefix ? { [prefix]: { 'font-size': g } } : { 'font-size': g }
+	return { min: group(min), max: group(max) }
 }
+
+export const toTokens = (steps: TypeStep[], prefix = ''): string =>
+	JSON.stringify(typeTokensObject(steps, prefix), null, 2)
 
 // The px size at an arbitrary viewport width, for the live preview. Linearly
 // interpolates between the two anchors and clamps to the min/max bounds.
