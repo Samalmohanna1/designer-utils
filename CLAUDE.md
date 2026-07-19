@@ -20,9 +20,14 @@ tools, each its own route, linked by a shared top nav ([SiteNav](./src/component
   an 8pt grid by default, plus one-up pairs) and a matching column grid, both
   interpolating between min/max viewport via `clamp()`. See the **Space & Grid**
   entry.
+- **Foundations** (`/foundations`) — the remaining token layers: corner radii,
+  border widths, elevation shadows, font stacks, and motion, plus the
+  **whole-system export** that merges every tool's saved state into one file.
+  See the **Foundations** and **Unified system export** entries.
 
 The repo is still named "color-scale-generator"; the color tool is the primary
-surface and most of this file describes it.
+surface and most of this file describes it. The site itself has a dark mode
+(see **Site dark mode**).
 
 ### Color Scales tool
 
@@ -39,7 +44,8 @@ What the color tool does, top to bottom on one page:
    `@theme` tokens (in **hex / HSL / RGB**), a **Markdown style guide** (a
    Hex + HSL table per color with WCAG text-on-white/black notes), or **W3C
    Design Tokens (DTCG 2025.10) JSON** (color objects, Figma-importable), with
-   one-click copy or download as a `.txt` file.
+   one-click copy or download as a `.txt` file, and an optional variable
+   prefix (see **Variable prefix**).
 4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
    updates the link live and a shared link reopens the exact palette. Also
    autosaved to `localStorage` (written, but not auto-restored — the URL or the
@@ -89,30 +95,38 @@ src/
     index.astro           Color tool route. SiteNav + <App> + SiteFooter in the layout.
     type.astro            Type Scale tool route. SiteNav + <TypeScale> + SiteFooter.
     space.astro           Space & Grid tool route. SiteNav + <SpaceScale> + SiteFooter.
-  layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path), PostHog, bg pattern, CVD SVG filters + CvdBar.
+    foundations.astro     Foundations tool route. SiteNav + <Foundations> + SiteFooter.
+  layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path/image), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
-    SiteNav.astro         Shared top nav (icon + label per tool: Color Scales | Type Scales | Space & Grid); `active` marks the current tool.
+    SiteNav.astro         Shared top nav (icon + label per tool: Color Scales | Type Scales | Space & Grid | Foundations); `active` marks the current tool.
     SiteFooter.astro      Shared footer (the author credit link), used by all routes.
-    App.tsx               Color-tool island. Owns colorScales state; composes the three sections.
+    App.tsx               Color-tool island. Owns colorScales state; composes the three sections + jump links + restore banner.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
-    ColorScale.tsx        Renders the 10 swatches (50–900) for one base color.
+    ShadeRamp.tsx         Renders the 10 swatches (50–900) for one base color (renamed from ColorScale.tsx — collided with the ColorScale type).
     ContrastChecker.tsx   Pick-a-background → legible-foregrounds cards; the whole grid copies as one SVG.
-    CodeBlock.tsx         Format/color-format selectors + Prism-highlighted, copyable export (CSS+Dark / Tailwind 4 / Markdown / Design Tokens).
+    CodeBlock.tsx         Thin color-export wrapper: format/color-format/prefix state + the colorUtils palette* builders, rendered through ExportBlock.
+    ExportBlock.tsx       THE shared export panel (format select, scoped Prism highlight, Copy Code + Download .txt, optional prefix field). Every tool's export renders through it.
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
-    TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig; renders inputs, live preview, and the CSS export.
-    SpaceScale.tsx        Space & Grid island. Owns SpaceConfig + GridConfig; size table + pairs + grid + the CSS export.
+    TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig; renders inputs, live preview, and the export.
+    SpaceScale.tsx        Space & Grid island. Owns SpaceConfig + GridConfig; size table + pairs + grid + the export.
+    Foundations.tsx       Foundations island. Owns FoundationsConfig; radii/borders/elevation/fonts/motion sections + the whole-system export.
+  hooks/
+    useHashSync.ts        The shared URL-hash persistence pattern (mount read → hydrated gate → replaceState live-sync) + optional localStorage autosave. Used by all four islands.
+    useCopied.ts          Shared copied!-feedback state with the reset timer.
   utils/
-    colorUtils.ts         All color math + shared types, plus the SVG-export builders (scale/palette/pair → Figma-pasteable SVG). The one place color logic lives.
-    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round (shared with spaceScale).
+    colorUtils.ts         All color math + shared types, the SVG-export builders, and the four color export formats (paletteShadeData/paletteCss/paletteTailwind/paletteMarkdown/paletteTokens). The one place color logic lives.
+    typeScale.ts          Fluid type-scale math: step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round/withPrefix/remDimension (shared with the other engines).
     spaceScale.ts         Fluid space + grid math: T-shirt sizes + one-up pairs + column/grid calc + CSS/Tailwind/Tokens emitters. Reuses typeScale's clampFor. The one place space/grid logic lives.
+    foundations.ts        Radii/borders/elevation/fonts/motion math + CSS/Tailwind/Tokens emitters. The one place foundations logic lives.
+    systemExport.ts       The whole-system export: reads every tool's localStorage autosave (defaults as fallback) and merges into one CSS/Tailwind/DTCG file. Owns the STORAGE_KEYS.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
-    download.ts           downloadText: saves a code snippet as a file via a Blob URL. Shared by all three export blocks.
+    download.ts           downloadText: saves a code snippet as a file via a Blob URL. Used by ExportBlock.
   styles/
-    global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing).
+    global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing) + the dark-mode token remap.
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
-public/                   Static files served as-is: fonts/, favicon.svg, og-image.png.
-tests/                    Playwright specs (smoke.spec.ts covers both tools + nav).
+public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png.
+tests/                    Playwright specs (smoke.spec.ts covers all four tools + nav).
 tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
@@ -164,9 +178,7 @@ Thresholds: **AAA ≥ 7**, **AA ≥ 4.5**, **AA Large ≥ 3.1**.
   the existing files), camelCase functions/variables, SCREAMING_SNAKE for
   constants. Descriptive names; no obscure abbreviations.
 - **No dead code.** No commented-out blocks or scaffolding for unagreed
-  features. Prefer deletion over deprecation. (Note: `ContrastLevel.tsx` imports
-  a `ColorCombo` component that doesn't exist and is unused by `App` — treat it
-  as stale; clean it up if you touch that area.)
+  features. Prefer deletion over deprecation.
 - **No emojis in code or commit messages** unless explicitly asked. (The
   decorative emoji *entities* in `App.tsx`/`index.astro` headings are existing
   user-facing copy — leave them unless asked to change the copy.)
@@ -224,6 +236,11 @@ There is **no separate lint script.** Type checking comes from the strict
 - **Pull colors, type, and spacing from the `@theme` tokens** in
   [global.css](./src/styles/global.css) rather than inventing inline values. If
   a value isn't there, add it to `@theme` first, then use it.
+- **The site has a dark mode** implemented purely as a token remap under
+  `prefers-color-scheme: dark` in global.css (see **Site dark mode** in the
+  glossary). New UI must work in both themes: pair tokens that flip together
+  (`bg-black-500` + `text-cream-100`), and use the static `code-*` /
+  `preview-*` tokens for surfaces that must not flip.
 - **This tool is itself an accessibility utility — hold its own UI to a high
   bar.** Target WCAG AAA contrast (7:1 normal text, 4.5:1 large) for the app's
   own chrome. Verify pairs; don't eyeball them.
@@ -384,14 +401,18 @@ the live page reflects the merged commit before calling anything fixed.
   top-level `light` and `dark` groups, each `{ slug: { shade: { $type, $value } } }`.
 - **Palette sharing** — the palette serializes to `name:hex,…`
   (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
-  the `#p=` prefix. `App` reads it once on mount (a valid hash wins over the
-  default; `localStorage` is written but **not** auto-restored), then a
-  `colorScales` effect live-syncs back to the hash via `history.replaceState`
-  (no history spam) and to `localStorage`. A `hydrated` ref gates that effect so
-  it can't overwrite the hash before the initial read. Shared scales load with
-  `nameEdited: false` (the shared name is shown, but recoloring re-derives it
-  from the hue until the recipient types one — see `handleColorChange`).
-  Malformed pairs are dropped; if nothing valid decodes, the default loads.
+  the `#p=` prefix, via the shared `useHashSync` hook (mount read → `hydrated`
+  ref gate → `replaceState` live-sync → `localStorage` autosave). A valid hash
+  wins over the default. The autosave is **not** auto-restored, but when a
+  previous session's save exists and the URL carries no palette, a banner
+  offers **"Restore your last palette?"** — the saved value is captured in a
+  lazy initializer *before* the first sync write (which would otherwise
+  clobber it). Shared scales load with `nameEdited: false` (the shared name is
+  shown, but recoloring re-derives it from the hue until the recipient types
+  one — see `handleColorChange`). Malformed pairs are dropped; if nothing
+  valid decodes, the default loads. The same `useHashSync` pattern backs
+  `#t=` (type), `#s=` (space), and `#f=` (foundations), each with its own
+  autosave key (see `systemExport.STORAGE_KEYS`).
 - **Type Scale** — the second tool ([TypeScale](./src/components/TypeScale.tsx)
   at `/type`). Math lives in [typeScale.ts](./src/utils/typeScale.ts) (the
   engine, mirroring `colorUtils`): `generateTypeScale(config)` builds each step
@@ -435,6 +456,59 @@ the live page reflects the merged commit before calling anything fixed.
   project blue `#5799DB` (not Utopia's pink). The config serializes to `#s=`
   (`encodeSpaceGrid`/`decodeSpaceGrid`, ten numbers) with the same hash-sync
   pattern. Output matches utopia.fyi for the same inputs.
+
+- **Foundations** — the fourth tool ([Foundations](./src/components/Foundations.tsx)
+  at `/foundations`). Math lives in [foundations.ts](./src/utils/foundations.ts)
+  (the engine, mirroring the others). Five sections, each with controls +
+  live preview: **corner radii** (`none/sm/md/lg/xl/full` multipliers off a
+  base, `full` = 9999px), **border widths** (`hairline/thin/thick` off a
+  base), **elevation** (5 levels, each a key + ambient shadow pair; fixed
+  geometry, opacity scaled by an intensity control and a shadow color; the
+  dark variant raises opacity ×1.8 — shadows need more contrast on dark
+  surfaces — previewed on fixed `preview-*` light/dark panels), **font
+  stacks** (heading/body/mono from curated modernfontstacks.com system-stack
+  presets or free text, plus fixed regular/medium/bold weights), and
+  **motion** (fast/base/slow durations + standard/decelerate/accelerate
+  cubic-bezier easings with replayable previews). Exports: `toCss` (`:root`
+  plus a dark elevation override), `toTailwind` (`@theme` using real TW4
+  namespaces — `--radius-*`, `--shadow-*`, `--font-*`, `--ease-*` — plus a
+  `.dark` elevation block), `toTokens` (DTCG: px dimensions, `shadow`
+  composites under `light`/`dark`, `fontFamily`/`fontWeight`,
+  `duration`/`cubicBezier`). Config serializes to `#f=`
+  (`encodeFoundations`/`decodeFoundations`, pipe-separated because font
+  stacks contain commas) with the standard hash-sync + autosave.
+- **Unified system export** — the capstone block at the bottom of
+  `/foundations` ([systemExport.ts](./src/utils/systemExport.ts)): merges
+  every tool's **latest saved state** (each island's `useHashSync` autosave,
+  read via `STORAGE_KEYS`; defaults where a tool was never opened) into one
+  CSS block, one Tailwind `@theme`, or one DTCG file
+  (`systemCss`/`systemTailwind`/`systemTokens`). **Token mode strategy:**
+  top-level `light`/`dark` groups hold the theme-dependent layers (color,
+  elevation), top-level `min`/`max` hold the viewport-dependent layers
+  (font-size, space, grid), and the static layers (radius, border, font,
+  motion) sit at the top level — each top-level group imports as a Figma
+  collection/mode. `mergeGroups` deep-merges the per-engine token objects so
+  e.g. color's `light` and elevation's `light` share one group (and prefix
+  groups merge instead of clobbering).
+- **Variable prefix** — every export block has an optional prefix field
+  (sanitized slug-safe in `ExportBlock`). CSS/Tailwind prepend it to the
+  variable namespace (`--brand-blue-500`, `--text-brand-step-0`,
+  `--spacing-brand-s`, `--radius-brand-md`); the DTCG formats nest a
+  `<prefix>` group inside each mode group (paths like
+  `light.brand.blue.500`). Engines take it as a trailing `prefix` param
+  (`typeScale.withPrefix` builds the `brand-` fragment); the Markdown style
+  guide ignores it.
+- **Site dark mode** — a `prefers-color-scheme: dark` block in
+  [global.css](./src/styles/global.css) remaps the theme tokens: cream
+  surfaces go dark, the black ink ramp goes light (so `bg-black-500` +
+  `text-cream-100` pairings invert together), yellow darkens to keep its
+  light-text pairings legible, and the badge/feedback accents
+  (`green-200/600/800`, `blue-100`, `red-700`) get dark-legible overrides.
+  **Static tokens that never flip:** the brand `blue-*` ramp, `red-50/500`,
+  `code-bg`/`code-fg` (the export terminal), and the `preview-*` panels (the
+  elevation preview needs an always-light and an always-dark surface). No
+  `.dark` class, no toggle — the OS preference decides. CVD filters apply on
+  top unchanged.
 
 ---
 

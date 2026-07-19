@@ -11,7 +11,9 @@ the **Designer Utils / MYOL Creative** suite.
 Live at **<https://tools.myol-creative.com/>**. No backend — a fully static
 Astro site; all math runs in the browser.
 
-The suite has three tools, linked by a top nav:
+The suite is a **one-stop shop for design-system foundations** — four tools
+linked by a top nav, each exporting CSS, Tailwind 4, and W3C Design Tokens,
+plus a whole-system export that merges them into one file:
 
 - **Color Scales** (`/`) — everything below.
 - **Type Scales** (`/type`) — a fluid type-scale calculator. Set a font size and
@@ -25,6 +27,15 @@ The suite has three tools, linked by a top nav:
   base size and grid at a min and max viewport; export the `--space-*` ramp and
   a `.u-container`/`.u-grid` layout as CSS, Tailwind 4, or Design Tokens (same
   `min`/`max` groups as the Type tool). Config lives in the URL too.
+- **Foundations** (`/foundations`) — the rest of the token layers: corner
+  radii, border widths, a 5-level elevation ramp (with a dark variant), font
+  stacks (zero-download system stacks), and motion (durations + easings). At
+  the bottom: **Export the whole system** — every tool's latest saved settings
+  merged into one CSS / Tailwind / Design Tokens file.
+
+Every export block pairs one-click copy with a `.txt` download and an optional
+variable prefix (e.g. `--brand-blue-500`). The site follows your OS
+light/dark preference.
 
 ## ✨ Features
 
@@ -79,7 +90,8 @@ on their export blocks.
 
 -   The palette lives in the URL hash (`#p=name:hex,…`), so editing updates the
     link live and a shared link reopens the exact palette. Also autosaved to
-    `localStorage`.
+    `localStorage` — come back later and the tool offers to restore your last
+    palette.
 
 ### 👁 Vision simulation
 
