@@ -5,16 +5,17 @@ interface Props {
 	title: string
 	description?: string
 	path?: string // route path for the canonical/OG URL, e.g. '/type'
+	image?: string // per-tool OG card, e.g. '/og-type.png'
 }
 
 const {
 	title,
 	description = 'Create color scales, WCAG-compliant text contrast ratios, and export code snippets for Tailwind 4 themes, CSS, Markdown, and Design Tokens. Perfect for designers and developers.',
 	path = '/',
+	image = '/og-image.png',
 } = Astro.props
 const SITE = 'https://tools.myol-creative.com'
 const canonicalURL = `${SITE}${path}`
-const image = '/og-image.png'
 ---
 
 <!doctype html>
