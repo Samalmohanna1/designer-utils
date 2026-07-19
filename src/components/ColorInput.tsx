@@ -56,7 +56,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 			<input
 				type='text'
 				id={`name-${inputId}`}
-				className='h-8 w-36 px-2xs rounded-sm border border-black-100 text-step--2'
+				className='h-8 w-36 px-2xs rounded-sm border border-black-100 bg-cream-50 text-step--2'
 				placeholder={autoName}
 				value={showExportSlug ? exportSlug : name}
 				onFocus={(e) => {
@@ -89,7 +89,7 @@ const ColorInput: React.FC<ColorInputProps> = ({
 					maxLength={7}
 					id={`hex-${inputId}`}
 					aria-label='Hex code'
-					className='h-8 w-24 px-2xs rounded-sm border border-black-100 text-step--2'
+					className='h-8 w-24 px-2xs rounded-sm border border-black-100 bg-cream-50 text-step--2'
 					placeholder='#hex'
 					value={draft}
 					onChange={(e) =>

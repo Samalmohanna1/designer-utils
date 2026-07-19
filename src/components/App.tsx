@@ -443,7 +443,7 @@ const App = () => {
 							value={bulkText}
 							onChange={(e) => setBulkText(e.target.value)}
 							placeholder='#5799DB, #E11D48, #16A34A'
-							className='w-full max-w-xl px-2xs py-3xs rounded-sm border border-black-100 text-step--2 font-mono'
+							className='w-full max-w-xl px-2xs py-3xs rounded-sm border border-black-100 bg-cream-50 text-step--2 font-mono'
 						/>
 						<button
 							onClick={addFromHexList}

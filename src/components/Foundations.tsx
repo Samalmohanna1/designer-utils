@@ -325,8 +325,10 @@ const Foundations = () => {
 						/>
 					</div>
 				</div>
+				{/* Fixed light/dark surfaces (preview-* tokens) so both shadow
+				    variants read correctly whichever theme the site is in. */}
 				<div className='grid gap-s sm:grid-cols-2'>
-					<div className='p-s rounded-lg bg-cream-100 border border-black-50'>
+					<div className='p-s rounded-lg bg-preview-light border border-black-100 text-preview-light-ink'>
 						<p className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-s'>
 							Light
 						</p>
@@ -334,7 +336,7 @@ const Foundations = () => {
 							{elevationLight.map((e, i) => (
 								<div
 									key={e.label}
-									className='w-20 h-20 rounded-md bg-cream-50 flex items-center justify-center text-step--2 font-bold'
+									className='w-20 h-20 rounded-md bg-preview-light-card flex items-center justify-center text-step--2 font-bold'
 									style={{ boxShadow: elevationCss(e) }}
 								>
 									{i + 1}
@@ -342,15 +344,15 @@ const Foundations = () => {
 							))}
 						</div>
 					</div>
-					<div className='p-s rounded-lg bg-black-500 border border-black-400'>
-						<p className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-s text-cream-100'>
+					<div className='p-s rounded-lg bg-preview-dark border border-black-100 text-preview-dark-ink'>
+						<p className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-s'>
 							Dark
 						</p>
 						<div className='flex flex-wrap gap-s'>
 							{elevationDark.map((e, i) => (
 								<div
 									key={e.label}
-									className='w-20 h-20 rounded-md bg-black-400 text-cream-100 flex items-center justify-center text-step--2 font-bold'
+									className='w-20 h-20 rounded-md bg-preview-dark-card flex items-center justify-center text-step--2 font-bold'
 									style={{ boxShadow: elevationCss(e) }}
 								>
 									{i + 1}

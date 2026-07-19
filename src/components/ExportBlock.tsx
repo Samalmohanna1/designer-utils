@@ -120,7 +120,7 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 					)}
 				</div>
 			</div>
-			<div className='relative bg-code-bg text-cream-100'>
+			<div className='relative bg-code-bg text-code-fg'>
 				<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
 					<button
 						onClick={copy}
