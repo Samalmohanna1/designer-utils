@@ -3,7 +3,13 @@
 // Reuses the type tool's clamp/rounding so all the fluid math lives in one
 // place (see typeScale.ts). The one place space/grid logic lives.
 
-import { clampFor, pxToRem, round } from './typeScale'
+import {
+	clampFor,
+	pxToRem,
+	remDimension,
+	round,
+	type DimensionToken,
+} from './typeScale'
 
 export interface SpaceConfig {
 	minViewport: number // px
@@ -213,30 +219,40 @@ export const toTailwind = (
 	return `@theme {\n${lines.join('\n')}\n}`
 }
 
-// W3C Design Tokens (DTCG): dimension tokens for sizes + pairs under a
-// `space` group, and the grid values under a `grid` group.
+// W3C Design Tokens (DTCG 2025.10). A dimension token holds a single number +
+// unit, so the fluid clamp()s flatten to their two anchors as `min` and `max`
+// groups — see typeScale's toTokens for the reasoning. Each group carries the
+// space scale and the grid values at that viewport.
 export const toTokens = (
 	sizes: SpaceSize[],
 	pairs: SpacePair[],
-	grid: GridResult,
-	gutterClamp: string
+	grid: GridResult
 ): string => {
-	const space: Record<string, { $type: 'dimension'; $value: string }> = {}
-	for (const s of sizes) {
-		space[s.label] = { $type: 'dimension', $value: s.clamp }
+	const spaceGroup = (anchor: 'minSize' | 'maxSize') => {
+		const space: Record<string, DimensionToken> = {}
+		for (const s of sizes) space[s.label] = remDimension(s[anchor])
+		for (const p of pairs) space[p.label] = remDimension(p[anchor])
+		return space
 	}
-	for (const p of pairs) {
-		space[p.label] = { $type: 'dimension', $value: p.clamp }
-	}
-	const gridGroup = {
-		'max-width': {
-			$type: 'dimension' as const,
-			$value: pxToRem(grid.maxContainer),
-		},
-		gutter: { $type: 'dimension' as const, $value: gutterClamp },
+	const gridGroup = (container: number, gutter: number) => ({
+		'max-width': remDimension(container),
+		gutter: remDimension(gutter),
 		columns: { $type: 'number' as const, $value: grid.columns },
-	}
-	return JSON.stringify({ space, grid: gridGroup }, null, 2)
+	})
+	return JSON.stringify(
+		{
+			min: {
+				space: spaceGroup('minSize'),
+				grid: gridGroup(grid.minContainer, grid.minGutter),
+			},
+			max: {
+				space: spaceGroup('maxSize'),
+				grid: gridGroup(grid.maxContainer, grid.maxGutter),
+			},
+		},
+		null,
+		2
+	)
 }
 
 // The gutter is itself a fluid value (min gutter -> max gutter), reused by the

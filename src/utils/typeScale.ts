@@ -33,6 +33,19 @@ export const round = (n: number, places = 4): string => {
 
 export const pxToRem = (px: number): string => `${round(px / REM)}rem`
 
+// A DTCG 2025.10 dimension token. The spec requires $value to be an object of
+// one number + one unit — never a string — which is why a clamp() can't be a
+// dimension token at all (see toTokens). Shared with the space/grid engine.
+export interface DimensionToken {
+	$type: 'dimension'
+	$value: { value: number; unit: 'rem' }
+}
+
+export const remDimension = (px: number): DimensionToken => ({
+	$type: 'dimension',
+	$value: { value: Number((px / REM).toFixed(4)), unit: 'rem' },
+})
+
 // Common modular-scale ratios, for a labeled picker. Value is the multiplier.
 export const NAMED_RATIOS: { value: number; label: string }[] = [
 	{ value: 1.067, label: 'Minor Second' },
@@ -115,14 +128,23 @@ export const toTailwind = (steps: TypeStep[]): string => {
 	return `@theme {\n${lines.join('\n')}\n}`
 }
 
-// W3C Design Tokens (DTCG): one dimension token per step, value = the clamp().
-// Keyed `step-N` (negatives as `step--1`) under a `font-size` group.
+// W3C Design Tokens (DTCG 2025.10). A dimension token holds a single number +
+// unit, so a fluid clamp() has no representation — and Figma variables have no
+// viewport concept either. The scale therefore flattens to its two anchors as
+// `min` and `max` groups, which import as Figma modes (mirroring the color
+// tool's light/dark groups). Steps are keyed `step-N` (negatives as `step--1`).
 export const toTokens = (steps: TypeStep[]): string => {
-	const sizes: Record<string, { $type: 'dimension'; $value: string }> = {}
+	const min: Record<string, DimensionToken> = {}
+	const max: Record<string, DimensionToken> = {}
 	for (const s of steps) {
-		sizes[`step-${s.step}`] = { $type: 'dimension', $value: s.clamp }
+		min[`step-${s.step}`] = remDimension(s.minSize)
+		max[`step-${s.step}`] = remDimension(s.maxSize)
 	}
-	return JSON.stringify({ 'font-size': sizes }, null, 2)
+	return JSON.stringify(
+		{ min: { 'font-size': min }, max: { 'font-size': max } },
+		null,
+		2
+	)
 }
 
 // The px size at an arbitrary viewport width, for the live preview. Linearly
