@@ -75,6 +75,133 @@ dropped from scope.
 
 ---
 
+## Improvement backlog (audited 2026-07)
+
+Goal: make the suite a **one-stop shop for design-system foundations** — a team
+should be able to leave with every foundational token layer, not just color /
+type / space. Grouped by theme; suggested order at the end.
+
+### A. New foundations: the missing token layers
+
+**Type:** `feature` — the core of the one-stop-shop vision.
+
+One new **`/foundations`** route (one nav item, not five) with a section per
+token layer, mirroring the existing pattern: an island owning one config,
+`utils/foundations.ts` as the engine, live preview per section, the standard
+CSS / Tailwind 4 / DTCG export block, and `#f=` URL-hash sync.
+
+- [ ] **Corner radii** — a small ramp (`none / sm / md / lg / xl / full`) from
+      a base value + multiplier curve. Preview as rounded squares. DTCG
+      `dimension` tokens; `--radius-*` in CSS/Tailwind.
+- [ ] **Border widths** — hairline / 1 / 2 / 4 style ladder. Preview as ruled
+      lines. DTCG `dimension`; `--border-*`.
+- [ ] **Elevation / shadows** — a 5–6 level ramp of layered `box-shadow`s
+      (each level = 2 stacked shadows: ambient + key), with a **dark-mode
+      variant** (shadows read differently on dark surfaces — usually higher
+      opacity). Preview as floating cards. DTCG `shadow` type (it supports an
+      array of shadow objects); `--elevation-*`.
+- [ ] **Font families** — pick a heading + body + mono stack (curated
+      system-stack presets plus a free-text field), with fallbacks. Preview
+      renders the stacks. DTCG `fontFamily` tokens; `--font-*`. Optionally
+      font-weight tokens (`fontWeight`) alongside.
+- [ ] **Motion** — duration ramp (fast/base/slow) + named easings
+      (standard/decelerate/accelerate as `cubic-bezier`). Preview as a
+      replayable animation per easing. DTCG `duration` + `cubicBezier`.
+- [ ] Each section ships with smoke coverage like the existing tools.
+
+Radii, borders, and elevation are the highest-value/lowest-effort trio — they
+can ship first and the page can grow section by section.
+
+### B. Unified "whole system" export
+
+**Type:** `feature` — the capstone; depends on A.
+
+- [ ] A single **Export design system** action that merges all tools' current
+      configs into one DTCG file (and one CSS/Tailwind block): `color`,
+      `font-size`, `space`, `grid`, `radius`, `border`, `elevation`, `font`,
+      `motion`.
+- [ ] Requires a **consistent mode strategy** first: color exports top-level
+      `light`/`dark`, type/space export `min`/`max`. A merged file needs a
+      deliberate shape (e.g. modes only where they exist:
+      `{ light, dark, min, max, static }` or per-group modes). Decide before
+      building; document in CLAUDE.md.
+- [ ] Reading configs across pages: each tool's config already serializes to a
+      hash — a shared `localStorage` key per tool (the color tool already
+      writes one) lets the export read the latest state of every tool.
+
+### C. Code improvements
+
+**Type:** `refactor` — do C1 *before* building A, or the duplication triples.
+
+- [ ] **C1. Shared `ExportBlock` component.** `CodeBlock`, `TypeScale`, and
+      `SpaceScale` each hand-roll the same format selector + Prism `<pre>` +
+      Copy Code + Download .txt block (three near-identical copies today; a
+      fourth tool would make four). Extract one component taking
+      `{ formats, code, language, filename }`.
+- [ ] **C2. Shared `useHashConfig` hook.** The mount-read → `hydrated` ref →
+      `replaceState` live-sync pattern is duplicated in `App`, `TypeScale`,
+      and `SpaceScale`. One hook taking `{ prefix, encode, decode }`.
+- [ ] **C3. Shared `useCopied` hook** for the copy-button state + 2s reset
+      timer (repeated ~6 times across components).
+- [ ] **C4. Scope Prism highlighting.** `Prism.highlightAll()` re-highlights
+      the whole page on every config keystroke; use `highlightElement` on the
+      one `<code>` node.
+- [ ] **C5. Tokenize stray hexes.** `#A51D1D`/`#FDF4F4` (App remove button),
+      `#F4F5F9` (App buttons), `#2d2d2d` (all three export blocks),
+      `#5799DB` (Type/Space previews) violate the repo's own use-`@theme`
+      rule — add tokens (`red-*`, `code-bg`, `blue-500`) and use them.
+- [ ] **C6. Fix the `black-*` ramp in global.css.** `black-600`–`900` are all
+      ~1% lightness (visually identical); blue only has `blue-50`. Regenerate
+      the app's own ramps with the app (dogfood) and fill the gaps.
+- [ ] **C7. Rename the `ColorScale` component.** It collides with the
+      `ColorScale` type from `colorUtils` (imported as `ColorScale2` in App) —
+      rename the component to `ShadeRamp`.
+- [ ] Existing open item 1 (delete dead `ContrastLevel.tsx`) folds in here.
+
+### D. UX improvements
+
+**Type:** `feature`/`fix`.
+
+- [ ] **D1. Offer to restore the autosave.** `localStorage` is written on
+      every edit but never read back — on load with no URL hash, show a small
+      "Restore your last palette?" affordance instead of silently discarding
+      it (keep URL-wins behavior).
+- [ ] **D2. Announce copy confirmations.** The Copied!/Link copied! feedback
+      is a visual text swap only; add `aria-live='polite'` so screen readers
+      hear it. Applies to every copy/download button.
+- [ ] **D3. Variable-prefix control.** Teams rarely ship `--blue-500` as-is;
+      an optional prefix input (e.g. `brand`) applied across CSS/Tailwind/
+      DTCG exports on all tools.
+- [ ] **D4. px/rem display toggle** on the Type and Space tables (values show
+      rem; designers think in px at the anchors — show both or toggle).
+- [ ] **D5. In-page section nav.** The color page is long (scales → contrast
+      → export); small sticky anchor links (or scroll-margin'd headings)
+      would help all three tools.
+
+### E. Layout & design
+
+**Type:** `style`.
+
+- [ ] **E1. Dark mode for the site itself.** The tool *exports* dark mode but
+      doesn't have one — with the cream/black/yellow tokens in `@theme`, a
+      `prefers-color-scheme` variant is mostly token remapping. High
+      credibility win for a design-system tool. (CVD filters must still apply.)
+- [ ] **E2. Per-tool OG images + titles.** All routes share the color tool's
+      `og-image.png`; give Type, Space (and Foundations) their own cards.
+- [ ] **E3. Fluid body size.** `body { font-size: 18px }` is fixed while
+      everything else uses `text-step-*`; use `--text-step-0`.
+
+### Suggested order
+
+1. **C1–C3** (shared export block + hooks) — pays for itself immediately.
+2. **A** radii + borders + elevation (first `/foundations` slice), then fonts
+   + motion.
+3. **B** unified export once A's layers exist.
+4. **D/E** interleaved as small PRs (D1/D2/E3 are quick wins; E1 is a bigger
+   style pass).
+
+---
+
 ## Done
 
 - **DTCG 2025.10 compliance across all three tools** (branches
