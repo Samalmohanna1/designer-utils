@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
 import ExportBlock from './ExportBlock'
 import {
+	DEFAULT_SPACE,
+	DEFAULT_GRID,
 	generateSpaceSizes,
 	generateSpacePairs,
 	computeGrid,
@@ -19,26 +21,6 @@ import {
 type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const HASH_PREFIX = '#s='
-
-// 8pt-grid defaults: @min base 16 -> 4/8/12/16/24/32/48/64/96 (a clean 4/8pt
-// ramp); @max base 20 so the scale is genuinely fluid (20 -> 5/10/15/20/...).
-// Viewport 320–1440 per the project default.
-const DEFAULT_SPACE: SpaceConfig = {
-	minViewport: 320,
-	maxViewport: 1440,
-	minBase: 16,
-	maxBase: 20,
-}
-const DEFAULT_GRID: GridConfig = {
-	minViewport: 320,
-	maxViewport: 1440,
-	containerMax: 1240,
-	minGutter: 16,
-	maxGutter: 32,
-	columnMax: 60,
-	columns: 12,
-	roundMinColumn: 'none',
-}
 
 // The preview swatch/bar fill — the project blue token (not Utopia's pink).
 // The pair-bar taper uses color-mix since a var() can't take a hex alpha

@@ -102,7 +102,45 @@ test('code snippet downloads as a txt file', async ({ page }) => {
 	expect(Buffer.concat(chunks).toString()).toContain('"colorSpace": "srgb"')
 })
 
-test('nav moves between the three tools', async ({ page }) => {
+test('foundations tool loads and exports every token layer', async ({
+	page,
+}) => {
+	await page.goto(`${BASE}/foundations`)
+	await expect(page).toHaveTitle(/Design System Foundations/)
+	await expect(
+		page.getByRole('heading', { name: /^🧱 Foundations/i })
+	).toBeVisible()
+	const code = page.locator('pre code').first()
+	// Default CSS export carries all five layers.
+	await expect(code).toContainText('--radius-md: 8px;')
+	await expect(code).toContainText('--border-hairline: 1px;')
+	await expect(code).toContainText('--elevation-1:')
+	await expect(code).toContainText('--font-heading: system-ui')
+	await expect(code).toContainText('--duration-base: 250ms;')
+	await expect(code).toContainText('--ease-standard: cubic-bezier')
+	// Elevation ships a dark override.
+	await expect(code).toContainText('@media (prefers-color-scheme: dark)')
+})
+
+test('whole-system export merges every tool', async ({ page }) => {
+	await page.goto(`${BASE}/foundations`)
+	await expect(page.locator('pre code').first()).toHaveClass(/language-/)
+	await page
+		.getByLabel('Format', { exact: true })
+		.nth(1)
+		.selectOption('tokens')
+	const code = page.locator('pre code').nth(1)
+	// One DTCG file: mode groups + static foundations groups. DTCG shadow
+	// tokens for elevation live under light/dark alongside color.
+	await expect(code).toContainText('"light": {')
+	await expect(code).toContainText('"min": {')
+	await expect(code).toContainText('"font-size": {')
+	await expect(code).toContainText('"elevation": {')
+	await expect(code).toContainText('"radius": {')
+	await expect(code).toContainText('"$type": "shadow"')
+})
+
+test('nav moves between the four tools', async ({ page }) => {
 	await page.goto(BASE)
 	await page.getByRole('link', { name: 'Type Scales' }).click()
 	await expect(page).toHaveURL(/\/type\/?$/)
@@ -113,6 +151,11 @@ test('nav moves between the three tools', async ({ page }) => {
 	await expect(page).toHaveURL(/\/space\/?$/)
 	await expect(
 		page.getByRole('heading', { name: /Space & Grid Calculator/i })
+	).toBeVisible()
+	await page.getByRole('link', { name: 'Foundations' }).click()
+	await expect(page).toHaveURL(/\/foundations\/?$/)
+	await expect(
+		page.getByRole('heading', { name: /^🧱 Foundations/i })
 	).toBeVisible()
 	await page.getByRole('link', { name: 'Color Scales' }).click()
 	await expect(

@@ -33,6 +33,15 @@ export const SPACE_SIZES: { label: string; multiplier: number }[] = [
 	{ label: '3xl', multiplier: 6 },
 ]
 
+// 8pt-grid defaults (viewport 320–1440 per the project default) — also the
+// fallback the unified system export uses when the tool has no saved state.
+export const DEFAULT_SPACE: SpaceConfig = {
+	minViewport: 320,
+	maxViewport: 1440,
+	minBase: 16,
+	maxBase: 20,
+}
+
 export interface SpaceSize {
 	label: string
 	minSize: number // px at minViewport
@@ -100,6 +109,17 @@ export interface GridConfig {
 	columnMax: number // a column's max width (px)
 	columns: number
 	roundMinColumn: 'none' | 'up' | 'down'
+}
+
+export const DEFAULT_GRID: GridConfig = {
+	minViewport: 320,
+	maxViewport: 1440,
+	containerMax: 1240,
+	minGutter: 16,
+	maxGutter: 32,
+	columnMax: 60,
+	columns: 12,
+	roundMinColumn: 'none',
 }
 
 // A column's width at a viewport: (container - (cols+1) gutters) / cols. The

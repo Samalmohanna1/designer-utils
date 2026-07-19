@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
 import ExportBlock from './ExportBlock'
 import {
+	DEFAULT_TYPE_CONFIG,
 	generateTypeScale,
 	toCss,
 	toTailwind,
@@ -58,16 +59,7 @@ const DEVICE_ICON: Record<
 	},
 }
 
-const DEFAULT_CONFIG: TypeScaleConfig = {
-	minViewport: 320,
-	maxViewport: 1240,
-	minFontSize: 18,
-	maxFontSize: 20,
-	minRatio: 1.2,
-	maxRatio: 1.25,
-	stepsUp: 5,
-	stepsDown: 2,
-}
+const DEFAULT_CONFIG = DEFAULT_TYPE_CONFIG
 
 // A labeled number input wired to one config field. Empty/NaN keeps the last
 // valid value so the field stays editable mid-typing.

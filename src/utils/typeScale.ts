@@ -15,6 +15,19 @@ export interface TypeScaleConfig {
 	stepsDown: number // how many steps below 0
 }
 
+// The tool's default config (Utopia's own defaults) — also the fallback the
+// unified system export uses when the type tool has no saved state.
+export const DEFAULT_TYPE_CONFIG: TypeScaleConfig = {
+	minViewport: 320,
+	maxViewport: 1240,
+	minFontSize: 18,
+	maxFontSize: 20,
+	minRatio: 1.2,
+	maxRatio: 1.25,
+	stepsUp: 5,
+	stepsDown: 2,
+}
+
 export interface TypeStep {
 	step: number // …, -1, 0, 1, …
 	minSize: number // px at minViewport
