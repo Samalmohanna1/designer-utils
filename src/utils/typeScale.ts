@@ -13,19 +13,83 @@ export interface TypeScaleConfig {
 	maxRatio: number // multiplier per step at the max viewport
 	stepsUp: number // how many steps above 0
 	stepsDown: number // how many steps below 0
+	// Font stacks — typography belongs with the type scale.
+	headingStack: string
+	bodyStack: string
+	monoStack: string
 }
 
-// The tool's default config (Utopia's own defaults) — also the fallback the
-// unified system export uses when the type tool has no saved state.
+// Curated system stacks (modernfontstacks.com) — OS-native families that
+// render with zero font downloads. The free-text field accepts any list.
+export const FONT_STACKS: { label: string; value: string }[] = [
+	{ label: 'System UI', value: 'system-ui, sans-serif' },
+	{
+		label: 'Humanist',
+		value: "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', source-sans-pro, sans-serif",
+	},
+	{
+		label: 'Neo-Grotesque',
+		value: "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
+	},
+	{
+		label: 'Geometric Humanist',
+		value: "Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif",
+	},
+	{
+		label: 'Rounded Sans',
+		value: "ui-rounded, 'Hiragino Maru Gothic ProN', Quicksand, Comfortaa, Manjari, 'Arial Rounded MT', 'Arial Rounded MT Bold', Calibri, source-sans-pro, sans-serif",
+	},
+	{
+		label: 'Transitional Serif',
+		value: "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif",
+	},
+	{
+		label: 'Old Style Serif',
+		value: "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
+	},
+	{
+		label: 'Slab Serif',
+		value: "Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif",
+	},
+	{
+		label: 'Monospace Code',
+		value: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+	},
+	{
+		label: 'Monospace Slab',
+		value: "'Nimbus Mono PS', 'Courier New', monospace",
+	},
+]
+
+export const FONT_WEIGHTS: { label: string; value: number }[] = [
+	{ label: 'regular', value: 400 },
+	{ label: 'medium', value: 500 },
+	{ label: 'bold', value: 700 },
+]
+
+// A CSS stack as a DTCG fontFamily array: top-level comma split, quotes
+// stripped (the token format quotes names itself).
+export const stackToFamilies = (stack: string): string[] =>
+	stack
+		.split(',')
+		.map((f) => f.trim().replace(/^['"]|['"]$/g, ''))
+		.filter((f) => f.length > 0)
+
+// The tool's default config — also the fallback the unified system export
+// uses when the type tool has no saved state. Viewport 320–1440 matches the
+// suite-wide default (same anchors as the space tool).
 export const DEFAULT_TYPE_CONFIG: TypeScaleConfig = {
 	minViewport: 320,
-	maxViewport: 1240,
+	maxViewport: 1440,
 	minFontSize: 18,
 	maxFontSize: 20,
 	minRatio: 1.2,
 	maxRatio: 1.25,
 	stepsUp: 5,
 	stepsDown: 2,
+	headingStack: 'system-ui, sans-serif',
+	bodyStack: 'system-ui, sans-serif',
+	monoStack: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
 }
 
 export interface TypeStep {
@@ -131,20 +195,57 @@ export const generateTypeScale = (config: TypeScaleConfig): TypeStep[] => {
 export const withPrefix = (prefix: string): string =>
 	prefix ? `${prefix}-` : ''
 
-// The CSS :root block of custom properties, one per step (`--step-0`; with a
-// prefix, `--brand-step-0`). Negative steps read `--step--1` (Utopia's
-// convention).
-export const toCss = (steps: TypeStep[], prefix = ''): string => {
+const fontCssLines = (
+	config: TypeScaleConfig,
+	p: string,
+	namespace: string // '' for plain CSS vars, 'weight' namespaces differ in TW4
+): string[] => [
+	`  --${namespace}${p}heading: ${config.headingStack};`,
+	`  --${namespace}${p}body: ${config.bodyStack};`,
+	`  --${namespace}${p}mono: ${config.monoStack};`,
+]
+
+// The CSS :root block: one custom property per step (`--step-0`; with a
+// prefix, `--brand-step-0`; negative steps read `--step--1`, Utopia's
+// convention), plus the font stacks and weights.
+export const toCss = (
+	steps: TypeStep[],
+	config: TypeScaleConfig,
+	prefix = ''
+): string => {
 	const p = withPrefix(prefix)
-	const lines = steps.map((s) => `  --${p}step-${s.step}: ${s.clamp};`)
+	const lines = [
+		...steps.map((s) => `  --${p}step-${s.step}: ${s.clamp};`),
+		'',
+		'  /* Font stacks */',
+		...fontCssLines(config, p, 'font-'),
+		...FONT_WEIGHTS.map(
+			(w) => `  --${p}font-weight-${w.label}: ${w.value};`
+		),
+	]
 	return `:root {\n${lines.join('\n')}\n}`
 }
 
-// Tailwind 4 @theme block. Uses --text-step-N so each step becomes a
-// `text-step-N` utility (the convention this repo's own global.css uses).
-export const toTailwind = (steps: TypeStep[], prefix = ''): string => {
+// Tailwind 4 @theme block. --text-step-N makes each step a `text-step-N`
+// utility (the convention this repo's own global.css uses); --font-* makes
+// the stacks `font-heading`/`font-body`/`font-mono` utilities.
+export const toTailwind = (
+	steps: TypeStep[],
+	config: TypeScaleConfig,
+	prefix = ''
+): string => {
 	const p = withPrefix(prefix)
-	const lines = steps.map((s) => `  --text-${p}step-${s.step}: ${s.clamp};`)
+	const lines = [
+		...steps.map((s) => `  --text-${p}step-${s.step}: ${s.clamp};`),
+		'',
+		'  /* font-* utilities + weights */',
+		`  --font-${p}heading: ${config.headingStack};`,
+		`  --font-${p}body: ${config.bodyStack};`,
+		`  --font-${p}mono: ${config.monoStack};`,
+		...FONT_WEIGHTS.map(
+			(w) => `  --font-weight-${p}${w.label}: ${w.value};`
+		),
+	]
 	return `@theme {\n${lines.join('\n')}\n}`
 }
 
@@ -155,6 +256,7 @@ export const toTailwind = (steps: TypeStep[], prefix = ''): string => {
 // tool's light/dark groups). Steps are keyed `step-N` (negatives as `step--1`).
 export const typeTokensObject = (
 	steps: TypeStep[],
+	config: TypeScaleConfig,
 	prefix = ''
 ): Record<string, unknown> => {
 	const min: Record<string, DimensionToken> = {}
@@ -165,11 +267,34 @@ export const typeTokensObject = (
 	}
 	const group = (g: Record<string, DimensionToken>) =>
 		prefix ? { [prefix]: { 'font-size': g } } : { 'font-size': g }
-	return { min: group(min), max: group(max) }
+	// Font stacks are static (no viewport modes), so they sit at the top
+	// level alongside the min/max groups.
+	const font = {
+		heading: {
+			$type: 'fontFamily',
+			$value: stackToFamilies(config.headingStack),
+		},
+		body: { $type: 'fontFamily', $value: stackToFamilies(config.bodyStack) },
+		mono: { $type: 'fontFamily', $value: stackToFamilies(config.monoStack) },
+		weight: Object.fromEntries(
+			FONT_WEIGHTS.map((w) => [
+				w.label,
+				{ $type: 'fontWeight', $value: w.value },
+			])
+		),
+	}
+	return {
+		min: group(min),
+		max: group(max),
+		...(prefix ? { [prefix]: { font } } : { font }),
+	}
 }
 
-export const toTokens = (steps: TypeStep[], prefix = ''): string =>
-	JSON.stringify(typeTokensObject(steps, prefix), null, 2)
+export const toTokens = (
+	steps: TypeStep[],
+	config: TypeScaleConfig,
+	prefix = ''
+): string => JSON.stringify(typeTokensObject(steps, config, prefix), null, 2)
 
 // The px size at an arbitrary viewport width, for the live preview. Linearly
 // interpolates between the two anchors and clamps to the min/max bounds.
@@ -188,9 +313,10 @@ export const sizeAtViewport = (
 }
 
 // --- Shareable config serialization ---
-// The config encodes to a fixed, comma-separated list of its eight numbers,
-// for the URL hash (e.g. `320,1240,18,20,1.2,1.25,5,2`). Mirrors colorUtils'
-// encodePalette/decodePalette. Round-trips through encode/decode.
+// Eight comma-joined numbers, then the three URI-encoded font stacks joined
+// by '|' (stacks contain commas): `320,1440,18,20,1.2,1.25,5,2|h|b|m`.
+// Links from before the stacks existed (numbers only) still decode — stacks
+// fall back to the defaults. Round-trips through encode/decode.
 
 const CONFIG_ORDER = [
 	'minViewport',
@@ -204,15 +330,22 @@ const CONFIG_ORDER = [
 ] as const
 
 export const encodeConfig = (config: TypeScaleConfig): string =>
-	CONFIG_ORDER.map((k) => config[k]).join(',')
+	[
+		CONFIG_ORDER.map((k) => config[k]).join(','),
+		encodeURIComponent(config.headingStack),
+		encodeURIComponent(config.bodyStack),
+		encodeURIComponent(config.monoStack),
+	].join('|')
 
-// Parses the encoded string back into a config. Returns null if it doesn't
-// hold all eight finite numbers, so the caller can fall back to a default.
-// Viewports/sizes/steps are coerced sane (steps non-negative integers; ratios
-// kept >= 1) so a malformed hash can't produce a broken scale.
+// Parses the encoded string back into a config. Returns null if the numeric
+// block doesn't hold all eight finite numbers, so the caller can fall back
+// to a default. Viewports/sizes/steps are coerced sane (steps non-negative
+// integers; ratios kept >= 1) so a malformed hash can't produce a broken
+// scale.
 export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
 	if (!encoded) return null
-	const parts = encoded.split(',').map((p) => parseFloat(p.trim()))
+	const [numericBlock, ...stackParts] = encoded.split('|')
+	const parts = numericBlock.split(',').map((p) => parseFloat(p.trim()))
 	if (parts.length !== CONFIG_ORDER.length || parts.some((n) => !Number.isFinite(n))) {
 		return null
 	}
@@ -226,6 +359,14 @@ export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
 		stepsUp,
 		stepsDown,
 	] = parts
+	const stack = (i: number, fallback: string): string => {
+		if (stackParts.length !== 3 || !stackParts[i]) return fallback
+		try {
+			return decodeURIComponent(stackParts[i])
+		} catch {
+			return fallback
+		}
+	}
 	return {
 		minViewport,
 		maxViewport,
@@ -235,5 +376,8 @@ export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
 		maxRatio: Math.max(1, maxRatio),
 		stepsUp: Math.max(0, Math.round(stepsUp)),
 		stepsDown: Math.max(0, Math.round(stepsDown)),
+		headingStack: stack(0, DEFAULT_TYPE_CONFIG.headingStack),
+		bodyStack: stack(1, DEFAULT_TYPE_CONFIG.bodyStack),
+		monoStack: stack(2, DEFAULT_TYPE_CONFIG.monoStack),
 	}
 }

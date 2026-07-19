@@ -12,30 +12,28 @@ Live at **<https://tools.myol-creative.com/>**. No backend — a fully static
 Astro site; all math runs in the browser.
 
 The suite is a **one-stop shop for design-system foundations** — four tools
-linked by a top nav, each exporting CSS, Tailwind 4, and W3C Design Tokens,
-plus a whole-system export that merges them into one file:
+linked by a top nav, plus a single **Export** page that merges every tool's
+saved settings into one CSS / Tailwind 4 / W3C Design Tokens file:
 
 - **Color Scales** (`/`) — everything below.
-- **Type Scales** (`/type`) — a fluid type-scale calculator. Set a font size and
-  modular-scale ratio at a min and max viewport, preview every step live, and
-  export `clamp()` steps as CSS custom properties, a Tailwind 4 `@theme` block,
-  or W3C Design Tokens JSON (`min`/`max` groups, Figma-importable as modes —
-  a `clamp()` can't be a DTCG dimension). The config lives in the URL,
-  so a shared link reopens the exact scale.
+- **Type Scales** (`/type`) — a fluid type-scale calculator plus your font
+  stacks. Set a font size and modular-scale ratio at a min and max viewport,
+  preview every step live, and pick heading/body/mono stacks from curated
+  zero-download system stacks (modernfontstacks.com) or type your own. The
+  config lives in the URL, so a shared link reopens the exact scale.
 - **Space & Grid** (`/space`) — a fluid spacing scale (T-shirt sizes 3xs–3xl on
-  an 8pt grid by default, plus one-up pairs) and a matching column grid. Set the
-  base size and grid at a min and max viewport; export the `--space-*` ramp and
-  a `.u-container`/`.u-grid` layout as CSS, Tailwind 4, or Design Tokens (same
-  `min`/`max` groups as the Type tool). Config lives in the URL too.
+  an 8pt grid by default, plus one-up pairs) and a matching column grid, with
+  px and rem readouts. Config lives in the URL too.
 - **Foundations** (`/foundations`) — the rest of the token layers: corner
-  radii, border widths, a 5-level elevation ramp (with a dark variant), font
-  stacks (zero-download system stacks), and motion (durations + easings). At
-  the bottom: **Export the whole system** — every tool's latest saved settings
-  merged into one CSS / Tailwind / Design Tokens file.
+  radii, T-shirt-sized border widths (grow the ladder as needed), a 5-level
+  elevation ramp with a dark variant (shadow color pickable straight from
+  your saved palette), and motion (durations + replayable easings).
+- **Export** (`/export`) — your whole system in one file: CSS + dark mode,
+  Tailwind 4 `@theme`, a Markdown style guide, or W3C Design Tokens (DTCG
+  2025.10, Figma-importable). One-click copy or `.txt` download, hex/HSL/RGB
+  color encoding, and an optional variable prefix (e.g. `--brand-blue-500`).
 
-Every export block pairs one-click copy with a `.txt` download and an optional
-variable prefix (e.g. `--brand-blue-500`). The site follows your OS
-light/dark preference.
+The site follows your OS light/dark preference.
 
 ## ✨ Features
 
@@ -68,8 +66,8 @@ light/dark preference.
 
 ### 📋 Code export
 
-Export in four formats — copy with one click, or download the snippet as a
-`.txt` file:
+One **Export** page (`/export`) for the whole suite, in four formats — copy
+with one click, or download the snippet as a `.txt` file:
 
 -   **CSS + Dark Mode** — `:root` variables plus a `prefers-color-scheme: dark`
     block with the ramp mirrored.
@@ -83,8 +81,7 @@ Export in four formats — copy with one click, or download the snippet as a
     native variables importer expects.
 
 Code formats (CSS / Tailwind) also let you pick the value encoding: **HEX**,
-**HSL**, or **RGB**. The Type and Space tools have the same copy/download pair
-on their export blocks.
+**HSL**, or **RGB** — and every format takes an optional variable prefix.
 
 ### 🔗 Share & persist
 

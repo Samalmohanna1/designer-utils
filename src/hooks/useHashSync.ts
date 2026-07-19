@@ -16,6 +16,12 @@ export function useHashSync<T>(options: {
 }): void {
 	const { prefix, value, encode, storageKey } = options
 	const hydrated = useRef(false)
+	// The encoding last synced. Seeded on the first post-mount run WITHOUT
+	// writing: a replaceState during hydration aborts any in-flight
+	// navigation (a nav click in that window would be swallowed), and the
+	// eager write also used to clobber the previous session's autosave. The
+	// URL/storage only update once the value actually changes.
+	const lastSynced = useRef<string | null>(null)
 	// decode/onLoad are only used in the mount effect; keep the latest without
 	// making them effect dependencies (the read is mount-only by design).
 	const loadRef = useRef({ decode: options.decode, onLoad: options.onLoad })
@@ -37,11 +43,20 @@ export function useHashSync<T>(options: {
 	useEffect(() => {
 		if (!hydrated.current) return
 		const encoded = encode(value)
-		window.history.replaceState(
-			null,
-			'',
-			`${window.location.pathname}${window.location.search}${prefix}${encoded}`
-		)
+		if (lastSynced.current === null) {
+			// First run after mount: record the baseline, write nothing.
+			lastSynced.current = encoded
+			return
+		}
+		if (encoded === lastSynced.current) return
+		lastSynced.current = encoded
+		if (window.location.hash !== `${prefix}${encoded}`) {
+			window.history.replaceState(
+				null,
+				'',
+				`${window.location.pathname}${window.location.search}${prefix}${encoded}`
+			)
+		}
 		if (storageKey) {
 			try {
 				window.localStorage.setItem(storageKey, encoded)

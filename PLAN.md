@@ -196,6 +196,23 @@ can ship first and the page can grow section by section.
 
 ## Done
 
+- **Feedback round on the foundations suite** (branch
+  `feature/foundations-suite`, same PR). Jump links removed; body font back
+  to fixed 18px; type default viewport aligned to 320–1440 suite-wide; font
+  stacks moved from Foundations into the Type tool (they're typography —
+  `TypeScaleConfig` gained the three stacks, `#t=` grew a pipe-appended
+  stacks block, legacy links still decode); border widths became a T-shirt
+  ladder (`s`–`4xl`) with a step-count control; the elevation shadow color is
+  pickable from the saved palette's 500/900 shades; motion re-laid-out as
+  three horizontal easing cards; and **all exports consolidated into one
+  `/export` nav destination** (per-tool export blocks and the old CodeBlock
+  deleted; CSS/Tailwind/Markdown/Tokens + color-format + prefix in one
+  place). Also fixed for real: `useHashSync` no longer writes URL/autosave
+  until the value changes — the mount-time replaceState could abort an
+  in-flight nav click and clobbered the previous session's autosave. (And a
+  testing gotcha for posterity: piping Playwright output to a file inside
+  the repo triggers dev-server reload loops that reset island state
+  mid-test; write logs outside the project.)
 - **The 2026-07 improvement backlog, whole** (branch
   `feature/foundations-suite`). In order: dead `ContrastLevel.tsx` deleted
   (old open item 1); shared `ExportBlock` + `useHashSync`/`useCopied` hooks

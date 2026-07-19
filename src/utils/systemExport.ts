@@ -8,7 +8,7 @@
 // `min`/`max` hold the viewport-dependent layers (font-size, space, grid),
 // and the static layers (radius, border, font, motion) sit at the top level.
 
-import { colorUtils } from './colorUtils'
+import { colorUtils, type ColorValueFormat } from './colorUtils'
 import {
 	DEFAULT_TYPE_CONFIG,
 	decodeConfig,
@@ -114,15 +114,19 @@ const spaceParts = (state: SystemState) => {
 	return { sizes, pairs, grid, gutter }
 }
 
-export const systemCss = (state: SystemState, prefix = ''): string => {
+export const systemCss = (
+	state: SystemState,
+	colorFormat: ColorValueFormat = 'hex',
+	prefix = ''
+): string => {
 	const data = colorUtils.paletteShadeData(state.palette)
 	const { sizes, pairs, grid, gutter } = spaceParts(state)
 	return [
 		'/* ===== Color ===== */',
-		colorUtils.paletteCss(data, 'hex', prefix),
+		colorUtils.paletteCss(data, colorFormat, prefix),
 		'',
 		'/* ===== Type ===== */',
-		typeCss(generateTypeScale(state.type), prefix),
+		typeCss(generateTypeScale(state.type), state.type, prefix),
 		'',
 		'/* ===== Space & Grid ===== */',
 		spaceCss(sizes, pairs, grid, gutter, prefix),
@@ -132,16 +136,20 @@ export const systemCss = (state: SystemState, prefix = ''): string => {
 	].join('\n')
 }
 
-export const systemTailwind = (state: SystemState, prefix = ''): string => {
+export const systemTailwind = (
+	state: SystemState,
+	colorFormat: ColorValueFormat = 'hex',
+	prefix = ''
+): string => {
 	const data = colorUtils.paletteShadeData(state.palette)
 	const { sizes, pairs, grid, gutter } = spaceParts(state)
 	// Tailwind 4 merges repeated @theme blocks, so the sections stay readable.
 	return [
 		'/* ===== Color ===== */',
-		colorUtils.paletteTailwind(data, 'hex', prefix),
+		colorUtils.paletteTailwind(data, colorFormat, prefix),
 		'',
 		'/* ===== Type ===== */',
-		typeTailwind(generateTypeScale(state.type), prefix),
+		typeTailwind(generateTypeScale(state.type), state.type, prefix),
 		'',
 		'/* ===== Space & Grid ===== */',
 		spaceTailwind(sizes, pairs, grid, gutter, prefix),
@@ -150,6 +158,11 @@ export const systemTailwind = (state: SystemState, prefix = ''): string => {
 		foundationsTailwind(state.foundations, prefix),
 	].join('\n')
 }
+
+// The Markdown style guide documents the color palette (the other layers
+// have no Markdown representation).
+export const systemMarkdown = (state: SystemState): string =>
+	colorUtils.paletteMarkdown(colorUtils.paletteShadeData(state.palette))
 
 // Merge two token trees one group level deep, so e.g. color's `light` group
 // and elevation's `light` group land in the same top-level mode group (and,
@@ -181,7 +194,7 @@ export const systemTokens = (state: SystemState, prefix = ''): string => {
 	const { sizes, pairs, grid } = spaceParts(state)
 	const merged = mergeGroups(
 		colorUtils.paletteTokensObject(data, prefix),
-		typeTokensObject(generateTypeScale(state.type), prefix),
+		typeTokensObject(generateTypeScale(state.type), state.type, prefix),
 		spaceTokensObject(sizes, pairs, grid, prefix),
 		foundationsTokensObject(state.foundations, prefix)
 	)

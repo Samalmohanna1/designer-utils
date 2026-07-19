@@ -1,35 +1,32 @@
 // The foundations engine: corner radii, border widths, elevation shadows,
-// font stacks, and motion tokens — the token layers a design system needs
-// beyond color/type/space. Pure functions, no DOM; the one place foundations
-// logic lives (mirrors colorUtils / typeScale / spaceScale).
+// and motion tokens — the token layers a design system needs beyond
+// color/type/space (font stacks live with the type scale). Pure functions,
+// no DOM; the one place foundations logic lives (mirrors colorUtils /
+// typeScale / spaceScale).
 
 import { colorUtils } from './colorUtils'
 import { withPrefix } from './typeScale'
 
 export interface FoundationsConfig {
 	radiusBase: number // px — the `md` radius; the ladder scales off it
-	borderBase: number // px — the `hairline` width; thin/thick scale off it
+	borderBase: number // px — the `s` width; the T-shirt ladder scales off it
+	borderSteps: number // how many T-shirt sizes to emit (1..BORDER_LADDER)
 	shadowColor: string // hex — tint for every elevation shadow
 	shadowIntensity: number // 0.5–2 multiplier on shadow opacity
 	durationFast: number // ms
 	durationBase: number // ms
 	durationSlow: number // ms
-	headingStack: string
-	bodyStack: string
-	monoStack: string
 }
 
 export const DEFAULT_FOUNDATIONS: FoundationsConfig = {
 	radiusBase: 8,
 	borderBase: 1,
+	borderSteps: 3,
 	shadowColor: '#000000',
 	shadowIntensity: 1,
 	durationFast: 150,
 	durationBase: 250,
 	durationSlow: 400,
-	headingStack: 'system-ui, sans-serif',
-	bodyStack: 'system-ui, sans-serif',
-	monoStack: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
 }
 
 // --- Corner radii ---
@@ -58,10 +55,16 @@ export const generateRadii = (config: FoundationsConfig): RadiusToken[] =>
 	}))
 
 // --- Border widths ---
-export const BORDER_SIZES: { label: string; multiplier: number }[] = [
-	{ label: 'hairline', multiplier: 1 },
-	{ label: 'thin', multiplier: 2 },
-	{ label: 'thick', multiplier: 4 },
+// T-shirt ladder off the base (`s`). borderSteps controls how many sizes are
+// emitted, so a system can grow past the default s/m/l.
+export const BORDER_LADDER: { label: string; multiplier: number }[] = [
+	{ label: 's', multiplier: 1 },
+	{ label: 'm', multiplier: 2 },
+	{ label: 'l', multiplier: 4 },
+	{ label: 'xl', multiplier: 6 },
+	{ label: '2xl', multiplier: 8 },
+	{ label: '3xl', multiplier: 12 },
+	{ label: '4xl', multiplier: 16 },
 ]
 
 export interface BorderToken {
@@ -70,7 +73,10 @@ export interface BorderToken {
 }
 
 export const generateBorders = (config: FoundationsConfig): BorderToken[] =>
-	BORDER_SIZES.map(({ label, multiplier }) => ({
+	BORDER_LADDER.slice(
+		0,
+		Math.min(BORDER_LADDER.length, Math.max(1, Math.round(config.borderSteps)))
+	).map(({ label, multiplier }) => ({
 		label,
 		px: Math.round(config.borderBase * multiplier * 100) / 100,
 	}))
@@ -149,62 +155,6 @@ const layerCss = (l: ShadowLayer): string => {
 export const elevationCss = (token: ElevationToken): string =>
 	token.layers.map(layerCss).join(', ')
 
-// --- Font stacks ---
-// Curated system stacks (modernfontstacks.com) — zero-download, cross-OS.
-export const FONT_STACKS: { label: string; value: string }[] = [
-	{ label: 'System UI', value: 'system-ui, sans-serif' },
-	{
-		label: 'Humanist',
-		value: "Seravek, 'Gill Sans Nova', Ubuntu, Calibri, 'DejaVu Sans', source-sans-pro, sans-serif",
-	},
-	{
-		label: 'Neo-Grotesque',
-		value: "Inter, Roboto, 'Helvetica Neue', 'Arial Nova', 'Nimbus Sans', Arial, sans-serif",
-	},
-	{
-		label: 'Geometric Humanist',
-		value: "Avenir, Montserrat, Corbel, 'URW Gothic', source-sans-pro, sans-serif",
-	},
-	{
-		label: 'Rounded Sans',
-		value: "ui-rounded, 'Hiragino Maru Gothic ProN', Quicksand, Comfortaa, Manjari, 'Arial Rounded MT', 'Arial Rounded MT Bold', Calibri, source-sans-pro, sans-serif",
-	},
-	{
-		label: 'Transitional Serif',
-		value: "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif",
-	},
-	{
-		label: 'Old Style Serif',
-		value: "'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', P052, serif",
-	},
-	{
-		label: 'Slab Serif',
-		value: "Rockwell, 'Rockwell Nova', 'Roboto Slab', 'DejaVu Serif', 'Sitka Small', serif",
-	},
-	{
-		label: 'Monospace Code',
-		value: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
-	},
-	{
-		label: 'Monospace Slab',
-		value: "'Nimbus Mono PS', 'Courier New', monospace",
-	},
-]
-
-export const FONT_WEIGHTS: { label: string; value: number }[] = [
-	{ label: 'regular', value: 400 },
-	{ label: 'medium', value: 500 },
-	{ label: 'bold', value: 700 },
-]
-
-// A CSS stack as a DTCG fontFamily array: top-level comma split, quotes
-// stripped (the token format quotes names itself).
-export const stackToFamilies = (stack: string): string[] =>
-	stack
-		.split(',')
-		.map((f) => f.trim().replace(/^['"]|['"]$/g, ''))
-		.filter((f) => f.length > 0)
-
 // --- Motion ---
 export const EASINGS: { label: string; bezier: [number, number, number, number] }[] = [
 	{ label: 'standard', bezier: [0.4, 0, 0.2, 1] },
@@ -225,15 +175,6 @@ export const durations = (
 
 // --- Exports (CSS / Tailwind 4 / Design Tokens) ---
 
-const fontVarLines = (config: FoundationsConfig, p: string): string[] => [
-	`  --${p}font-heading: ${config.headingStack};`,
-	`  --${p}font-body: ${config.bodyStack};`,
-	`  --${p}font-mono: ${config.monoStack};`,
-	...FONT_WEIGHTS.map(
-		(w) => `  --${p}font-weight-${w.label}: ${w.value};`
-	),
-]
-
 export const toCss = (config: FoundationsConfig, prefix = ''): string => {
 	const p = withPrefix(prefix)
 	const lines = [
@@ -251,9 +192,6 @@ export const toCss = (config: FoundationsConfig, prefix = ''): string => {
 		...generateElevation(config, 'light').map(
 			(e) => `  --${p}${e.label}: ${elevationCss(e)};`
 		),
-		'',
-		'  /* Fonts */',
-		...fontVarLines(config, p),
 		'',
 		'  /* Motion */',
 		...durations(config).map(
@@ -293,14 +231,6 @@ export const toTailwind = (config: FoundationsConfig, prefix = ''): string => {
 		'  /* shadow-elevation-* utilities */',
 		...generateElevation(config, 'light').map(
 			(e) => `  --shadow-${p}${e.label}: ${elevationCss(e)};`
-		),
-		'',
-		'  /* font-* utilities + weights */',
-		`  --font-${p}heading: ${config.headingStack};`,
-		`  --font-${p}body: ${config.bodyStack};`,
-		`  --font-${p}mono: ${config.monoStack};`,
-		...FONT_WEIGHTS.map(
-			(w) => `  --font-weight-${p}${w.label}: ${w.value};`
 		),
 		'',
 		'  /* motion (ease-* utilities; durations as vars) */',
@@ -356,21 +286,6 @@ export const foundationsTokensObject = (
 		return group
 	}
 
-	const font: Record<string, unknown> = {
-		heading: {
-			$type: 'fontFamily',
-			$value: stackToFamilies(config.headingStack),
-		},
-		body: { $type: 'fontFamily', $value: stackToFamilies(config.bodyStack) },
-		mono: { $type: 'fontFamily', $value: stackToFamilies(config.monoStack) },
-		weight: Object.fromEntries(
-			FONT_WEIGHTS.map((w) => [
-				w.label,
-				{ $type: 'fontWeight', $value: w.value },
-			])
-		),
-	}
-
 	const motion: Record<string, unknown> = {
 		duration: Object.fromEntries(
 			durations(config).map((d) => [
@@ -386,7 +301,7 @@ export const foundationsTokensObject = (
 		),
 	}
 
-	const staticGroups: Record<string, unknown> = { radius, border, font, motion }
+	const staticGroups: Record<string, unknown> = { radius, border, motion }
 	const wrap = (g: Record<string, unknown>) =>
 		prefix ? { [prefix]: g } : g
 	return {
@@ -400,22 +315,21 @@ export const toTokens = (config: FoundationsConfig, prefix = ''): string =>
 	JSON.stringify(foundationsTokensObject(config, prefix), null, 2)
 
 // --- Shareable config serialization ---
-// Pipe-separated (font stacks contain commas): the seven numbers, the shadow
-// hex (no '#'), then the three URI-encoded stacks. Malformed input decodes to
-// null so the caller falls back to the default.
+// Pipe-separated: seven numbers then the shadow hex (no '#'). The previous
+// 10-part format carried three font stacks (now owned by the type tool) and
+// no borderSteps; those links still decode — stacks are ignored, borderSteps
+// defaults. Malformed input decodes to null so the caller falls back.
 
 export const encodeFoundations = (config: FoundationsConfig): string =>
 	[
 		config.radiusBase,
 		config.borderBase,
+		config.borderSteps,
 		config.shadowIntensity,
 		config.durationFast,
 		config.durationBase,
 		config.durationSlow,
 		config.shadowColor.replace('#', ''),
-		encodeURIComponent(config.headingStack),
-		encodeURIComponent(config.bodyStack),
-		encodeURIComponent(config.monoStack),
 	].join('|')
 
 export const decodeFoundations = (
@@ -423,26 +337,30 @@ export const decodeFoundations = (
 ): FoundationsConfig | null => {
 	if (!encoded) return null
 	const parts = encoded.split('|')
-	if (parts.length !== 10) return null
-	const nums = parts.slice(0, 6).map((n) => parseFloat(n))
+	// Current: 8 parts with borderSteps at index 2. Legacy: 10 parts without
+	// it (index 2 was shadowIntensity; 6 the hex; 7-9 font stacks).
+	const isLegacy = parts.length === 10
+	if (parts.length !== 8 && !isLegacy) return null
+	const numeric = isLegacy
+		? [parts[0], parts[1], '3', ...parts.slice(2, 6)]
+		: parts.slice(0, 7)
+	const hex = isLegacy ? parts[6] : parts[7]
+	const nums = numeric.map((n) => parseFloat(n))
 	if (nums.some((n) => !Number.isFinite(n) || n < 0)) return null
-	if (!/^[0-9a-fA-F]{6}$/.test(parts[6])) return null
-	const [radiusBase, borderBase, shadowIntensity, fast, base, slow] = nums
-	try {
-		return {
-			radiusBase,
-			borderBase,
-			shadowIntensity: Math.min(2, Math.max(0.5, shadowIntensity)),
-			durationFast: fast,
-			durationBase: base,
-			durationSlow: slow,
-			shadowColor: `#${parts[6].toUpperCase()}`,
-			headingStack: decodeURIComponent(parts[7]),
-			bodyStack: decodeURIComponent(parts[8]),
-			monoStack: decodeURIComponent(parts[9]),
-		}
-	} catch {
-		// Malformed percent-encoding in a stack.
-		return null
+	if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null
+	const [radiusBase, borderBase, borderSteps, shadowIntensity, fast, base, slow] =
+		nums
+	return {
+		radiusBase,
+		borderBase,
+		borderSteps: Math.min(
+			BORDER_LADDER.length,
+			Math.max(1, Math.round(borderSteps))
+		),
+		shadowIntensity: Math.min(2, Math.max(0.5, shadowIntensity)),
+		durationFast: fast,
+		durationBase: base,
+		durationSlow: slow,
+		shadowColor: `#${hex.toUpperCase()}`,
 	}
 }

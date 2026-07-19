@@ -4,7 +4,6 @@ import { copySvg } from '../utils/clipboard'
 import { useHashSync } from '../hooks/useHashSync'
 import ColorInput from './ColorInput'
 import ShadeRamp from './ShadeRamp'
-import CodeBlock from './CodeBlock'
 import ContrastChecker from './ContrastChecker'
 
 interface ScaleState extends ColorScale {
@@ -258,26 +257,6 @@ const App = () => {
 				</div>
 			</div>
 
-			{/* In-page jump links — the page is long. */}
-			<nav
-				aria-label='Page sections'
-				className='flex flex-wrap gap-2xs mb-s text-step--2 font-roboto-condensed'
-			>
-				{[
-					['#scales', 'Scales'],
-					['#contrast', 'Contrast'],
-					['#export', 'Export'],
-				].map(([href, label]) => (
-					<a
-						key={href}
-						href={href}
-						className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 uppercase tracking-tight'
-					>
-						{label}
-					</a>
-				))}
-			</nav>
-
 			{restoreOpen && (
 				<div
 					role='status'
@@ -303,10 +282,7 @@ const App = () => {
 				</div>
 			)}
 
-			<section
-				id='scales'
-				className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50 scroll-mt-m'
-			>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50'>
 				{colorScales.map((scale, index) => (
 					<div
 						key={scale.id}
@@ -463,21 +439,10 @@ const App = () => {
 				)}
 			</section>
 
-			<h2
-				id='contrast'
-				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
-			>
+			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128064; WCAG Compliant Combinations
 			</h2>
 			<ContrastChecker colorScales={colorScales} />
-
-			<h3
-				id='export'
-				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
-			>
-				&#128187; Code Snippet
-			</h3>
-			<CodeBlock colorScales={colorScales} />
 		</>
 	)
 }

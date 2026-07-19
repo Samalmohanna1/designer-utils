@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
-import ExportBlock from './ExportBlock'
+import { colorUtils } from '../utils/colorUtils'
 import {
+	BORDER_LADDER,
 	DEFAULT_FOUNDATIONS,
-	FONT_STACKS,
 	EASINGS,
-	durations,
 	easingCss,
 	elevationCss,
 	encodeFoundations,
@@ -13,29 +12,11 @@ import {
 	generateBorders,
 	generateElevation,
 	generateRadii,
-	toCss,
-	toTailwind,
-	toTokens,
 	type FoundationsConfig,
 } from '../utils/foundations'
-import {
-	STORAGE_KEYS,
-	readSystemState,
-	systemCss,
-	systemTailwind,
-	systemTokens,
-	type SystemState,
-} from '../utils/systemExport'
-
-type ExportFormat = 'css' | 'tailwind4' | 'tokens'
+import { STORAGE_KEYS } from '../utils/systemExport'
 
 const HASH_PREFIX = '#f='
-
-const EXPORT_FORMATS = [
-	{ value: 'css', label: 'CSS Variables' },
-	{ value: 'tailwind4', label: 'Tailwind 4.1' },
-	{ value: 'tokens', label: 'Design Tokens (JSON)' },
-]
 
 const Field: React.FC<{
 	id: string
@@ -74,70 +55,36 @@ const Field: React.FC<{
 	</div>
 )
 
-const SectionHeading: React.FC<{
-	id: string
-	emoji: string
-	children: React.ReactNode
-}> = ({ id, emoji, children }) => (
-	<h2
-		id={id}
-		className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
-	>
-		{emoji} {children}
-	</h2>
-)
-
 const sectionClass =
 	'tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'
 
-// One font-stack picker: preset select + free-text stack + live specimen.
-const StackField: React.FC<{
-	id: string
+const headingClass =
+	'text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'
+
+// Shadow-color candidates drawn from the saved color palette: each scale's
+// base (500) and its darkest shade (900) — the tones shadows are tinted with.
+interface ShadowSwatch {
 	label: string
-	value: string
-	onChange: (stack: string) => void
-}> = ({ id, label, value, onChange }) => {
-	const preset = FONT_STACKS.find((s) => s.value === value)
-	return (
-		<div className='space-y-3xs'>
-			<label
-				htmlFor={id}
-				className='block text-step--2 font-roboto-condensed font-bold'
-			>
-				{label}
-			</label>
-			<div className='grid gap-2xs sm:grid-cols-[12rem_1fr]'>
-				<select
-					aria-label={`${label} preset`}
-					value={preset ? preset.value : ''}
-					onChange={(e) => {
-						if (e.target.value) onChange(e.target.value)
-					}}
-					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
-				>
-					<option value=''>{preset ? preset.label : 'Custom'}</option>
-					{FONT_STACKS.map((s) => (
-						<option key={s.label} value={s.value}>
-							{s.label}
-						</option>
-					))}
-				</select>
-				<input
-					id={id}
-					type='text'
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
-				/>
-			</div>
-			<p
-				className='text-step-0 text-black-500 truncate'
-				style={{ fontFamily: value }}
-			>
-				The quick brown fox jumps over the lazy dog — 0123456789
-			</p>
-		</div>
-	)
+	hex: string
+}
+
+const paletteShadowSwatches = (): ShadowSwatch[] => {
+	let raw: string | null = null
+	try {
+		raw = window.localStorage.getItem(STORAGE_KEYS.palette)
+	} catch {
+		return []
+	}
+	if (!raw) return []
+	const entries = colorUtils.decodePalette(raw)
+	const slugs = colorUtils.uniqueSlugs(entries.map((e) => e.name))
+	return entries.flatMap((entry, i) => {
+		const shades = colorUtils.generateShades(entry.color)
+		return [
+			{ label: `${slugs[i]}-500`, hex: shades[5] },
+			{ label: `${slugs[i]}-900`, hex: shades[9] },
+		]
+	})
 }
 
 const Foundations = () => {
@@ -167,64 +114,28 @@ const Foundations = () => {
 		[config]
 	)
 
-	const [format, setFormat] = useState<ExportFormat>('css')
-	const [prefix, setPrefix] = useState('')
-	const code = useMemo(() => {
-		switch (format) {
-			case 'tailwind4':
-				return toTailwind(config, prefix)
-			case 'tokens':
-				return toTokens(config, prefix)
-			default:
-				return toCss(config, prefix)
-		}
-	}, [config, format, prefix])
+	// Palette-derived shadow colors, read from the color tool's autosave
+	// (client-only, once on mount).
+	const [shadowSwatches, setShadowSwatches] = useState<ShadowSwatch[]>([])
+	useEffect(() => setShadowSwatches(paletteShadowSwatches()), [])
 
 	// Which easing demos are in their "played" position.
 	const [played, setPlayed] = useState<Record<string, boolean>>({})
 
-	// The whole-system export reads every tool's autosave — client-only, and
-	// re-read when this page's config changes (its autosave just updated).
-	const [system, setSystem] = useState<SystemState | null>(null)
-	useEffect(() => setSystem(readSystemState()), [config])
-	const [systemFormat, setSystemFormat] = useState<ExportFormat>('tokens')
-	const [systemPrefix, setSystemPrefix] = useState('')
-	const systemCode = useMemo(() => {
-		if (!system) return ''
-		switch (systemFormat) {
-			case 'css':
-				return systemCss(system, systemPrefix)
-			case 'tailwind4':
-				return systemTailwind(system, systemPrefix)
-			default:
-				return systemTokens(system, systemPrefix)
-		}
-	}, [system, systemFormat, systemPrefix])
-
-	const savedSummary = system
-		? [
-				system.saved.color ? 'your palette' : 'default palette',
-				system.saved.type ? 'your type scale' : 'default type scale',
-				system.saved.space ? 'your space & grid' : 'default space & grid',
-				'these foundations',
-		  ].join(', ')
-		: ''
-
 	return (
 		<>
-			<h1 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#129521; Foundations
-			</h1>
+			<h1 className={headingClass}>&#129521; Foundations</h1>
 			<p className='text-step--1 mb-s max-w-prose'>
 				The token layers beyond color, type, and space: corner radii,
-				border widths, elevation, font stacks, and motion — each with the
-				same CSS, Tailwind 4, and Design Tokens exports.
+				border widths, elevation, and motion. Grab everything from the{' '}
+				<a href='/export' className='underline font-bold'>
+					Export
+				</a>{' '}
+				page.
 			</p>
 
 			{/* Radii */}
-			<SectionHeading id='radii' emoji={'⭕'}>
-				Corner radii
-			</SectionHeading>
+			<h2 className={headingClass}>&#11093; Corner radii</h2>
 			<section className={sectionClass}>
 				<div className='w-40 mb-s'>
 					<Field
@@ -255,20 +166,39 @@ const Foundations = () => {
 			</section>
 
 			{/* Borders */}
-			<SectionHeading id='borders' emoji={'〰️'}>
-				Border widths
-			</SectionHeading>
+			<h2 className={headingClass}>&#12336;&#65039; Border widths</h2>
 			<section className={sectionClass}>
-				<div className='w-40 mb-s'>
-					<Field
-						id='border-base'
-						label='Base width (hairline)'
-						unit='px'
-						min={0.5}
-						step={0.5}
-						value={config.borderBase}
-						onChange={(v) => set('borderBase', v)}
-					/>
+				<div className='flex flex-wrap gap-s mb-s'>
+					<div className='w-40'>
+						<Field
+							id='border-base'
+							label='Base width (s)'
+							unit='px'
+							min={0.5}
+							step={0.5}
+							value={config.borderBase}
+							onChange={(v) => set('borderBase', v)}
+						/>
+					</div>
+					<div className='w-40'>
+						<Field
+							id='border-steps'
+							label='Sizes'
+							min={1}
+							max={BORDER_LADDER.length}
+							step={1}
+							value={config.borderSteps}
+							onChange={(v) =>
+								set(
+									'borderSteps',
+									Math.min(
+										BORDER_LADDER.length,
+										Math.max(1, Math.round(v))
+									)
+								)
+							}
+						/>
+					</div>
 				</div>
 				<ul className='space-y-s'>
 					{borders.map((b) => (
@@ -283,7 +213,10 @@ const Foundations = () => {
 							</div>
 							<div
 								className='w-full border-black-500'
-								style={{ borderTopWidth: `${b.px}px`, borderTopStyle: 'solid' }}
+								style={{
+									borderTopWidth: `${b.px}px`,
+									borderTopStyle: 'solid',
+								}}
 							/>
 						</li>
 					))}
@@ -291,11 +224,9 @@ const Foundations = () => {
 			</section>
 
 			{/* Elevation */}
-			<SectionHeading id='elevation' emoji={'\u{1F4E6}'}>
-				Elevation
-			</SectionHeading>
+			<h2 className={headingClass}>&#128230; Elevation</h2>
 			<section className={sectionClass}>
-				<div className='flex flex-wrap gap-s mb-s'>
+				<div className='flex flex-wrap gap-s mb-s items-end'>
 					<div className='space-y-3xs'>
 						<label
 							htmlFor='shadow-color'
@@ -303,13 +234,40 @@ const Foundations = () => {
 						>
 							Shadow color
 						</label>
-						<input
-							id='shadow-color'
-							type='color'
-							value={config.shadowColor}
-							onChange={(e) => set('shadowColor', e.target.value.toUpperCase())}
-							className='h-9 w-16 cursor-pointer rounded-sm border border-black-100 bg-cream-50'
-						/>
+						<div className='flex items-center gap-2xs'>
+							<input
+								id='shadow-color'
+								type='color'
+								value={config.shadowColor}
+								onChange={(e) =>
+									set('shadowColor', e.target.value.toUpperCase())
+								}
+								className='h-9 w-16 cursor-pointer rounded-sm border border-black-100 bg-cream-50'
+							/>
+							{/* From your palette: the saved scales' 500/900 shades. */}
+							{[
+								{ label: 'black', hex: '#000000' },
+								...shadowSwatches,
+							].map((s) => {
+								const selected = config.shadowColor === s.hex
+								return (
+									<button
+										key={`${s.label}-${s.hex}`}
+										type='button'
+										onClick={() => set('shadowColor', s.hex)}
+										aria-pressed={selected}
+										aria-label={`Shadow color ${s.label}, ${s.hex}`}
+										title={`${s.label} · ${s.hex}`}
+										className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+											selected
+												? 'border-black-500 ring-2 ring-black-500 scale-110'
+												: 'border-black-100'
+										}`}
+										style={{ backgroundColor: s.hex }}
+									/>
+								)
+							})}
+						</div>
 					</div>
 					<div className='w-40'>
 						<Field
@@ -363,81 +321,40 @@ const Foundations = () => {
 				</div>
 			</section>
 
-			{/* Fonts */}
-			<SectionHeading id='fonts' emoji={'\u{1F524}'}>
-				Font stacks
-			</SectionHeading>
-			<section className={`${sectionClass} space-y-s`}>
-				<StackField
-					id='stack-heading'
-					label='Heading'
-					value={config.headingStack}
-					onChange={(v) => set('headingStack', v)}
-				/>
-				<StackField
-					id='stack-body'
-					label='Body'
-					value={config.bodyStack}
-					onChange={(v) => set('bodyStack', v)}
-				/>
-				<StackField
-					id='stack-mono'
-					label='Mono'
-					value={config.monoStack}
-					onChange={(v) => set('monoStack', v)}
-				/>
-				<p className='text-step--2 text-black-300 max-w-prose'>
-					System stacks render instantly with zero font downloads. Pick a
-					preset or type any CSS font-family list.
-				</p>
-			</section>
-
 			{/* Motion */}
-			<SectionHeading id='motion' emoji={'⏱️'}>
-				Motion
-			</SectionHeading>
+			<h2 className={headingClass}>&#9201;&#65039; Motion</h2>
 			<section className={sectionClass}>
-				<div className='grid gap-s sm:grid-cols-3 mb-s max-w-xl'>
-					<Field
-						id='dur-fast'
-						label='Fast'
-						unit='ms'
-						min={0}
-						step={25}
-						value={config.durationFast}
-						onChange={(v) => set('durationFast', v)}
-					/>
-					<Field
-						id='dur-base'
-						label='Base'
-						unit='ms'
-						min={0}
-						step={25}
-						value={config.durationBase}
-						onChange={(v) => set('durationBase', v)}
-					/>
-					<Field
-						id='dur-slow'
-						label='Slow'
-						unit='ms'
-						min={0}
-						step={25}
-						value={config.durationSlow}
-						onChange={(v) => set('durationSlow', v)}
-					/>
+				<div className='flex flex-wrap gap-s mb-s'>
+					{(
+						[
+							['dur-fast', 'Fast', 'durationFast'],
+							['dur-base', 'Base', 'durationBase'],
+							['dur-slow', 'Slow', 'durationSlow'],
+						] as const
+					).map(([id, label, key]) => (
+						<div key={id} className='w-36'>
+							<Field
+								id={id}
+								label={label}
+								unit='ms'
+								min={0}
+								step={25}
+								value={config[key]}
+								onChange={(v) => set(key, v)}
+							/>
+						</div>
+					))}
 				</div>
-				<ul className='space-y-s max-w-xl'>
+				<div className='grid gap-s md:grid-cols-3'>
 					{EASINGS.map((e) => (
-						<li key={e.label} className='space-y-3xs'>
-							<div className='flex items-baseline justify-between text-step--2'>
-								<span className='font-roboto-condensed font-bold uppercase tracking-tight'>
+						<div
+							key={e.label}
+							className='p-xs rounded-lg border border-black-50 space-y-2xs'
+						>
+							<div className='flex items-baseline justify-between gap-2xs'>
+								<span className='text-step--2 font-roboto-condensed font-bold uppercase tracking-tight'>
 									{e.label}
 								</span>
-								<span className='text-black-300 font-mono'>
-									{easingCss(e.bezier)}
-								</span>
-							</div>
-							<div className='flex items-center gap-s'>
 								<button
 									type='button'
 									onClick={() =>
@@ -450,67 +367,25 @@ const Foundations = () => {
 								>
 									Play
 								</button>
-								<div className='relative grow h-6 rounded-full bg-cream-200 border border-black-50'>
-									<span
-										className='absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-blue-500'
-										style={{
-											left: played[e.label]
-												? 'calc(100% - 20px)'
-												: '4px',
-											transition: `left ${config.durationBase}ms ${easingCss(e.bezier)}`,
-										}}
-									/>
-								</div>
 							</div>
-						</li>
+							<div className='relative h-6 rounded-full bg-cream-200 border border-black-50'>
+								<span
+									className='absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-blue-500'
+									style={{
+										left: played[e.label]
+											? 'calc(100% - 20px)'
+											: '4px',
+										transition: `left ${config.durationBase}ms ${easingCss(e.bezier)}`,
+									}}
+								/>
+							</div>
+							<p className='text-step--2 text-black-300 font-mono whitespace-nowrap overflow-hidden text-ellipsis'>
+								{easingCss(e.bezier)}
+							</p>
+						</div>
 					))}
-				</ul>
+				</div>
 			</section>
-
-			{/* Code export */}
-			<h3
-				id='export'
-				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
-			>
-				&#128187; Code Snippet
-			</h3>
-			<div className='mb-xl'>
-				<ExportBlock
-					id='foundations-format'
-					formats={EXPORT_FORMATS}
-					format={format}
-					onFormatChange={(v) => setFormat(v as ExportFormat)}
-					code={code}
-					language={format === 'tokens' ? 'json' : 'css'}
-					filename={`foundations-${format}.txt`}
-					onPrefixChange={setPrefix}
-				/>
-			</div>
-
-			{/* Whole-system export */}
-			<h3
-				id='system'
-				className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase scroll-mt-m'
-			>
-				&#128230; Export the whole system
-			</h3>
-			<p className='text-step--1 mb-s max-w-prose'>
-				Every tool's tokens in one file — color, type, space &amp; grid,
-				and these foundations. Uses each tool's latest saved settings
-				(currently: {savedSummary}).
-			</p>
-			{system && (
-				<ExportBlock
-					id='system-format'
-					formats={EXPORT_FORMATS}
-					format={systemFormat}
-					onFormatChange={(v) => setSystemFormat(v as ExportFormat)}
-					code={systemCode}
-					language={systemFormat === 'tokens' ? 'json' : 'css'}
-					filename={`design-system-${systemFormat}.txt`}
-					onPrefixChange={setSystemPrefix}
-				/>
-			)}
 		</>
 	)
 }

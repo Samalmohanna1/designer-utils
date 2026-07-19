@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
-import ExportBlock from './ExportBlock'
 import { pxToRem } from '../utils/typeScale'
 import {
 	DEFAULT_SPACE,
@@ -8,18 +7,12 @@ import {
 	generateSpaceSizes,
 	generateSpacePairs,
 	computeGrid,
-	gutterClampFor,
-	toCss,
-	toTailwind,
-	toTokens,
 	encodeSpaceGrid,
 	decodeSpaceGrid,
 	px,
 	type SpaceConfig,
 	type GridConfig,
 } from '../utils/spaceScale'
-
-type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const HASH_PREFIX = '#s='
 
@@ -99,21 +92,6 @@ const SpaceScale = () => {
 	const sizes = useMemo(() => generateSpaceSizes(space), [space])
 	const pairs = useMemo(() => generateSpacePairs(space), [space])
 	const gridResult = useMemo(() => computeGrid(grid), [grid])
-	const gutterClamp = useMemo(() => gutterClampFor(grid), [grid])
-
-	const [format, setFormat] = useState<ExportFormat>('css')
-	const [prefix, setPrefix] = useState('')
-	const code = useMemo(() => {
-		switch (format) {
-			case 'tailwind4':
-				return toTailwind(sizes, pairs, gridResult, gutterClamp, prefix)
-			case 'tokens':
-				return toTokens(sizes, pairs, gridResult, prefix)
-			default:
-				return toCss(sizes, pairs, gridResult, gutterClamp, prefix)
-		}
-	}, [sizes, pairs, gridResult, gutterClamp, format, prefix])
-	const language = format === 'tokens' ? 'json' : 'css'
 
 	// Largest size's max, to scale the preview swatches proportionally.
 	const maxPreview = sizes[sizes.length - 1].maxSize
@@ -339,24 +317,6 @@ const SpaceScale = () => {
 				</div>
 			</section>
 
-			{/* Code export */}
-			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128187; Code Snippet
-			</h3>
-			<ExportBlock
-				id='space-format'
-				formats={[
-					{ value: 'css', label: 'CSS Variables' },
-					{ value: 'tailwind4', label: 'Tailwind 4.1' },
-					{ value: 'tokens', label: 'Design Tokens (JSON)' },
-				]}
-				format={format}
-				onFormatChange={(v) => setFormat(v as ExportFormat)}
-				code={code}
-				language={language}
-				filename={`space-grid-${format}.txt`}
-				onPrefixChange={setPrefix}
-			/>
 		</>
 	)
 }

@@ -1,13 +1,10 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useHashSync } from '../hooks/useHashSync'
-import ExportBlock from './ExportBlock'
 import {
 	DEFAULT_TYPE_CONFIG,
+	FONT_STACKS,
 	generateTypeScale,
 	pxToRem,
-	toCss,
-	toTailwind,
-	toTokens,
 	sizeAtViewport,
 	encodeConfig,
 	decodeConfig,
@@ -15,8 +12,6 @@ import {
 	ratioName,
 	type TypeScaleConfig,
 } from '../utils/typeScale'
-
-type ExportFormat = 'css' | 'tailwind4' | 'tokens'
 
 const HASH_PREFIX = '#t='
 
@@ -150,29 +145,65 @@ const RatioField: React.FC<{
 	)
 }
 
+// One font-stack picker: preset select + free-text stack + live specimen.
+const StackField: React.FC<{
+	id: string
+	label: string
+	value: string
+	onChange: (stack: string) => void
+}> = ({ id, label, value, onChange }) => {
+	const preset = FONT_STACKS.find((s) => s.value === value)
+	return (
+		<div className='space-y-3xs'>
+			<label
+				htmlFor={id}
+				className='block text-step--2 font-roboto-condensed font-bold'
+			>
+				{label}
+			</label>
+			<div className='grid gap-2xs sm:grid-cols-[12rem_1fr]'>
+				<select
+					aria-label={`${label} preset`}
+					value={preset ? preset.value : ''}
+					onChange={(e) => {
+						if (e.target.value) onChange(e.target.value)
+					}}
+					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				>
+					<option value=''>{preset ? preset.label : 'Custom'}</option>
+					{FONT_STACKS.map((s) => (
+						<option key={s.label} value={s.value}>
+							{s.label}
+						</option>
+					))}
+				</select>
+				<input
+					id={id}
+					type='text'
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				/>
+			</div>
+			<p
+				className='text-step-0 text-black-500 truncate'
+				style={{ fontFamily: value }}
+			>
+				The quick brown fox jumps over the lazy dog — 0123456789
+			</p>
+		</div>
+	)
+}
+
 const TypeScale = () => {
 	const [config, setConfig] = useState<TypeScaleConfig>(DEFAULT_CONFIG)
 	const set = useCallback(
-		(key: keyof TypeScaleConfig, value: number) =>
+		<K extends keyof TypeScaleConfig>(key: K, value: TypeScaleConfig[K]) =>
 			setConfig((c) => ({ ...c, [key]: value })),
 		[]
 	)
 
 	const steps = useMemo(() => generateTypeScale(config), [config])
-
-	const [format, setFormat] = useState<ExportFormat>('css')
-	const [prefix, setPrefix] = useState('')
-	const code = useMemo(() => {
-		switch (format) {
-			case 'tailwind4':
-				return toTailwind(steps, prefix)
-			case 'tokens':
-				return toTokens(steps, prefix)
-			default:
-				return toCss(steps, prefix)
-		}
-	}, [steps, format, prefix])
-	const language = format === 'tokens' ? 'json' : 'css'
 
 	// Preview viewport, defaulting to the midpoint between the anchors.
 	const [preview, setPreview] = useState(
@@ -418,24 +449,35 @@ const TypeScale = () => {
 				</ul>
 			</section>
 
-			{/* Code export */}
-			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128187; Code Snippet
-			</h3>
-			<ExportBlock
-				id='type-format'
-				formats={[
-					{ value: 'css', label: 'CSS Variables' },
-					{ value: 'tailwind4', label: 'Tailwind 4.1' },
-					{ value: 'tokens', label: 'Design Tokens (JSON)' },
-				]}
-				format={format}
-				onFormatChange={(v) => setFormat(v as ExportFormat)}
-				code={code}
-				language={language}
-				filename={`type-scale-${format}.txt`}
-				onPrefixChange={setPrefix}
-			/>
+			{/* Font stacks */}
+			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128292; Font Stacks
+			</h2>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 space-y-s'>
+				<StackField
+					id='stack-heading'
+					label='Heading'
+					value={config.headingStack}
+					onChange={(v) => set('headingStack', v)}
+				/>
+				<StackField
+					id='stack-body'
+					label='Body'
+					value={config.bodyStack}
+					onChange={(v) => set('bodyStack', v)}
+				/>
+				<StackField
+					id='stack-mono'
+					label='Mono'
+					value={config.monoStack}
+					onChange={(v) => set('monoStack', v)}
+				/>
+				<p className='text-step--2 text-black-300 max-w-prose'>
+					Curated system stacks from modernfontstacks.com — OS-native
+					fonts, zero downloads. Pick a preset or type any CSS
+					font-family list.
+				</p>
+			</section>
 		</>
 	)
 }

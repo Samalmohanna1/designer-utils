@@ -1,0 +1,19 @@
+---
+import Layout from '../layouts/Layout.astro'
+import SiteNav from '../components/SiteNav.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+import SystemExport from '../components/SystemExport'
+---
+
+<Layout
+	title='Export Your Design System | MYOL Creative'
+	description='Export your whole design system in one file — color scales, fluid type and fonts, space and grid, radii, borders, elevation, and motion — as CSS, Tailwind 4, or W3C Design Tokens.'
+	path='/export'
+	image='/og-foundations.png'
+>
+	<SiteNav active='export' />
+	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
+		<SystemExport client:load />
+	</main>
+	<SiteFooter />
+</Layout>
