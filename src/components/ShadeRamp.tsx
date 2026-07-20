@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { colorUtils } from '../utils/colorUtils'
 
-interface ColorScaleProps {
+interface ShadeRampProps {
 	baseColor: string
 }
 
-const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
+// The 10-swatch shade ramp for one base color (formerly named ColorScale,
+// which collided with the ColorScale type from colorUtils).
+const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 	const shades = useMemo(() => {
 		return colorUtils.generateShades(baseColor)
 	}, [baseColor])
@@ -41,6 +43,7 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 						</span>
 						{isCopied && (
 							<span
+								role='status'
 								className='absolute inset-0 flex items-center justify-center text-xs font-bold rounded-sm bg-black-500/80 text-cream-100'
 							>
 								Copied!
@@ -53,4 +56,4 @@ const ColorScale: React.FC<ColorScaleProps> = ({ baseColor }) => {
 	)
 }
 
-export default ColorScale
+export default ShadeRamp

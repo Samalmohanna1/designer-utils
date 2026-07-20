@@ -8,27 +8,16 @@ item before starting it; mark items done here as they ship.
 
 ## Open items
 
-### 1. Remove dead code: `ContrastLevel.tsx` (+ missing `ColorCombo`)
-
-**Status:** not started · **Type:** `chore`/`refactor`
-
-[src/components/ContrastLevel.tsx](./src/components/ContrastLevel.tsx) imports
-`./ColorCombo`, a component that does not exist in the repo. Neither
-`ContrastLevel` nor `ColorCombo` is referenced by [App.tsx](./src/components/App.tsx)
-or anything else — the live contrast UI is [ContrastChecker.tsx](./src/components/ContrastChecker.tsx).
-
-- [ ] Confirm `ContrastLevel` has no remaining importers.
-- [ ] Delete `ContrastLevel.tsx` (and `ColorCombo` if a stub turns up).
-- [ ] `npm run build` passes (no broken imports / type errors).
-
 ### 2. Expand e2e / unit coverage
 
 **Status:** in progress · **Type:** `test`
 
 The scaffolding `example.spec.ts` was replaced with real smoke tests
-([tests/smoke.spec.ts](./tests/smoke.spec.ts): both tools load with correct
-titles, the color tool renders its 10 shades, the type tool outputs the
-reference CSS, and the nav moves between them). Still wanted:
+([tests/smoke.spec.ts](./tests/smoke.spec.ts): the single page carries every
+section, the sticky nav jumps without touching the hash, the shared viewport
+drives type + space live in the export, Google Fonts load, foundations offer
+every palette shade for shadows, the merged CSS/DTCG exports are correct, and
+legacy per-tool links redirect with their state). Still wanted:
 
 - [ ] Deeper color-tool specs: add/remove a scale, contrast tiers labeled
       correctly, format + color-format switching changes the snippet, copy
@@ -76,6 +65,11 @@ dropped from scope.
 ---
 
 ## Improvement backlog (audited 2026-07)
+
+**Status: SHIPPED** (branch `feature/foundations-suite`, 2026-07-19) — every
+item below (A/B/C/D/E, in the suggested order) landed in that one branch; see
+the Done entry at the top of the Done section for the summary. The original
+backlog is kept below as the design rationale.
 
 Goal: make the suite a **one-stop shop for design-system foundations** — a team
 should be able to leave with every foundational token layer, not just color /
@@ -204,6 +198,64 @@ can ship first and the page can grow section by section.
 
 ## Done
 
+- **Single-page consolidation** (branch `feature/foundations-suite`, same
+  PR). The whole suite now lives on `/` as one React island
+  (`DesignSystemApp` owns all state; the old islands became controlled
+  section components — `ColorSection`/`TypeSection`/`SpaceSection`/
+  `FoundationsSection`/`ExportSection`). The nav is sticky and jumps to
+  sections via JS `scrollIntoView` (never `#hash` — the hash carries state)
+  with an IntersectionObserver current-section highlight. ONE viewport range
+  control drives type + space + grid (anchors written together; unified on
+  load, type's winning). The state serializes to one combined hash
+  (`#p=…&t=…&s=…&f=…`, default segments omitted; legacy single-prefix links
+  parse as one-segment hashes) and autosaves under the existing four keys
+  (`useAutosave`); the restore banner now offers the whole system. Elevation
+  shadow color is pickable from EVERY shade of the live palette. Fonts moved
+  to the top of the Type section (choose before sizing; the preview renders
+  in the chosen heading stack) and grew a curated **Google Fonts** list
+  (loaded via `<link>` for preview, hoisted `@import` in CSS/Tailwind
+  exports) plus a **custom stylesheet URL** for self-hosted fonts
+  (`fontCssUrl`, fourth pipe segment in `t=`; 3-part legacy still decodes).
+  The Export section consumes live state (no localStorage indirection). Old
+  routes are redirect stubs (`/?go=<section>` + hash) keeping their OG
+  cards. Also fixed en route: `spaceScale.toCss` silently ignored the
+  variable prefix (extra-arg call that `astro build` never caught — the
+  build doesn't type-check; `npx tsc --noEmit` is now part of the checklist
+  and docs).
+
+- **Feedback round on the foundations suite** (branch
+  `feature/foundations-suite`, same PR). Jump links removed; body font back
+  to fixed 18px; type default viewport aligned to 320–1440 suite-wide; font
+  stacks moved from Foundations into the Type tool (they're typography —
+  `TypeScaleConfig` gained the three stacks, `#t=` grew a pipe-appended
+  stacks block, legacy links still decode); border widths became a T-shirt
+  ladder (`s`–`4xl`) with a step-count control; the elevation shadow color is
+  pickable from the saved palette's 500/900 shades; motion re-laid-out as
+  three horizontal easing cards; and **all exports consolidated into one
+  `/export` nav destination** (per-tool export blocks and the old CodeBlock
+  deleted; CSS/Tailwind/Markdown/Tokens + color-format + prefix in one
+  place). Also fixed for real: `useHashSync` no longer writes URL/autosave
+  until the value changes — the mount-time replaceState could abort an
+  in-flight nav click and clobbered the previous session's autosave. (And a
+  testing gotcha for posterity: piping Playwright output to a file inside
+  the repo triggers dev-server reload loops that reset island state
+  mid-test; write logs outside the project.)
+- **The 2026-07 improvement backlog, whole** (branch
+  `feature/foundations-suite`). In order: dead `ContrastLevel.tsx` deleted
+  (old open item 1); shared `ExportBlock` + `useHashSync`/`useCopied` hooks
+  replacing three hand-rolled copies (Prism scoped to the block; copy buttons
+  announce via aria-live); color export formats extracted into `colorUtils`
+  and every engine's builders made prefix-aware (the **variable prefix**
+  field); global.css cleanup (full blue ramp generated by the app's own
+  engine, red/code tokens replacing stray hexes, dead black-600–900 deleted,
+  fluid body size); `ColorScale` component renamed `ShadeRamp`; the
+  **Foundations tool** at `/foundations` (radii, borders, elevation with dark
+  variant, font stacks, motion — engine in `utils/foundations.ts`, `#f=`
+  hash sync); the **whole-system export** (`utils/systemExport.ts`) merging
+  every tool's autosave into one CSS/Tailwind/DTCG file with the documented
+  mode strategy; restore-autosave banner (plus the fix for the autosave being
+  clobbered on load); px+rem readouts; jump links; **site dark mode** as a
+  pure token remap (verified in both schemes); per-tool OG cards.
 - **DTCG 2025.10 compliance across all three tools** (branches
   `fix/dtcg-color-object` #45, `feature/download-code-snippet` #46). Color
   `$value`s became color objects (`colorUtils.hexToDtcgColor`). Type and Space

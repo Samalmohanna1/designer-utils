@@ -16,11 +16,39 @@
   --color-black-300: hsla(0, 1%, 43%, 1);
   --color-black-400: hsla(0, 2%, 22%, 1);
   --color-black-500: hsla(0, 25%, 2%, 1);
-  --color-black-600: hsla(0, 14%, 1%, 1);
-  --color-black-700: hsla(0, 33%, 1%, 1);
-  --color-black-800: hsla(0, 20%, 1%, 1);
-  --color-black-900: hsla(0, 20%, 1%, 1);
-  --color-blue-50: hsla(198, 71%, 97%, 1);
+
+  /* The project blue, expanded to a full ramp by the app's own OKLCH engine
+     (generateShades('#5799DB')) — the tool dogfooding itself. blue-500 also
+     tints the preview swatches and device screens (via var()). */
+  --color-blue-50: #EEF6FF;
+  --color-blue-100: #CBE4FF;
+  --color-blue-200: #A7D2FF;
+  --color-blue-300: #81BFFF;
+  --color-blue-400: #6CACED;
+  --color-blue-500: #5799DB;
+  --color-blue-600: #3B79B5;
+  --color-blue-700: #205A91;
+  --color-blue-800: #003D6E;
+  --color-blue-900: #002242;
+
+  /* Destructive action (the remove-color hover pair). */
+  --color-red-50: #FDF4F4;
+  --color-red-500: #A51D1D;
+
+  /* The export snippet's terminal (matches prism-tomorrow). Static — the
+     terminal is dark in both site themes, so its ink can't use a cream token
+     (those remap in dark mode). */
+  --color-code-bg: #2d2d2d;
+  --color-code-fg: #FDFBF4;
+
+  /* The elevation preview panels: one always-light, one always-dark surface
+     regardless of the site theme, so both shadow variants stay visible. */
+  --color-preview-light: #FFFCF5;
+  --color-preview-light-card: #FFFFFF;
+  --color-preview-light-ink: #262220;
+  --color-preview-dark: #211D1A;
+  --color-preview-dark-card: #322D28;
+  --color-preview-dark-ink: #F4EFE6;
 
   --color-cream-50: hsla(30, 100%, 100%, 1);
   --color-cream-100: hsla(40, 100%, 99%, 1);
@@ -69,16 +97,49 @@
   --spacing-3xl: clamp(6.75rem, 6.1962rem + 2.7692vw, 9rem);
 }
 
-/* @layer base {
+/* Site dark mode: pure token remapping. Components reference the theme vars
+   through Tailwind utilities, so redefining them under prefers-color-scheme
+   flips the whole site — cream surfaces go dark, the black ink ramp goes
+   light, and black-500/cream-100 pairings invert together (light chips, dark
+   text). Yellow darkens so its light-text pairings keep contrast, and the
+   default-palette accents (green/blue badges, red notes) get dark-legible
+   values. blue-* (brand), red-50/500, code-*, and preview-* stay fixed. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-cream-50: #211D1A;
+    --color-cream-100: #1A1614;
+    --color-cream-200: #2A241F;
+    --color-cream-300: #322B25;
+    --color-cream-400: #3A322B;
+    --color-cream-500: #453C33;
+    --color-cream-600: #5C5347;
+    --color-cream-700: #776D5F;
+    --color-cream-800: #948A7B;
+    --color-cream-900: #B2A897;
 
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    --color-black-50: #2E2925;
+    --color-black-100: #423B34;
+    --color-black-200: #6E655B;
+    --color-black-300: #A89D8F;
+    --color-black-400: #D8D0C4;
+    --color-black-500: #F4EFE6;
+
+    --color-yellow-50: hsla(47, 50%, 14%, 1);
+    --color-yellow-100: hsla(48, 55%, 19%, 1);
+    --color-yellow-200: hsla(48, 57%, 26%, 1);
+    --color-yellow-300: hsla(48, 57%, 31%, 1);
+    --color-yellow-400: hsla(48, 60%, 35%, 1);
+    --color-yellow-500: hsla(48, 65%, 38%, 1);
+    --color-yellow-600: hsla(48, 72%, 60%, 1);
+
+    /* Tailwind-default accents used by badges/feedback, made dark-legible. */
+    --color-green-200: #1E4B33;
+    --color-green-600: #4ADE80;
+    --color-green-800: #C9EED6;
+    --color-blue-100: #24466B;
+    --color-red-700: #F0A5A5;
   }
-} */
+}
 
 @utility paused {
   animation-play-state: paused;

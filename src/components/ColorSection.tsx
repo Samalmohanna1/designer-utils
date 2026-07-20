@@ -1,18 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import { copySvg } from '../utils/clipboard'
 import ColorInput from './ColorInput'
-import ColorScale2 from './ColorScale'
-import CodeBlock from './CodeBlock'
+import ShadeRamp from './ShadeRamp'
 import ContrastChecker from './ContrastChecker'
 
-interface ScaleState extends ColorScale {
+export interface ScaleState extends ColorScale {
 	// True once the user types a name, which stops auto-naming from the hue.
 	nameEdited: boolean
 }
-
-const STORAGE_KEY = 'color-scale-generator:palette'
-const HASH_PREFIX = '#p='
 
 const makeScale = (id: number, index: number): ScaleState => {
 	const color = colorUtils.defaultColorForIndex(index)
@@ -24,13 +20,13 @@ const makeScale = (id: number, index: number): ScaleState => {
 	}
 }
 
-const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
+export const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
 
 // Build ScaleState rows from decoded {name, color} entries. The shared name is
 // shown on load, but loads as not-yet-edited so recoloring still re-derives the
 // name from the hue — only a name the recipient types locks it. Otherwise a
 // loaded palette could keep a name that no longer matches its color.
-const scalesFromEntries = (
+export const scalesFromEntries = (
 	entries: { name: string; color: string }[]
 ): ScaleState[] =>
 	entries.map((entry, i) => ({
@@ -40,101 +36,75 @@ const scalesFromEntries = (
 		nameEdited: false,
 	}))
 
-// Reads a palette from the URL hash, if present and valid. Client-only.
-const readHashPalette = (): ScaleState[] | null => {
-	if (typeof window === 'undefined') return null
-	const hash = window.location.hash
-	if (!hash.startsWith(HASH_PREFIX)) return null
-	const encoded = decodeURIComponent(hash.slice(HASH_PREFIX.length))
-	const entries = colorUtils.decodePalette(encoded)
-	return entries.length > 0 ? scalesFromEntries(entries) : null
-}
+// The next free id for a new scale (ids stay unique across removals/reorders).
+const nextIdFor = (scales: ScaleState[]): number =>
+	scales.reduce((max, s) => Math.max(max, s.id), 0) + 1
 
-const App = () => {
-	const [colorScales, setColorScales] = useState<ScaleState[]>(defaultScales)
-	const [nextId, setNextId] = useState(2)
-	// Becomes true after the initial URL read, so the sync effect doesn't
-	// clobber the hash before we've had a chance to load from it.
-	const hydrated = useRef(false)
-
-	// On mount: a palette in the URL wins; otherwise keep the default.
-	// (Autosave is written below but intentionally not auto-restored.)
-	useEffect(() => {
-		const fromHash = readHashPalette()
-		if (fromHash) {
-			setColorScales(fromHash)
-			setNextId(fromHash.length + 1)
-		}
-		hydrated.current = true
-	}, [])
-
-	// Live-sync to the URL hash (replaceState, so edits don't spam history)
-	// and autosave to localStorage. Runs only after the initial load.
-	useEffect(() => {
-		if (!hydrated.current) return
-		const encoded = colorUtils.encodePalette(colorScales)
-		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encoded}`
-		window.history.replaceState(null, '', url)
-		try {
-			window.localStorage.setItem(STORAGE_KEY, encoded)
-		} catch {
-			// localStorage may be unavailable (private mode); ignore.
-		}
-	}, [colorScales])
-
+// The color section: state lives in DesignSystemApp; the handlers here work
+// against the passed-down setter.
+const ColorSection: React.FC<{
+	scales: ScaleState[]
+	setScales: React.Dispatch<React.SetStateAction<ScaleState[]>>
+}> = ({ scales, setScales }) => {
 	const addColorScale = useCallback(() => {
-		setColorScales((prevScales) => [
-			...prevScales,
-			makeScale(nextId, prevScales.length),
-		])
-		setNextId((prev) => prev + 1)
-	}, [nextId])
+		setScales((prev) => [...prev, makeScale(nextIdFor(prev), prev.length)])
+	}, [setScales])
 
-	const removeColorScale = useCallback((id: number) => {
-		setColorScales((prevScales) =>
-			prevScales.filter((scale) => scale.id !== id)
-		)
-	}, [])
+	const removeColorScale = useCallback(
+		(id: number) => {
+			setScales((prev) => prev.filter((scale) => scale.id !== id))
+		},
+		[setScales]
+	)
 
-	const handleColorChange = useCallback((id: number, newColor: string) => {
-		setColorScales((prevScales) =>
-			prevScales.map((s) =>
-				s.id === id
-					? {
-							...s,
-							color: newColor,
-							// Follow the hue until the user types a name of
-							// their own (nameEdited). Applies to loaded palettes
-							// too — they load as not-yet-edited.
-							name: s.nameEdited
-								? s.name
-								: colorUtils.nameFromHex(newColor),
-					  }
-					: s
+	const handleColorChange = useCallback(
+		(id: number, newColor: string) => {
+			setScales((prev) =>
+				prev.map((s) =>
+					s.id === id
+						? {
+								...s,
+								color: newColor,
+								// Follow the hue until the user types a name of
+								// their own (nameEdited). Applies to loaded palettes
+								// too — they load as not-yet-edited.
+								name: s.nameEdited
+									? s.name
+									: colorUtils.nameFromHex(newColor),
+						  }
+						: s
+				)
 			)
-		)
-	}, [])
+		},
+		[setScales]
+	)
 
-	const moveScale = useCallback((id: number, direction: -1 | 1) => {
-		setColorScales((prevScales) => {
-			const index = prevScales.findIndex((s) => s.id === id)
-			const target = index + direction
-			if (index < 0 || target < 0 || target >= prevScales.length) {
-				return prevScales
-			}
-			const next = [...prevScales]
-			;[next[index], next[target]] = [next[target], next[index]]
-			return next
-		})
-	}, [])
+	const moveScale = useCallback(
+		(id: number, direction: -1 | 1) => {
+			setScales((prev) => {
+				const index = prev.findIndex((s) => s.id === id)
+				const target = index + direction
+				if (index < 0 || target < 0 || target >= prev.length) {
+					return prev
+				}
+				const next = [...prev]
+				;[next[index], next[target]] = [next[target], next[index]]
+				return next
+			})
+		},
+		[setScales]
+	)
 
-	const handleNameChange = useCallback((id: number, newName: string) => {
-		setColorScales((prevScales) =>
-			prevScales.map((s) =>
-				s.id === id ? { ...s, name: newName, nameEdited: true } : s
+	const handleNameChange = useCallback(
+		(id: number, newName: string) => {
+			setScales((prev) =>
+				prev.map((s) =>
+					s.id === id ? { ...s, name: newName, nameEdited: true } : s
+				)
 			)
-		)
-	}, [])
+		},
+		[setScales]
+	)
 
 	const [copiedScaleId, setCopiedScaleId] = useState<number | null>(null)
 	// Copy one scale's ramp as a labeled-swatch SVG (see copySvg).
@@ -146,9 +116,8 @@ const App = () => {
 	}, [])
 
 	const resetScales = useCallback(() => {
-		setColorScales(defaultScales())
-		setNextId(2)
-	}, [])
+		setScales(defaultScales())
+	}, [setScales])
 
 	const [linkCopied, setLinkCopied] = useState(false)
 	const copyShareLink = useCallback(() => {
@@ -164,29 +133,28 @@ const App = () => {
 	const addFromHexList = useCallback(() => {
 		const hexes = colorUtils.parseHexList(bulkText)
 		if (hexes.length === 0) return
-		setColorScales((prevScales) => {
-			let id = nextId
+		setScales((prev) => {
+			let id = nextIdFor(prev)
 			const added: ScaleState[] = hexes.map((color) => ({
 				id: id++,
 				color,
 				name: colorUtils.nameFromHex(color),
 				nameEdited: false,
 			}))
-			setNextId(id)
-			return [...prevScales, ...added]
+			return [...prev, ...added]
 		})
 		setBulkText('')
 		setBulkOpen(false)
-	}, [bulkText, nextId])
+	}, [bulkText, setScales])
 
 	// De-duped slugs, matching the export/contrast naming.
-	const slugs = colorUtils.uniqueSlugs(colorScales.map((s) => s.name))
+	const slugs = colorUtils.uniqueSlugs(scales.map((s) => s.name))
 
 	// Copy every scale as one SVG (a row per scale), so the whole palette pastes
 	// into Figma at once. Uses the same de-duped slugs as the exports.
 	const copyPalette = () => {
 		const svg = colorUtils.paletteToSvg(
-			colorScales.map((s, i) => ({ slug: slugs[i], color: s.color }))
+			scales.map((s, i) => ({ slug: slugs[i], color: s.color }))
 		)
 		copySvg(svg, () => {
 			setPaletteCopied(true)
@@ -197,12 +165,13 @@ const App = () => {
 	return (
 		<>
 			<div className='flex flex-wrap items-center justify-between gap-2xs mb-2xs'>
-				<h1 className='text-step-1 sm:text-step-2 tracking-tight uppercase'>
-					&#127912; Color Scale Generator
-				</h1>
+				<h2 className='text-step-1 sm:text-step-2 tracking-tight uppercase'>
+					&#127912; Color Scales
+				</h2>
 				<div className='flex items-center gap-2xs'>
 					<button
 						onClick={copyPalette}
+						aria-live='polite'
 						title='Copy the whole palette as SVG (paste into Figma)'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							paletteCopied
@@ -214,6 +183,7 @@ const App = () => {
 					</button>
 					<button
 						onClick={copyShareLink}
+						aria-live='polite'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							linkCopied
 								? 'border-green-600 bg-green-200 text-green-800'
@@ -222,9 +192,9 @@ const App = () => {
 					>
 						{linkCopied ? 'Link copied!' : 'Copy share link'}
 					</button>
-					{(colorScales.length > 1 ||
-						colorScales[0]?.nameEdited ||
-						colorScales[0]?.color !==
+					{(scales.length > 1 ||
+						scales[0]?.nameEdited ||
+						scales[0]?.color !==
 							colorUtils.defaultColorForIndex(0)) && (
 						<button
 							onClick={resetScales}
@@ -235,8 +205,9 @@ const App = () => {
 					)}
 				</div>
 			</div>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-gray-200'>
-				{colorScales.map((scale, index) => (
+
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50'>
+				{scales.map((scale, index) => (
 					<div
 						key={scale.id}
 						className='py-2xs flex flex-col sm:flex-row sm:items-stretch gap-2xs'
@@ -287,7 +258,7 @@ const App = () => {
 										<path d='M208 0L332.1 0c12.7 0 24.9 5.1 33.9 14.1l67.9 67.9c9 9 14.1 21.2 14.1 33.9L448 336c0 26.5-21.5 48-48 48l-192 0c-26.5 0-48-21.5-48-48l0-288c0-26.5 21.5-48 48-48zM48 128l80 0 0 64-64 0 0 256 192 0 0-32 64 0 0 48c0 26.5-21.5 48-48 48L48 512c-26.5 0-48-21.5-48-48L0 176c0-26.5 21.5-48 48-48z' />
 									</svg>
 								</button>
-								{colorScales.length > 1 && (
+								{scales.length > 1 && (
 									<>
 										<button
 											onClick={() => moveScale(scale.id, -1)}
@@ -302,7 +273,7 @@ const App = () => {
 										</button>
 										<button
 											onClick={() => moveScale(scale.id, 1)}
-											disabled={index === colorScales.length - 1}
+											disabled={index === scales.length - 1}
 											aria-label='Move color down'
 											title='Move down'
 											className='p-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current flex items-center justify-center'
@@ -315,7 +286,7 @@ const App = () => {
 											onClick={() => removeColorScale(scale.id)}
 											aria-label='Remove color'
 											title='Remove color'
-											className='p-3xs border border-black-100 rounded-sm hover:bg-[#A51D1D] hover:text-[#FDF4F4] flex items-center justify-center'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-red-500 hover:text-red-50 flex items-center justify-center'
 										>
 											<svg
 												xmlns='http://www.w3.org/2000/svg'
@@ -329,14 +300,14 @@ const App = () => {
 								)}
 							</div>
 						</div>
-						<ColorScale2 baseColor={scale.color} />
+						<ShadeRamp baseColor={scale.color} />
 					</div>
 				))}
 
 				<div className='mt-s flex flex-wrap gap-xs'>
 					<button
 						onClick={addColorScale}
-						className='px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
+						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
 					>
 						<span className='inline-block mr-2xs'>
 							<svg
@@ -372,14 +343,14 @@ const App = () => {
 							value={bulkText}
 							onChange={(e) => setBulkText(e.target.value)}
 							placeholder='#5799DB, #E11D48, #16A34A'
-							className='w-full max-w-xl px-2xs py-3xs rounded-sm border border-black-100 text-step--2 font-mono'
+							className='w-full max-w-xl px-2xs py-3xs rounded-sm border border-black-100 bg-cream-50 text-step--2 font-mono'
 						/>
 						<button
 							onClick={addFromHexList}
 							disabled={
 								colorUtils.parseHexList(bulkText).length === 0
 							}
-							className='self-start px-xs py-2xs bg-black-500 text-[#F4F5F9] rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
+							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
 						>
 							Add{' '}
 							{colorUtils.parseHexList(bulkText).length || ''}{' '}
@@ -392,17 +363,12 @@ const App = () => {
 				)}
 			</section>
 
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128064; WCAG Compliant Combinations
-			</h2>
-			<ContrastChecker colorScales={colorScales} />
-
 			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128187; Code Snippet
+				&#128064; WCAG Compliant Combinations
 			</h3>
-			<CodeBlock colorScales={colorScales} />
+			<ContrastChecker colorScales={scales} />
 		</>
 	)
 }
 
-export default App
+export default ColorSection

@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro'
+
+// The suite now lives on one page; this route survives for old links and
+// social shares (the OG card). The redirect keeps any legacy #f= hash.
+---
+
+<Layout
+	title='Design System Foundations | MYOL Creative'
+	description='Generate corner radii, border widths, elevation shadows, and motion tokens — then export your whole design system as CSS, Tailwind 4, or W3C Design Tokens.'
+	path='/foundations'
+	image='/og-foundations.png'
+>
+	<script is:inline>
+		location.replace('/?go=foundations' + location.hash)
+	</script>
+	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
+		<p>
+			The Foundations tool moved to the main page.
+			<a href='/?go=foundations' class='underline font-bold'>Continue to the Foundations section</a>.
+		</p>
+	</main>
+</Layout>

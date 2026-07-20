@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro'
+
+// The suite now lives on one page; this route survives for old links and
+// social shares (the OG card).
+---
+
+<Layout
+	title='Export Your Design System | MYOL Creative'
+	description='Export your whole design system in one file — color scales, fluid type and fonts, space and grid, radii, borders, elevation, and motion — as CSS, Tailwind 4, or W3C Design Tokens.'
+	path='/export'
+	image='/og-foundations.png'
+>
+	<script is:inline>
+		location.replace('/?go=export' + location.hash)
+	</script>
+	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
+		<p>
+			The Export tool moved to the main page.
+			<a href='/?go=export' class='underline font-bold'>Continue to the Export section</a>.
+		</p>
+	</main>
+</Layout>

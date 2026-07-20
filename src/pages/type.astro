@@ -1,18 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import SiteNav from '../components/SiteNav.astro'
-import SiteFooter from '../components/SiteFooter.astro'
-import TypeScale from '../components/TypeScale'
+
+// The suite now lives on one page; this route survives for old links and
+// social shares (the OG card). The redirect keeps any legacy #t= hash.
 ---
 
 <Layout
 	title='Type Scale Calculator | MYOL Creative'
 	description='Build a fluid, responsive type scale with CSS clamp(). Set min and max viewport, font size, and modular-scale ratio, preview every step, and copy the CSS.'
 	path='/type'
+	image='/og-type.png'
 >
-	<SiteNav active='type' />
+	<script is:inline>
+		location.replace('/?go=type' + location.hash)
+	</script>
 	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
-		<TypeScale client:load />
+		<p>
+			The Type Scale tool moved to the main page.
+			<a href='/?go=type' class='underline font-bold'>Continue to the Type Scale section</a>.
+		</p>
 	</main>
-	<SiteFooter />
 </Layout>

@@ -1,25 +1,18 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
-import Prism from 'prismjs'
-import 'prismjs/themes/prism-tomorrow.css'
-import 'prismjs/components/prism-css'
-import 'prismjs/components/prism-json'
-import { downloadText } from '../utils/download'
+import { useEffect, useMemo, useState } from 'react'
+import Field from './Field'
 import {
+	FONT_STACKS,
+	GOOGLE_FONTS,
 	generateTypeScale,
-	toCss,
-	toTailwind,
-	toTokens,
+	googleFamiliesIn,
+	googleFontsUrl,
+	isHttpUrl,
+	pxToRem,
 	sizeAtViewport,
-	encodeConfig,
-	decodeConfig,
 	NAMED_RATIOS,
 	ratioName,
 	type TypeScaleConfig,
 } from '../utils/typeScale'
-
-type ExportFormat = 'css' | 'tailwind4' | 'tokens'
-
-const HASH_PREFIX = '#t='
 
 // Specimen text shown at every step's size in the preview, so the same words
 // are compared across the scale. Short so it doesn't truncate at large steps.
@@ -35,8 +28,8 @@ const deviceForWidth = (px: number): Device =>
 // Device icons (FontAwesome 7). Phone and tablet share the portrait body —
 // tablet is the wider version — so they read as one family at different sizes.
 // `screen` is a filled rect drawn behind the path so the device's screen
-// cutout shows blue; all three are tinted.
-const SCREEN_BLUE = '#5799DB'
+// cutout shows the project blue; all three are tinted.
+const SCREEN_BLUE = 'var(--color-blue-500)'
 const DEVICE_ICON: Record<
 	Device,
 	{ viewBox: string; path: string; screen?: { x: number; y: number; w: number; h: number } }
@@ -60,64 +53,6 @@ const DEVICE_ICON: Record<
 		screen: { x: 128, y: 96, w: 384, h: 256 },
 	},
 }
-
-const DEFAULT_CONFIG: TypeScaleConfig = {
-	minViewport: 320,
-	maxViewport: 1240,
-	minFontSize: 18,
-	maxFontSize: 20,
-	minRatio: 1.2,
-	maxRatio: 1.25,
-	stepsUp: 5,
-	stepsDown: 2,
-}
-
-// Reads a config from the URL hash, if present and valid. Client-only.
-const readHashConfig = (): TypeScaleConfig | null => {
-	if (typeof window === 'undefined') return null
-	const hash = window.location.hash
-	if (!hash.startsWith(HASH_PREFIX)) return null
-	return decodeConfig(decodeURIComponent(hash.slice(HASH_PREFIX.length)))
-}
-
-// A labeled number input wired to one config field. Empty/NaN keeps the last
-// valid value so the field stays editable mid-typing.
-const Field: React.FC<{
-	id: string
-	label: string
-	unit?: string
-	value: number
-	min?: number
-	step?: number
-	onChange: (v: number) => void
-}> = ({ id, label, unit, value, min, step, onChange }) => (
-	<div className='space-y-3xs'>
-		<label
-			htmlFor={id}
-			className='block text-step--2 font-roboto-condensed font-bold'
-		>
-			{label}
-		</label>
-		<div className='flex items-center gap-3xs rounded-sm border border-black-100 bg-cream-50 px-2xs focus-within:ring-2 focus-within:ring-blue-500'>
-			<input
-				id={id}
-				type='number'
-				inputMode='decimal'
-				min={min}
-				step={step}
-				value={value}
-				onChange={(e) => {
-					const v = parseFloat(e.target.value)
-					if (!Number.isNaN(v)) onChange(v)
-				}}
-				className='h-9 w-full bg-transparent text-step--1 tabular-nums focus:outline-hidden'
-			/>
-			{unit && (
-				<span className='text-step--2 text-black-300'>{unit}</span>
-			)}
-		</div>
-	</div>
-)
 
 // Ratio input plus a select of named ratios; either drives the value.
 const RatioField: React.FC<{
@@ -168,101 +103,201 @@ const RatioField: React.FC<{
 	)
 }
 
-const TypeScale = () => {
-	const [config, setConfig] = useState<TypeScaleConfig>(DEFAULT_CONFIG)
-	const set = useCallback(
-		(key: keyof TypeScaleConfig, value: number) =>
-			setConfig((c) => ({ ...c, [key]: value })),
-		[]
+// One font-stack picker: preset select (system stacks + Google Fonts) +
+// free-text stack + live specimen.
+const StackField: React.FC<{
+	id: string
+	label: string
+	value: string
+	onChange: (stack: string) => void
+}> = ({ id, label, value, onChange }) => {
+	const preset =
+		FONT_STACKS.find((s) => s.value === value) ??
+		GOOGLE_FONTS.find((g) => g.value === value)
+	return (
+		<div className='space-y-3xs'>
+			<label
+				htmlFor={id}
+				className='block text-step--2 font-roboto-condensed font-bold'
+			>
+				{label}
+			</label>
+			<div className='grid gap-2xs sm:grid-cols-[12rem_1fr]'>
+				<select
+					aria-label={`${label} preset`}
+					value={preset ? preset.value : ''}
+					onChange={(e) => {
+						if (e.target.value) onChange(e.target.value)
+					}}
+					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				>
+					<option value=''>{preset ? preset.label : 'Custom'}</option>
+					<optgroup label='System stacks (no download)'>
+						{FONT_STACKS.map((s) => (
+							<option key={s.label} value={s.value}>
+								{s.label}
+							</option>
+						))}
+					</optgroup>
+					<optgroup label='Google Fonts (downloaded)'>
+						{GOOGLE_FONTS.map((g) => (
+							<option key={g.label} value={g.value}>
+								{g.label}
+							</option>
+						))}
+					</optgroup>
+				</select>
+				<input
+					id={id}
+					type='text'
+					value={value}
+					onChange={(e) => onChange(e.target.value)}
+					className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				/>
+			</div>
+			<p
+				className='text-step-0 text-black-500 truncate'
+				style={{ fontFamily: value }}
+			>
+				The quick brown fox jumps over the lazy dog — 0123456789
+			</p>
+		</div>
 	)
+}
 
-	// Gates the sync effect so it can't overwrite the hash before the initial
-	// read on mount (same pattern as the color tool).
-	const hydrated = useRef(false)
+// Add/update/remove a preview stylesheet <link> by id.
+const syncStylesheet = (id: string, href: string | null): void => {
+	let link = document.getElementById(id) as HTMLLinkElement | null
+	if (!href) {
+		link?.remove()
+		return
+	}
+	if (!link) {
+		link = document.createElement('link')
+		link.id = id
+		link.rel = 'stylesheet'
+		document.head.appendChild(link)
+	}
+	if (link.href !== href) link.href = href
+}
+
+// The type section: fonts first (pick families before sizing them), then the
+// scale controls and live preview. Viewport anchors come from the shared
+// viewport control (state lives in DesignSystemApp).
+const TypeSection: React.FC<{
+	config: TypeScaleConfig
+	onChange: (next: TypeScaleConfig) => void
+}> = ({ config, onChange }) => {
+	const set = <K extends keyof TypeScaleConfig>(
+		key: K,
+		value: TypeScaleConfig[K]
+	) => onChange({ ...config, [key]: value })
 
 	const steps = useMemo(() => generateTypeScale(config), [config])
 
-	const [format, setFormat] = useState<ExportFormat>('css')
-	const code = useMemo(() => {
-		switch (format) {
-			case 'tailwind4':
-				return toTailwind(steps)
-			case 'tokens':
-				return toTokens(steps)
-			default:
-				return toCss(steps)
-		}
-	}, [steps, format])
-	const language = format === 'tokens' ? 'json' : 'css'
+	// Load Google Fonts / the custom stylesheet only while they're in use, so
+	// the preview renders with the real families. Exports emit matching
+	// @import lines.
+	useEffect(() => {
+		const families = googleFamiliesIn([
+			config.headingStack,
+			config.bodyStack,
+			config.monoStack,
+		])
+		syncStylesheet(
+			'google-fonts-preview',
+			families.length > 0 ? googleFontsUrl(families) : null
+		)
+		syncStylesheet(
+			'custom-font-preview',
+			isHttpUrl(config.fontCssUrl) ? config.fontCssUrl : null
+		)
+	}, [config.headingStack, config.bodyStack, config.monoStack, config.fontCssUrl])
 
 	// Preview viewport, defaulting to the midpoint between the anchors.
 	const [preview, setPreview] = useState(
-		Math.round((DEFAULT_CONFIG.minViewport + DEFAULT_CONFIG.maxViewport) / 2)
+		Math.round((config.minViewport + config.maxViewport) / 2)
 	)
-
-	// On mount: a config in the URL wins; otherwise keep the default. Centers
-	// the preview on the loaded anchors.
-	useEffect(() => {
-		const fromHash = readHashConfig()
-		if (fromHash) {
-			setConfig(fromHash)
-			setPreview(
-				Math.round((fromHash.minViewport + fromHash.maxViewport) / 2)
-			)
-		}
-		hydrated.current = true
-	}, [])
-
-	// Live-sync the config to the URL hash (replaceState, so edits don't spam
-	// history). Runs only after the initial load.
-	useEffect(() => {
-		if (!hydrated.current) return
-		const url = `${window.location.pathname}${window.location.search}${HASH_PREFIX}${encodeConfig(config)}`
-		window.history.replaceState(null, '', url)
-	}, [config])
-
-	const [isClient, setIsClient] = useState(false)
-	useEffect(() => setIsClient(true), [])
-	useEffect(() => {
-		if (isClient) Prism.highlightAll()
-	}, [code, language, isClient])
-
-	const [copied, setCopied] = useState(false)
-	useEffect(() => setCopied(false), [code])
-	const copy = () => {
-		navigator.clipboard.writeText(code)
-		setCopied(true)
-		setTimeout(() => setCopied(false), 2000)
-	}
-	const download = () => downloadText(`type-scale-${format}.txt`, code)
 
 	return (
 		<>
-			<h1 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128209; Type Scale Calculator
-			</h1>
+			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128209; Type Scale
+			</h2>
 			<p className='text-step--1 mb-s max-w-prose'>
-				Set a font size and modular-scale ratio at a minimum and maximum
-				viewport. Each step fluidly interpolates between them with a CSS{' '}
+				Pick your font families first, then set a font size and
+				modular-scale ratio at each viewport anchor. Every step fluidly
+				interpolates with a CSS{' '}
 				<code className='font-Ubuntu-mono-bold'>clamp()</code>.
 			</p>
 
-			{/* Controls: min / max anchors */}
+			{/* Font stacks — chosen before the scale is sized. */}
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128292; Font Stacks
+			</h3>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 space-y-s'>
+				<StackField
+					id='stack-heading'
+					label='Heading'
+					value={config.headingStack}
+					onChange={(v) => set('headingStack', v)}
+				/>
+				<StackField
+					id='stack-body'
+					label='Body'
+					value={config.bodyStack}
+					onChange={(v) => set('bodyStack', v)}
+				/>
+				<StackField
+					id='stack-mono'
+					label='Mono'
+					value={config.monoStack}
+					onChange={(v) => set('monoStack', v)}
+				/>
+				<div className='space-y-3xs'>
+					<label
+						htmlFor='font-css-url'
+						className='block text-step--2 font-roboto-condensed font-bold'
+					>
+						Custom font stylesheet URL{' '}
+						<span className='font-normal text-black-300'>
+							(optional)
+						</span>
+					</label>
+					<input
+						id='font-css-url'
+						type='url'
+						value={config.fontCssUrl}
+						onChange={(e) => set('fontCssUrl', e.target.value.trim())}
+						placeholder='https://your-cdn.com/fonts.css'
+						className='h-9 w-full max-w-xl rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+					/>
+					<p className='text-step--2 text-black-300 max-w-prose'>
+						Hosting your own fonts? Paste the stylesheet URL that
+						declares the <code>@font-face</code> rules, then type the
+						family name into a stack above. It loads here for the
+						preview and ships as an <code>@import</code> in the
+						exports.
+					</p>
+				</div>
+				<p className='text-step--2 text-black-300 max-w-prose'>
+					System stacks (modernfontstacks.com) are OS-native — zero
+					downloads. Google Fonts load from fonts.googleapis.com in the
+					preview and add an <code>@import</code> to the exported CSS.
+				</p>
+			</section>
+
+			{/* Controls: size + ratio at each shared viewport anchor */}
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128207; Scale
+			</h3>
 			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100'>
 				<div className='grid gap-s sm:grid-cols-2'>
 					<fieldset className='space-y-2xs'>
 						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Min viewport
+							At min viewport ({config.minViewport}px)
 						</legend>
-						<div className='grid grid-cols-3 gap-2xs'>
-							<Field
-								id='min-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={config.minViewport}
-								onChange={(v) => set('minViewport', v)}
-							/>
+						<div className='grid grid-cols-2 gap-2xs'>
 							<Field
 								id='min-size'
 								label='Font size'
@@ -282,17 +317,9 @@ const TypeScale = () => {
 
 					<fieldset className='space-y-2xs'>
 						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Max viewport
+							At max viewport ({config.maxViewport}px)
 						</legend>
-						<div className='grid grid-cols-3 gap-2xs'>
-							<Field
-								id='max-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={config.maxViewport}
-								onChange={(v) => set('maxViewport', v)}
-							/>
+						<div className='grid grid-cols-2 gap-2xs'>
 							<Field
 								id='max-size'
 								label='Font size'
@@ -340,10 +367,10 @@ const TypeScale = () => {
 			</section>
 
 			{/* Live preview */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128064; Preview
-			</h2>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100'>
+			</h3>
+			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'>
 				<div className='flex flex-wrap items-center gap-2xs mb-s'>
 					<label
 						htmlFor='preview-vw'
@@ -440,9 +467,14 @@ const TypeScale = () => {
 									<span className='text-step--2 text-black-300 font-roboto-condensed uppercase tracking-tight shrink-0'>
 										Step {s.step}
 									</span>
+									{/* Rendered in the chosen heading stack so the
+									    font choice above is what's being sized. */}
 									<span
-										className='font-roboto-condensed font-bold text-black-500 leading-tight truncate pr-[0.15em]'
-										style={{ fontSize: `${px}px` }}
+										className='font-bold text-black-500 leading-tight truncate pr-[0.15em]'
+										style={{
+											fontSize: `${px}px`,
+											fontFamily: config.headingStack,
+										}}
 									>
 										{SAMPLE_TEXT}{' '}
 										<span className='font-normal italic'>
@@ -451,73 +483,15 @@ const TypeScale = () => {
 									</span>
 								</span>
 								<span className='text-step--2 text-black-300 tabular-nums shrink-0'>
-									{px.toFixed(2)}px
+									{px.toFixed(2)}px · {pxToRem(px)}
 								</span>
 							</li>
 						)
 					})}
 				</ul>
 			</section>
-
-			{/* Code export */}
-			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128187; Code Snippet
-			</h3>
-			<div className='border border-black-100 bg-cream-50 rounded-lg overflow-hidden'>
-				<div className='p-xs'>
-					<div className='space-y-3xs'>
-						<label
-							htmlFor='type-format'
-							className='block text-step--2 font-roboto-condensed'
-						>
-							Format
-						</label>
-						<select
-							id='type-format'
-							value={format}
-							onChange={(e) =>
-								setFormat(e.target.value as ExportFormat)
-							}
-							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
-						>
-							<option value='css'>CSS Variables</option>
-							<option value='tailwind4'>Tailwind 4.1</option>
-							<option value='tokens'>Design Tokens (JSON)</option>
-						</select>
-					</div>
-				</div>
-				<div className='relative bg-[#2d2d2d] text-cream-100'>
-					<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
-						<button
-							onClick={copy}
-							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
-								copied
-									? 'bg-green-200 text-green-800'
-									: 'bg-cream-200 text-black-400 hover:bg-yellow-500'
-							}`}
-						>
-							{copied ? 'Code Copied!' : 'Copy Code'}
-						</button>
-						<button
-							onClick={download}
-							className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500'
-						>
-							Download .txt
-						</button>
-					</div>
-					<pre className='p-s max-h-128 overflow-auto'>
-						<code
-							className={`text-sm sm:text-lg ${
-								isClient ? `language-${language}` : ''
-							}`}
-						>
-							{code}
-						</code>
-					</pre>
-				</div>
-			</div>
 		</>
 	)
 }
 
-export default TypeScale
+export default TypeSection
