@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import SiteNav from '../components/SiteNav.astro'
-import SiteFooter from '../components/SiteFooter.astro'
-import SpaceScale from '../components/SpaceScale'
+
+// The suite now lives on one page; this route survives for old links and
+// social shares (the OG card). The redirect keeps any legacy #s= hash.
 ---
 
 <Layout
@@ -11,9 +11,13 @@ import SpaceScale from '../components/SpaceScale'
 	path='/space'
 	image='/og-space.png'
 >
-	<SiteNav active='space' />
+	<script is:inline>
+		location.replace('/?go=space' + location.hash)
+	</script>
 	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
-		<SpaceScale client:load />
+		<p>
+			The Space &amp; Grid tool moved to the main page.
+			<a href='/?go=space' class='underline font-bold'>Continue to the Space &amp; Grid section</a>.
+		</p>
 	</main>
-	<SiteFooter />
 </Layout>

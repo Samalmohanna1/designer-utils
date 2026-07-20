@@ -13,9 +13,11 @@ item before starting it; mark items done here as they ship.
 **Status:** in progress · **Type:** `test`
 
 The scaffolding `example.spec.ts` was replaced with real smoke tests
-([tests/smoke.spec.ts](./tests/smoke.spec.ts): both tools load with correct
-titles, the color tool renders its 10 shades, the type tool outputs the
-reference CSS, and the nav moves between them). Still wanted:
+([tests/smoke.spec.ts](./tests/smoke.spec.ts): the single page carries every
+section, the sticky nav jumps without touching the hash, the shared viewport
+drives type + space live in the export, Google Fonts load, foundations offer
+every palette shade for shadows, the merged CSS/DTCG exports are correct, and
+legacy per-tool links redirect with their state). Still wanted:
 
 - [ ] Deeper color-tool specs: add/remove a scale, contrast tiers labeled
       correctly, format + color-format switching changes the snippet, copy
@@ -195,6 +197,31 @@ can ship first and the page can grow section by section.
 ---
 
 ## Done
+
+- **Single-page consolidation** (branch `feature/foundations-suite`, same
+  PR). The whole suite now lives on `/` as one React island
+  (`DesignSystemApp` owns all state; the old islands became controlled
+  section components — `ColorSection`/`TypeSection`/`SpaceSection`/
+  `FoundationsSection`/`ExportSection`). The nav is sticky and jumps to
+  sections via JS `scrollIntoView` (never `#hash` — the hash carries state)
+  with an IntersectionObserver current-section highlight. ONE viewport range
+  control drives type + space + grid (anchors written together; unified on
+  load, type's winning). The state serializes to one combined hash
+  (`#p=…&t=…&s=…&f=…`, default segments omitted; legacy single-prefix links
+  parse as one-segment hashes) and autosaves under the existing four keys
+  (`useAutosave`); the restore banner now offers the whole system. Elevation
+  shadow color is pickable from EVERY shade of the live palette. Fonts moved
+  to the top of the Type section (choose before sizing; the preview renders
+  in the chosen heading stack) and grew a curated **Google Fonts** list
+  (loaded via `<link>` for preview, hoisted `@import` in CSS/Tailwind
+  exports) plus a **custom stylesheet URL** for self-hosted fonts
+  (`fontCssUrl`, fourth pipe segment in `t=`; 3-part legacy still decodes).
+  The Export section consumes live state (no localStorage indirection). Old
+  routes are redirect stubs (`/?go=<section>` + hash) keeping their OG
+  cards. Also fixed en route: `spaceScale.toCss` silently ignored the
+  variable prefix (extra-arg call that `astro build` never caught — the
+  build doesn't type-check; `npx tsc --noEmit` is now part of the checklist
+  and docs).
 
 - **Feedback round on the foundations suite** (branch
   `feature/foundations-suite`, same PR). Jump links removed; body font back

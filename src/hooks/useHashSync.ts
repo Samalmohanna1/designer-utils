@@ -1,26 +1,24 @@
 import { useEffect, useRef } from 'react'
 
-// The shared URL-hash persistence pattern used by every tool: read the hash
-// once on mount (a valid hash wins over the default), then live-sync state
-// back to the hash via replaceState so edits don't spam history. A `hydrated`
-// ref gates the sync so it can't overwrite the hash before the initial read.
-// With `storageKey` the encoded value is also autosaved to localStorage
-// (write-only here — restoring is the caller's decision).
+// The URL-hash persistence pattern: read the hash once on mount (a valid hash
+// wins over the default), then live-sync state back to the hash via
+// replaceState so edits don't spam history. A `hydrated` ref gates the sync so
+// it can't overwrite the hash before the initial read. The raw hash (minus the
+// prefix) is passed to `decode` as-is — segment-level URI decoding is the
+// decoder's job, since the encoded value may itself contain %-escaped parts.
 export function useHashSync<T>(options: {
-	prefix: string // e.g. '#t='
+	prefix: string // e.g. '#'
 	value: T
 	encode: (value: T) => string
 	decode: (encoded: string) => T | null
 	onLoad: (value: T) => void
-	storageKey?: string
 }): void {
-	const { prefix, value, encode, storageKey } = options
+	const { prefix, value, encode } = options
 	const hydrated = useRef(false)
 	// The encoding last synced. Seeded on the first post-mount run WITHOUT
 	// writing: a replaceState during hydration aborts any in-flight
-	// navigation (a nav click in that window would be swallowed), and the
-	// eager write also used to clobber the previous session's autosave. The
-	// URL/storage only update once the value actually changes.
+	// navigation (a nav click in that window would be swallowed). The URL
+	// only updates once the value actually changes.
 	const lastSynced = useRef<string | null>(null)
 	// decode/onLoad are only used in the mount effect; keep the latest without
 	// making them effect dependencies (the read is mount-only by design).
@@ -30,9 +28,7 @@ export function useHashSync<T>(options: {
 	useEffect(() => {
 		const hash = window.location.hash
 		if (hash.startsWith(prefix)) {
-			const decoded = loadRef.current.decode(
-				decodeURIComponent(hash.slice(prefix.length))
-			)
+			const decoded = loadRef.current.decode(hash.slice(prefix.length))
 			if (decoded !== null) loadRef.current.onLoad(decoded)
 		}
 		hydrated.current = true
@@ -57,14 +53,28 @@ export function useHashSync<T>(options: {
 				`${window.location.pathname}${window.location.search}${prefix}${encoded}`
 			)
 		}
-		if (storageKey) {
-			try {
-				window.localStorage.setItem(storageKey, encoded)
-			} catch {
-				// localStorage may be unavailable (private mode); ignore.
-			}
-		}
 		// encode is a stable module function in every caller.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [value, prefix, storageKey])
+	}, [value, prefix])
+}
+
+// localStorage autosave with the same write-on-change-only semantics as the
+// hash sync: the first post-mount encoding is the baseline (so simply opening
+// the page never clobbers a previous session's save), and only a real edit
+// writes. Restoring is the caller's decision.
+export function useAutosave(key: string, encoded: string): void {
+	const lastSaved = useRef<string | null>(null)
+	useEffect(() => {
+		if (lastSaved.current === null) {
+			lastSaved.current = encoded
+			return
+		}
+		if (encoded === lastSaved.current) return
+		lastSaved.current = encoded
+		try {
+			window.localStorage.setItem(key, encoded)
+		} catch {
+			// localStorage may be unavailable (private mode); ignore.
+		}
+	}, [key, encoded])
 }

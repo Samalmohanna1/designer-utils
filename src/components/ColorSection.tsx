@@ -1,18 +1,14 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { colorUtils, type ColorScale } from '../utils/colorUtils'
 import { copySvg } from '../utils/clipboard'
-import { useHashSync } from '../hooks/useHashSync'
 import ColorInput from './ColorInput'
 import ShadeRamp from './ShadeRamp'
 import ContrastChecker from './ContrastChecker'
 
-interface ScaleState extends ColorScale {
+export interface ScaleState extends ColorScale {
 	// True once the user types a name, which stops auto-naming from the hue.
 	nameEdited: boolean
 }
-
-const STORAGE_KEY = 'color-scale-generator:palette'
-const HASH_PREFIX = '#p='
 
 const makeScale = (id: number, index: number): ScaleState => {
 	const color = colorUtils.defaultColorForIndex(index)
@@ -24,13 +20,13 @@ const makeScale = (id: number, index: number): ScaleState => {
 	}
 }
 
-const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
+export const defaultScales = (): ScaleState[] => [makeScale(1, 0)]
 
 // Build ScaleState rows from decoded {name, color} entries. The shared name is
 // shown on load, but loads as not-yet-edited so recoloring still re-derives the
 // name from the hue — only a name the recipient types locks it. Otherwise a
 // loaded palette could keep a name that no longer matches its color.
-const scalesFromEntries = (
+export const scalesFromEntries = (
 	entries: { name: string; color: string }[]
 ): ScaleState[] =>
 	entries.map((entry, i) => ({
@@ -40,120 +36,75 @@ const scalesFromEntries = (
 		nameEdited: false,
 	}))
 
-// Decodes an encoded palette into ScaleState rows, or null when nothing
-// valid decodes (so the caller falls back to the default).
-const decodeScales = (encoded: string): ScaleState[] | null => {
-	const entries = colorUtils.decodePalette(encoded)
-	return entries.length > 0 ? scalesFromEntries(entries) : null
-}
+// The next free id for a new scale (ids stay unique across removals/reorders).
+const nextIdFor = (scales: ScaleState[]): number =>
+	scales.reduce((max, s) => Math.max(max, s.id), 0) + 1
 
-const App = () => {
-	const [colorScales, setColorScales] = useState<ScaleState[]>(defaultScales)
-	const [nextId, setNextId] = useState(2)
-
-	// The previous session's autosave, captured in a lazy initializer so it's
-	// read BEFORE the sync effect's first write overwrites it. Null when the
-	// URL carries a palette (URL wins), nothing was saved, or the save is just
-	// the default.
-	const [savedEntries] = useState<{ name: string; color: string }[] | null>(
-		() => {
-			if (typeof window === 'undefined') return null
-			if (window.location.hash.startsWith(HASH_PREFIX)) return null
-			let raw: string | null = null
-			try {
-				raw = window.localStorage.getItem(STORAGE_KEY)
-			} catch {
-				return null
-			}
-			if (!raw || raw === colorUtils.encodePalette(defaultScales())) {
-				return null
-			}
-			const entries = colorUtils.decodePalette(raw)
-			return entries.length > 0 ? entries : null
-		}
-	)
-	const [restoreOpen, setRestoreOpen] = useState(false)
-	// Banner appears only after hydration so server and first client render
-	// match.
-	useEffect(() => {
-		if (savedEntries) setRestoreOpen(true)
-	}, [savedEntries])
-
-	const restoreSaved = () => {
-		if (!savedEntries) return
-		const scales = scalesFromEntries(savedEntries)
-		setColorScales(scales)
-		setNextId(scales.length + 1)
-		setRestoreOpen(false)
-	}
-
-	// URL-hash persistence + localStorage autosave (a palette in the URL
-	// always wins; the banner above offers the autosave back).
-	useHashSync({
-		prefix: HASH_PREFIX,
-		value: colorScales,
-		encode: colorUtils.encodePalette,
-		decode: decodeScales,
-		onLoad: (scales) => {
-			setColorScales(scales)
-			setNextId(scales.length + 1)
-		},
-		storageKey: STORAGE_KEY,
-	})
-
+// The color section: state lives in DesignSystemApp; the handlers here work
+// against the passed-down setter.
+const ColorSection: React.FC<{
+	scales: ScaleState[]
+	setScales: React.Dispatch<React.SetStateAction<ScaleState[]>>
+}> = ({ scales, setScales }) => {
 	const addColorScale = useCallback(() => {
-		setColorScales((prevScales) => [
-			...prevScales,
-			makeScale(nextId, prevScales.length),
-		])
-		setNextId((prev) => prev + 1)
-	}, [nextId])
+		setScales((prev) => [...prev, makeScale(nextIdFor(prev), prev.length)])
+	}, [setScales])
 
-	const removeColorScale = useCallback((id: number) => {
-		setColorScales((prevScales) =>
-			prevScales.filter((scale) => scale.id !== id)
-		)
-	}, [])
+	const removeColorScale = useCallback(
+		(id: number) => {
+			setScales((prev) => prev.filter((scale) => scale.id !== id))
+		},
+		[setScales]
+	)
 
-	const handleColorChange = useCallback((id: number, newColor: string) => {
-		setColorScales((prevScales) =>
-			prevScales.map((s) =>
-				s.id === id
-					? {
-							...s,
-							color: newColor,
-							// Follow the hue until the user types a name of
-							// their own (nameEdited). Applies to loaded palettes
-							// too — they load as not-yet-edited.
-							name: s.nameEdited
-								? s.name
-								: colorUtils.nameFromHex(newColor),
-					  }
-					: s
+	const handleColorChange = useCallback(
+		(id: number, newColor: string) => {
+			setScales((prev) =>
+				prev.map((s) =>
+					s.id === id
+						? {
+								...s,
+								color: newColor,
+								// Follow the hue until the user types a name of
+								// their own (nameEdited). Applies to loaded palettes
+								// too — they load as not-yet-edited.
+								name: s.nameEdited
+									? s.name
+									: colorUtils.nameFromHex(newColor),
+						  }
+						: s
+				)
 			)
-		)
-	}, [])
+		},
+		[setScales]
+	)
 
-	const moveScale = useCallback((id: number, direction: -1 | 1) => {
-		setColorScales((prevScales) => {
-			const index = prevScales.findIndex((s) => s.id === id)
-			const target = index + direction
-			if (index < 0 || target < 0 || target >= prevScales.length) {
-				return prevScales
-			}
-			const next = [...prevScales]
-			;[next[index], next[target]] = [next[target], next[index]]
-			return next
-		})
-	}, [])
+	const moveScale = useCallback(
+		(id: number, direction: -1 | 1) => {
+			setScales((prev) => {
+				const index = prev.findIndex((s) => s.id === id)
+				const target = index + direction
+				if (index < 0 || target < 0 || target >= prev.length) {
+					return prev
+				}
+				const next = [...prev]
+				;[next[index], next[target]] = [next[target], next[index]]
+				return next
+			})
+		},
+		[setScales]
+	)
 
-	const handleNameChange = useCallback((id: number, newName: string) => {
-		setColorScales((prevScales) =>
-			prevScales.map((s) =>
-				s.id === id ? { ...s, name: newName, nameEdited: true } : s
+	const handleNameChange = useCallback(
+		(id: number, newName: string) => {
+			setScales((prev) =>
+				prev.map((s) =>
+					s.id === id ? { ...s, name: newName, nameEdited: true } : s
+				)
 			)
-		)
-	}, [])
+		},
+		[setScales]
+	)
 
 	const [copiedScaleId, setCopiedScaleId] = useState<number | null>(null)
 	// Copy one scale's ramp as a labeled-swatch SVG (see copySvg).
@@ -165,9 +116,8 @@ const App = () => {
 	}, [])
 
 	const resetScales = useCallback(() => {
-		setColorScales(defaultScales())
-		setNextId(2)
-	}, [])
+		setScales(defaultScales())
+	}, [setScales])
 
 	const [linkCopied, setLinkCopied] = useState(false)
 	const copyShareLink = useCallback(() => {
@@ -183,29 +133,28 @@ const App = () => {
 	const addFromHexList = useCallback(() => {
 		const hexes = colorUtils.parseHexList(bulkText)
 		if (hexes.length === 0) return
-		setColorScales((prevScales) => {
-			let id = nextId
+		setScales((prev) => {
+			let id = nextIdFor(prev)
 			const added: ScaleState[] = hexes.map((color) => ({
 				id: id++,
 				color,
 				name: colorUtils.nameFromHex(color),
 				nameEdited: false,
 			}))
-			setNextId(id)
-			return [...prevScales, ...added]
+			return [...prev, ...added]
 		})
 		setBulkText('')
 		setBulkOpen(false)
-	}, [bulkText, nextId])
+	}, [bulkText, setScales])
 
 	// De-duped slugs, matching the export/contrast naming.
-	const slugs = colorUtils.uniqueSlugs(colorScales.map((s) => s.name))
+	const slugs = colorUtils.uniqueSlugs(scales.map((s) => s.name))
 
 	// Copy every scale as one SVG (a row per scale), so the whole palette pastes
 	// into Figma at once. Uses the same de-duped slugs as the exports.
 	const copyPalette = () => {
 		const svg = colorUtils.paletteToSvg(
-			colorScales.map((s, i) => ({ slug: slugs[i], color: s.color }))
+			scales.map((s, i) => ({ slug: slugs[i], color: s.color }))
 		)
 		copySvg(svg, () => {
 			setPaletteCopied(true)
@@ -216,9 +165,9 @@ const App = () => {
 	return (
 		<>
 			<div className='flex flex-wrap items-center justify-between gap-2xs mb-2xs'>
-				<h1 className='text-step-1 sm:text-step-2 tracking-tight uppercase'>
-					&#127912; Color Scale Generator
-				</h1>
+				<h2 className='text-step-1 sm:text-step-2 tracking-tight uppercase'>
+					&#127912; Color Scales
+				</h2>
 				<div className='flex items-center gap-2xs'>
 					<button
 						onClick={copyPalette}
@@ -243,9 +192,9 @@ const App = () => {
 					>
 						{linkCopied ? 'Link copied!' : 'Copy share link'}
 					</button>
-					{(colorScales.length > 1 ||
-						colorScales[0]?.nameEdited ||
-						colorScales[0]?.color !==
+					{(scales.length > 1 ||
+						scales[0]?.nameEdited ||
+						scales[0]?.color !==
 							colorUtils.defaultColorForIndex(0)) && (
 						<button
 							onClick={resetScales}
@@ -257,33 +206,8 @@ const App = () => {
 				</div>
 			</div>
 
-			{restoreOpen && (
-				<div
-					role='status'
-					className='flex flex-wrap items-center gap-2xs mb-s p-xs bg-yellow-100 border border-yellow-600 rounded-lg text-step--2'
-				>
-					<span className='font-roboto-condensed'>
-						You have a palette saved from last time. Restore it?
-					</span>
-					<div className='flex gap-2xs ml-auto'>
-						<button
-							onClick={restoreSaved}
-							className='px-xs py-3xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed'
-						>
-							Restore
-						</button>
-						<button
-							onClick={() => setRestoreOpen(false)}
-							className='px-xs py-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 font-roboto-condensed'
-						>
-							Dismiss
-						</button>
-					</div>
-				</div>
-			)}
-
 			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 divide-y divide-black-50'>
-				{colorScales.map((scale, index) => (
+				{scales.map((scale, index) => (
 					<div
 						key={scale.id}
 						className='py-2xs flex flex-col sm:flex-row sm:items-stretch gap-2xs'
@@ -334,7 +258,7 @@ const App = () => {
 										<path d='M208 0L332.1 0c12.7 0 24.9 5.1 33.9 14.1l67.9 67.9c9 9 14.1 21.2 14.1 33.9L448 336c0 26.5-21.5 48-48 48l-192 0c-26.5 0-48-21.5-48-48l0-288c0-26.5 21.5-48 48-48zM48 128l80 0 0 64-64 0 0 256 192 0 0-32 64 0 0 48c0 26.5-21.5 48-48 48L48 512c-26.5 0-48-21.5-48-48L0 176c0-26.5 21.5-48 48-48z' />
 									</svg>
 								</button>
-								{colorScales.length > 1 && (
+								{scales.length > 1 && (
 									<>
 										<button
 											onClick={() => moveScale(scale.id, -1)}
@@ -349,7 +273,7 @@ const App = () => {
 										</button>
 										<button
 											onClick={() => moveScale(scale.id, 1)}
-											disabled={index === colorScales.length - 1}
+											disabled={index === scales.length - 1}
 											aria-label='Move color down'
 											title='Move down'
 											className='p-3xs border border-black-100 rounded-sm hover:bg-black-500 hover:text-cream-100 text-step--2 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-current flex items-center justify-center'
@@ -439,12 +363,12 @@ const App = () => {
 				)}
 			</section>
 
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128064; WCAG Compliant Combinations
-			</h2>
-			<ContrastChecker colorScales={colorScales} />
+			</h3>
+			<ContrastChecker colorScales={scales} />
 		</>
 	)
 }
 
-export default App
+export default ColorSection

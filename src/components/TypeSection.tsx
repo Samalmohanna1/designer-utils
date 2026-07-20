@@ -1,19 +1,18 @@
-import { useMemo, useState, useCallback } from 'react'
-import { useHashSync } from '../hooks/useHashSync'
+import { useEffect, useMemo, useState } from 'react'
+import Field from './Field'
 import {
-	DEFAULT_TYPE_CONFIG,
 	FONT_STACKS,
+	GOOGLE_FONTS,
 	generateTypeScale,
+	googleFamiliesIn,
+	googleFontsUrl,
+	isHttpUrl,
 	pxToRem,
 	sizeAtViewport,
-	encodeConfig,
-	decodeConfig,
 	NAMED_RATIOS,
 	ratioName,
 	type TypeScaleConfig,
 } from '../utils/typeScale'
-
-const HASH_PREFIX = '#t='
 
 // Specimen text shown at every step's size in the preview, so the same words
 // are compared across the scale. Short so it doesn't truncate at large steps.
@@ -54,47 +53,6 @@ const DEVICE_ICON: Record<
 		screen: { x: 128, y: 96, w: 384, h: 256 },
 	},
 }
-
-const DEFAULT_CONFIG = DEFAULT_TYPE_CONFIG
-
-// A labeled number input wired to one config field. Empty/NaN keeps the last
-// valid value so the field stays editable mid-typing.
-const Field: React.FC<{
-	id: string
-	label: string
-	unit?: string
-	value: number
-	min?: number
-	step?: number
-	onChange: (v: number) => void
-}> = ({ id, label, unit, value, min, step, onChange }) => (
-	<div className='space-y-3xs'>
-		<label
-			htmlFor={id}
-			className='block text-step--2 font-roboto-condensed font-bold'
-		>
-			{label}
-		</label>
-		<div className='flex items-center gap-3xs rounded-sm border border-black-100 bg-cream-50 px-2xs focus-within:ring-2 focus-within:ring-blue-500'>
-			<input
-				id={id}
-				type='number'
-				inputMode='decimal'
-				min={min}
-				step={step}
-				value={value}
-				onChange={(e) => {
-					const v = parseFloat(e.target.value)
-					if (!Number.isNaN(v)) onChange(v)
-				}}
-				className='h-9 w-full bg-transparent text-step--1 tabular-nums focus:outline-hidden'
-			/>
-			{unit && (
-				<span className='text-step--2 text-black-300'>{unit}</span>
-			)}
-		</div>
-	</div>
-)
 
 // Ratio input plus a select of named ratios; either drives the value.
 const RatioField: React.FC<{
@@ -145,14 +103,17 @@ const RatioField: React.FC<{
 	)
 }
 
-// One font-stack picker: preset select + free-text stack + live specimen.
+// One font-stack picker: preset select (system stacks + Google Fonts) +
+// free-text stack + live specimen.
 const StackField: React.FC<{
 	id: string
 	label: string
 	value: string
 	onChange: (stack: string) => void
 }> = ({ id, label, value, onChange }) => {
-	const preset = FONT_STACKS.find((s) => s.value === value)
+	const preset =
+		FONT_STACKS.find((s) => s.value === value) ??
+		GOOGLE_FONTS.find((g) => g.value === value)
 	return (
 		<div className='space-y-3xs'>
 			<label
@@ -171,11 +132,20 @@ const StackField: React.FC<{
 					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
 				>
 					<option value=''>{preset ? preset.label : 'Custom'}</option>
-					{FONT_STACKS.map((s) => (
-						<option key={s.label} value={s.value}>
-							{s.label}
-						</option>
-					))}
+					<optgroup label='System stacks (no download)'>
+						{FONT_STACKS.map((s) => (
+							<option key={s.label} value={s.value}>
+								{s.label}
+							</option>
+						))}
+					</optgroup>
+					<optgroup label='Google Fonts (downloaded)'>
+						{GOOGLE_FONTS.map((g) => (
+							<option key={g.label} value={g.value}>
+								{g.label}
+							</option>
+						))}
+					</optgroup>
 				</select>
 				<input
 					id={id}
@@ -195,64 +165,139 @@ const StackField: React.FC<{
 	)
 }
 
-const TypeScale = () => {
-	const [config, setConfig] = useState<TypeScaleConfig>(DEFAULT_CONFIG)
-	const set = useCallback(
-		<K extends keyof TypeScaleConfig>(key: K, value: TypeScaleConfig[K]) =>
-			setConfig((c) => ({ ...c, [key]: value })),
-		[]
-	)
+// Add/update/remove a preview stylesheet <link> by id.
+const syncStylesheet = (id: string, href: string | null): void => {
+	let link = document.getElementById(id) as HTMLLinkElement | null
+	if (!href) {
+		link?.remove()
+		return
+	}
+	if (!link) {
+		link = document.createElement('link')
+		link.id = id
+		link.rel = 'stylesheet'
+		document.head.appendChild(link)
+	}
+	if (link.href !== href) link.href = href
+}
+
+// The type section: fonts first (pick families before sizing them), then the
+// scale controls and live preview. Viewport anchors come from the shared
+// viewport control (state lives in DesignSystemApp).
+const TypeSection: React.FC<{
+	config: TypeScaleConfig
+	onChange: (next: TypeScaleConfig) => void
+}> = ({ config, onChange }) => {
+	const set = <K extends keyof TypeScaleConfig>(
+		key: K,
+		value: TypeScaleConfig[K]
+	) => onChange({ ...config, [key]: value })
 
 	const steps = useMemo(() => generateTypeScale(config), [config])
 
+	// Load Google Fonts / the custom stylesheet only while they're in use, so
+	// the preview renders with the real families. Exports emit matching
+	// @import lines.
+	useEffect(() => {
+		const families = googleFamiliesIn([
+			config.headingStack,
+			config.bodyStack,
+			config.monoStack,
+		])
+		syncStylesheet(
+			'google-fonts-preview',
+			families.length > 0 ? googleFontsUrl(families) : null
+		)
+		syncStylesheet(
+			'custom-font-preview',
+			isHttpUrl(config.fontCssUrl) ? config.fontCssUrl : null
+		)
+	}, [config.headingStack, config.bodyStack, config.monoStack, config.fontCssUrl])
+
 	// Preview viewport, defaulting to the midpoint between the anchors.
 	const [preview, setPreview] = useState(
-		Math.round((DEFAULT_CONFIG.minViewport + DEFAULT_CONFIG.maxViewport) / 2)
+		Math.round((config.minViewport + config.maxViewport) / 2)
 	)
-
-	// URL-hash persistence + autosave (the unified system export reads the
-	// saved config). A loaded config recenters the preview on its anchors.
-	useHashSync({
-		prefix: HASH_PREFIX,
-		value: config,
-		encode: encodeConfig,
-		decode: decodeConfig,
-		onLoad: (loaded) => {
-			setConfig(loaded)
-			setPreview(
-				Math.round((loaded.minViewport + loaded.maxViewport) / 2)
-			)
-		},
-		storageKey: 'designer-utils:type-scale',
-	})
 
 	return (
 		<>
-			<h1 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128209; Type Scale Calculator
-			</h1>
+			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128209; Type Scale
+			</h2>
 			<p className='text-step--1 mb-s max-w-prose'>
-				Set a font size and modular-scale ratio at a minimum and maximum
-				viewport. Each step fluidly interpolates between them with a CSS{' '}
+				Pick your font families first, then set a font size and
+				modular-scale ratio at each viewport anchor. Every step fluidly
+				interpolates with a CSS{' '}
 				<code className='font-Ubuntu-mono-bold'>clamp()</code>.
 			</p>
 
-			{/* Controls: min / max anchors */}
+			{/* Font stacks — chosen before the scale is sized. */}
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128292; Font Stacks
+			</h3>
+			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 space-y-s'>
+				<StackField
+					id='stack-heading'
+					label='Heading'
+					value={config.headingStack}
+					onChange={(v) => set('headingStack', v)}
+				/>
+				<StackField
+					id='stack-body'
+					label='Body'
+					value={config.bodyStack}
+					onChange={(v) => set('bodyStack', v)}
+				/>
+				<StackField
+					id='stack-mono'
+					label='Mono'
+					value={config.monoStack}
+					onChange={(v) => set('monoStack', v)}
+				/>
+				<div className='space-y-3xs'>
+					<label
+						htmlFor='font-css-url'
+						className='block text-step--2 font-roboto-condensed font-bold'
+					>
+						Custom font stylesheet URL{' '}
+						<span className='font-normal text-black-300'>
+							(optional)
+						</span>
+					</label>
+					<input
+						id='font-css-url'
+						type='url'
+						value={config.fontCssUrl}
+						onChange={(e) => set('fontCssUrl', e.target.value.trim())}
+						placeholder='https://your-cdn.com/fonts.css'
+						className='h-9 w-full max-w-xl rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+					/>
+					<p className='text-step--2 text-black-300 max-w-prose'>
+						Hosting your own fonts? Paste the stylesheet URL that
+						declares the <code>@font-face</code> rules, then type the
+						family name into a stack above. It loads here for the
+						preview and ships as an <code>@import</code> in the
+						exports.
+					</p>
+				</div>
+				<p className='text-step--2 text-black-300 max-w-prose'>
+					System stacks (modernfontstacks.com) are OS-native — zero
+					downloads. Google Fonts load from fonts.googleapis.com in the
+					preview and add an <code>@import</code> to the exported CSS.
+				</p>
+			</section>
+
+			{/* Controls: size + ratio at each shared viewport anchor */}
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128207; Scale
+			</h3>
 			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100'>
 				<div className='grid gap-s sm:grid-cols-2'>
 					<fieldset className='space-y-2xs'>
 						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Min viewport
+							At min viewport ({config.minViewport}px)
 						</legend>
-						<div className='grid grid-cols-3 gap-2xs'>
-							<Field
-								id='min-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={config.minViewport}
-								onChange={(v) => set('minViewport', v)}
-							/>
+						<div className='grid grid-cols-2 gap-2xs'>
 							<Field
 								id='min-size'
 								label='Font size'
@@ -272,17 +317,9 @@ const TypeScale = () => {
 
 					<fieldset className='space-y-2xs'>
 						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Max viewport
+							At max viewport ({config.maxViewport}px)
 						</legend>
-						<div className='grid grid-cols-3 gap-2xs'>
-							<Field
-								id='max-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={config.maxViewport}
-								onChange={(v) => set('maxViewport', v)}
-							/>
+						<div className='grid grid-cols-2 gap-2xs'>
 							<Field
 								id='max-size'
 								label='Font size'
@@ -330,10 +367,10 @@ const TypeScale = () => {
 			</section>
 
 			{/* Live preview */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128064; Preview
-			</h2>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100'>
+			</h3>
+			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'>
 				<div className='flex flex-wrap items-center gap-2xs mb-s'>
 					<label
 						htmlFor='preview-vw'
@@ -430,9 +467,14 @@ const TypeScale = () => {
 									<span className='text-step--2 text-black-300 font-roboto-condensed uppercase tracking-tight shrink-0'>
 										Step {s.step}
 									</span>
+									{/* Rendered in the chosen heading stack so the
+									    font choice above is what's being sized. */}
 									<span
-										className='font-roboto-condensed font-bold text-black-500 leading-tight truncate pr-[0.15em]'
-										style={{ fontSize: `${px}px` }}
+										className='font-bold text-black-500 leading-tight truncate pr-[0.15em]'
+										style={{
+											fontSize: `${px}px`,
+											fontFamily: config.headingStack,
+										}}
 									>
 										{SAMPLE_TEXT}{' '}
 										<span className='font-normal italic'>
@@ -448,38 +490,8 @@ const TypeScale = () => {
 					})}
 				</ul>
 			</section>
-
-			{/* Font stacks */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128292; Font Stacks
-			</h2>
-			<section className='tracking-tight container p-xs mb-xl bg-cream-50 rounded-lg border border-black-100 space-y-s'>
-				<StackField
-					id='stack-heading'
-					label='Heading'
-					value={config.headingStack}
-					onChange={(v) => set('headingStack', v)}
-				/>
-				<StackField
-					id='stack-body'
-					label='Body'
-					value={config.bodyStack}
-					onChange={(v) => set('bodyStack', v)}
-				/>
-				<StackField
-					id='stack-mono'
-					label='Mono'
-					value={config.monoStack}
-					onChange={(v) => set('monoStack', v)}
-				/>
-				<p className='text-step--2 text-black-300 max-w-prose'>
-					Curated system stacks from modernfontstacks.com — OS-native
-					fonts, zero downloads. Pick a preset or type any CSS
-					font-family list.
-				</p>
-			</section>
 		</>
 	)
 }
 
-export default TypeScale
+export default TypeSection

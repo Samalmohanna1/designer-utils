@@ -2,13 +2,13 @@
 import Layout from '../layouts/Layout.astro'
 import SiteNav from '../components/SiteNav.astro'
 import SiteFooter from '../components/SiteFooter.astro'
-import App from '../components/App'
+import DesignSystemApp from '../components/DesignSystemApp'
 ---
 
-<Layout title='Color Scale Generator | MYOL Creative'>
-	<SiteNav active='color' />
+<Layout title='Design System Foundations | MYOL Creative'>
+	<SiteNav />
 	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
-		<App client:load />
+		<DesignSystemApp client:load />
 	</main>
 	<SiteFooter />
 </Layout>

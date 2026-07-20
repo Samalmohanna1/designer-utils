@@ -197,23 +197,25 @@ export const toCss = (
 	sizes: SpaceSize[],
 	pairs: SpacePair[],
 	grid: GridResult,
-	gutterClamp: string
+	gutterClamp: string,
+	prefix = ''
 ): string => {
-	const space = `:root {\n${spaceVarLines(sizes, pairs, 'space')}\n}`
+	const p = withPrefix(prefix)
+	const space = `:root {\n${spaceVarLines(sizes, pairs, `${p}space`)}\n}`
 	const gridBlock =
 		`:root {\n` +
-		`  --grid-max-width: ${pxToRem(grid.maxContainer)};\n` +
-		`  --grid-gutter: ${gutterClamp};\n` +
-		`  --grid-columns: ${grid.columns};\n` +
+		`  --${p}grid-max-width: ${pxToRem(grid.maxContainer)};\n` +
+		`  --${p}grid-gutter: ${gutterClamp};\n` +
+		`  --${p}grid-columns: ${grid.columns};\n` +
 		`}\n\n` +
 		`.u-container {\n` +
-		`  max-width: var(--grid-max-width);\n` +
-		`  padding-inline: var(--grid-gutter);\n` +
+		`  max-width: var(--${p}grid-max-width);\n` +
+		`  padding-inline: var(--${p}grid-gutter);\n` +
 		`  margin-inline: auto;\n` +
 		`}\n\n` +
 		`.u-grid {\n` +
 		`  display: grid;\n` +
-		`  gap: var(--grid-gutter);\n` +
+		`  gap: var(--${p}grid-gutter);\n` +
 		`}`
 	return `${space}\n\n${gridBlock}`
 }

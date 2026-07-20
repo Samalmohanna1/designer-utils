@@ -1,59 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useHashSync } from '../hooks/useHashSync'
+import { useMemo, useState } from 'react'
+import Field from './Field'
 import { colorUtils } from '../utils/colorUtils'
 import {
 	BORDER_LADDER,
-	DEFAULT_FOUNDATIONS,
 	EASINGS,
 	easingCss,
 	elevationCss,
-	encodeFoundations,
-	decodeFoundations,
 	generateBorders,
 	generateElevation,
 	generateRadii,
 	type FoundationsConfig,
 } from '../utils/foundations'
-import { STORAGE_KEYS } from '../utils/systemExport'
-
-const HASH_PREFIX = '#f='
-
-const Field: React.FC<{
-	id: string
-	label: string
-	unit?: string
-	value: number
-	min?: number
-	max?: number
-	step?: number
-	onChange: (v: number) => void
-}> = ({ id, label, unit, value, min, max, step, onChange }) => (
-	<div className='space-y-3xs'>
-		<label
-			htmlFor={id}
-			className='block text-step--2 font-roboto-condensed font-bold'
-		>
-			{label}
-		</label>
-		<div className='flex items-center gap-3xs rounded-sm border border-black-100 bg-cream-50 px-2xs focus-within:ring-2 focus-within:ring-blue-500'>
-			<input
-				id={id}
-				type='number'
-				inputMode='decimal'
-				min={min}
-				max={max}
-				step={step}
-				value={value}
-				onChange={(e) => {
-					const v = parseFloat(e.target.value)
-					if (!Number.isNaN(v)) onChange(v)
-				}}
-				className='h-9 w-full bg-transparent text-step--1 tabular-nums focus:outline-hidden'
-			/>
-			{unit && <span className='text-step--2 text-black-300'>{unit}</span>}
-		</div>
-	</div>
-)
 
 const sectionClass =
 	'tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'
@@ -61,47 +18,18 @@ const sectionClass =
 const headingClass =
 	'text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'
 
-// Shadow-color candidates drawn from the saved color palette: each scale's
-// base (500) and its darkest shade (900) — the tones shadows are tinted with.
-interface ShadowSwatch {
-	label: string
-	hex: string
-}
-
-const paletteShadowSwatches = (): ShadowSwatch[] => {
-	let raw: string | null = null
-	try {
-		raw = window.localStorage.getItem(STORAGE_KEYS.palette)
-	} catch {
-		return []
-	}
-	if (!raw) return []
-	const entries = colorUtils.decodePalette(raw)
-	const slugs = colorUtils.uniqueSlugs(entries.map((e) => e.name))
-	return entries.flatMap((entry, i) => {
-		const shades = colorUtils.generateShades(entry.color)
-		return [
-			{ label: `${slugs[i]}-500`, hex: shades[5] },
-			{ label: `${slugs[i]}-900`, hex: shades[9] },
-		]
-	})
-}
-
-const Foundations = () => {
-	const [config, setConfig] = useState<FoundationsConfig>(DEFAULT_FOUNDATIONS)
+// The foundations section: state lives in DesignSystemApp. `palette` is the
+// live color-section palette (de-duped slugs), so the shadow color can be
+// picked from any shade of any scale.
+const FoundationsSection: React.FC<{
+	config: FoundationsConfig
+	onChange: (next: FoundationsConfig) => void
+	palette: { slug: string; color: string }[]
+}> = ({ config, onChange, palette }) => {
 	const set = <K extends keyof FoundationsConfig>(
 		key: K,
 		value: FoundationsConfig[K]
-	) => setConfig((c) => ({ ...c, [key]: value }))
-
-	useHashSync({
-		prefix: HASH_PREFIX,
-		value: config,
-		encode: encodeFoundations,
-		decode: decodeFoundations,
-		onLoad: setConfig,
-		storageKey: STORAGE_KEYS.foundations,
-	})
+	) => onChange({ ...config, [key]: value })
 
 	const radii = useMemo(() => generateRadii(config), [config])
 	const borders = useMemo(() => generateBorders(config), [config])
@@ -114,28 +42,56 @@ const Foundations = () => {
 		[config]
 	)
 
-	// Palette-derived shadow colors, read from the color tool's autosave
-	// (client-only, once on mount).
-	const [shadowSwatches, setShadowSwatches] = useState<ShadowSwatch[]>([])
-	useEffect(() => setShadowSwatches(paletteShadowSwatches()), [])
+	// Every shade of every live scale, one swatch row per scale.
+	const shadowRows = useMemo(
+		() =>
+			palette.map(({ slug, color }) => ({
+				slug,
+				swatches: colorUtils.generateShades(color).map((hex, i) => ({
+					label: `${slug}-${colorUtils.shadeNumbers[i]}`,
+					hex,
+				})),
+			})),
+		[palette]
+	)
 
 	// Which easing demos are in their "played" position.
 	const [played, setPlayed] = useState<Record<string, boolean>>({})
 
+	const swatchButton = (s: { label: string; hex: string }) => {
+		const selected = config.shadowColor === s.hex
+		return (
+			<button
+				key={s.label}
+				type='button'
+				onClick={() => set('shadowColor', s.hex)}
+				aria-pressed={selected}
+				aria-label={`Shadow color ${s.label}, ${s.hex}`}
+				title={`${s.label} · ${s.hex}`}
+				className={`w-6 h-6 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+					selected
+						? 'border-black-500 ring-2 ring-black-500 scale-110'
+						: 'border-black-100'
+				}`}
+				style={{ backgroundColor: s.hex }}
+			/>
+		)
+	}
+
 	return (
 		<>
-			<h1 className={headingClass}>&#129521; Foundations</h1>
+			<h2 className={headingClass}>&#129521; Foundations</h2>
 			<p className='text-step--1 mb-s max-w-prose'>
 				The token layers beyond color, type, and space: corner radii,
 				border widths, elevation, and motion. Grab everything from the{' '}
-				<a href='/export' className='underline font-bold'>
+				<a href='#export' className='underline font-bold'>
 					Export
 				</a>{' '}
-				page.
+				section below.
 			</p>
 
 			{/* Radii */}
-			<h2 className={headingClass}>&#11093; Corner radii</h2>
+			<h3 className={headingClass}>&#11093; Corner radii</h3>
 			<section className={sectionClass}>
 				<div className='w-40 mb-s'>
 					<Field
@@ -166,7 +122,7 @@ const Foundations = () => {
 			</section>
 
 			{/* Borders */}
-			<h2 className={headingClass}>&#12336;&#65039; Border widths</h2>
+			<h3 className={headingClass}>&#12336;&#65039; Border widths</h3>
 			<section className={sectionClass}>
 				<div className='flex flex-wrap gap-s mb-s'>
 					<div className='w-40'>
@@ -224,7 +180,7 @@ const Foundations = () => {
 			</section>
 
 			{/* Elevation */}
-			<h2 className={headingClass}>&#128230; Elevation</h2>
+			<h3 className={headingClass}>&#128230; Elevation</h3>
 			<section className={sectionClass}>
 				<div className='flex flex-wrap gap-s mb-s items-end'>
 					<div className='space-y-3xs'>
@@ -244,29 +200,7 @@ const Foundations = () => {
 								}
 								className='h-9 w-16 cursor-pointer rounded-sm border border-black-100 bg-cream-50'
 							/>
-							{/* From your palette: the saved scales' 500/900 shades. */}
-							{[
-								{ label: 'black', hex: '#000000' },
-								...shadowSwatches,
-							].map((s) => {
-								const selected = config.shadowColor === s.hex
-								return (
-									<button
-										key={`${s.label}-${s.hex}`}
-										type='button'
-										onClick={() => set('shadowColor', s.hex)}
-										aria-pressed={selected}
-										aria-label={`Shadow color ${s.label}, ${s.hex}`}
-										title={`${s.label} · ${s.hex}`}
-										className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
-											selected
-												? 'border-black-500 ring-2 ring-black-500 scale-110'
-												: 'border-black-100'
-										}`}
-										style={{ backgroundColor: s.hex }}
-									/>
-								)
-							})}
+							{swatchButton({ label: 'black', hex: '#000000' })}
 						</div>
 					</div>
 					<div className='w-40'>
@@ -282,6 +216,22 @@ const Foundations = () => {
 							}
 						/>
 					</div>
+				</div>
+				{/* Every shade of the live palette is a candidate tint. */}
+				<div className='space-y-2xs mb-s'>
+					{shadowRows.map((row) => (
+						<div
+							key={row.slug}
+							className='flex flex-wrap items-center gap-2xs'
+						>
+							<span className='w-20 shrink-0 text-step--2 font-roboto-condensed font-bold uppercase tracking-tight'>
+								{row.slug}
+							</span>
+							<div className='flex flex-wrap gap-3xs'>
+								{row.swatches.map(swatchButton)}
+							</div>
+						</div>
+					))}
 				</div>
 				{/* Fixed light/dark surfaces (preview-* tokens) so both shadow
 				    variants read correctly whichever theme the site is in. */}
@@ -322,7 +272,7 @@ const Foundations = () => {
 			</section>
 
 			{/* Motion */}
-			<h2 className={headingClass}>&#9201;&#65039; Motion</h2>
+			<h3 className={headingClass}>&#9201;&#65039; Motion</h3>
 			<section className={sectionClass}>
 				<div className='flex flex-wrap gap-s mb-s'>
 					{(
@@ -390,4 +340,4 @@ const Foundations = () => {
 	)
 }
 
-export default Foundations
+export default FoundationsSection

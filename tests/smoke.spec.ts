@@ -2,68 +2,130 @@ import { test, expect, type Page } from '@playwright/test'
 
 const BASE = 'http://localhost:4321'
 
-// Pick a Format on the Export page ("Format", not "Color Format", which is a
-// separate selector). The block only reacts once the island has hydrated —
+// Pick a Format in the export section ("Format", not "Color Format", which is
+// a separate selector). The block only reacts once the island has hydrated —
 // Prism adds the `language-*` class at that point — so selecting any earlier
 // fires a change event that nothing is listening to yet and the format
 // silently stays put.
 const selectFormat = async (page: Page, value: string): Promise<void> => {
-	await expect(page.locator('pre code')).toHaveClass(/language-/)
+	await awaitHydrated(page)
 	await page.getByLabel('Format', { exact: true }).selectOption(value)
 }
 
-test('color tool loads and generates a scale', async ({ page }) => {
+// The page is one React island; interacting before it hydrates hits dead
+// server HTML and the event is lost. Prism adds the `language-*` class in a
+// post-hydration effect, so it doubles as the whole page's hydration marker.
+const awaitHydrated = async (page: Page): Promise<void> => {
+	await expect(page.locator('pre code')).toHaveClass(/language-/)
+}
+
+test('one page carries every section', async ({ page }) => {
 	await page.goto(BASE)
-	await expect(page).toHaveTitle(/Color Scale Generator/)
+	await expect(page).toHaveTitle(/Design System Foundations/)
 	await expect(
-		page.getByRole('heading', { name: /Color Scale Generator/i })
+		page.getByRole('heading', { name: /Design System Foundations/i })
 	).toBeVisible()
+	for (const id of ['colors', 'type', 'space', 'foundations', 'export']) {
+		await expect(page.locator(`#${id}`)).toBeAttached()
+	}
 	// The default scale renders its 10 shades (each swatch shows its hex).
 	await expect(page.locator('.hex-code')).toHaveCount(10)
 })
 
-test('type tool previews the scale and owns the font stacks', async ({
+test('sticky nav jumps to sections without touching the hash', async ({
 	page,
 }) => {
-	await page.goto(`${BASE}/type`)
-	await expect(page).toHaveTitle(/Type Scale Calculator/)
-	// Default config: step 0 at the max viewport is 20px (1.25rem).
-	await expect(page.getByText('Step 0')).toBeVisible()
+	await page.goto(BASE)
+	const nav = page.getByLabel('Tools')
+	for (const [label, id] of [
+		['Type Scales', 'type'],
+		['Space & Grid', 'space'],
+		['Foundations', 'foundations'],
+		['Export', 'export'],
+		['Color Scales', 'colors'],
+	] as const) {
+		await nav.getByRole('link', { name: label }).click()
+		await expect(page.locator(`#${id}`)).toBeInViewport()
+	}
+	// Jumps scroll via JS — the state-carrying hash stays untouched.
+	expect(new URL(page.url()).hash).toBe('')
+})
+
+test('the shared viewport control drives type, space, and grid', async ({
+	page,
+}) => {
+	await page.goto(BASE)
+	// The export block below re-renders live off the same state.
+	await expect(page.locator('pre code')).toHaveClass(/language-/)
+	await page.getByLabel('Max viewport').fill('1200')
+	await expect(page.getByText('At max viewport (1200px)')).toBeVisible()
+	await expect(page.getByText('Base size @max (1200px)')).toBeVisible()
+	const code = page.locator('pre code')
+	await expect(code).toContainText(
+		'--step-0: clamp(1.125rem, 1.0795rem + 0.2273vw, 1.25rem)'
+	)
+	await expect(code).toContainText(
+		'--space-s: clamp(1rem, 0.9091rem + 0.4545vw, 1.25rem)'
+	)
+})
+
+test('type section owns the fonts and can load Google Fonts', async ({
+	page,
+}) => {
+	await page.goto(BASE)
+	await awaitHydrated(page)
 	await expect(
 		page.getByRole('heading', { name: /Font Stacks/i })
 	).toBeVisible()
 	await expect(page.getByLabel('Heading', { exact: true })).toHaveValue(
 		'system-ui, sans-serif'
 	)
+	// Picking a Google font swaps the stack and mounts the preview stylesheet.
+	await page
+		.getByLabel('Heading preset')
+		.selectOption("'Poppins', system-ui, sans-serif")
+	await expect(page.getByLabel('Heading', { exact: true })).toHaveValue(
+		"'Poppins', system-ui, sans-serif"
+	)
+	const link = page.locator('link#google-fonts-preview')
+	await expect(link).toBeAttached()
+	expect(await link.getAttribute('href')).toContain(
+		'fonts.googleapis.com/css2?family=Poppins'
+	)
+	// And the exported CSS hoists a matching @import.
+	await expect(page.locator('pre code')).toContainText(
+		"@import url('https://fonts.googleapis.com/css2?family=Poppins"
+	)
 })
 
-test('space tool previews sizes with px and rem', async ({ page }) => {
-	await page.goto(`${BASE}/space`)
-	await expect(page).toHaveTitle(/Space & Grid Calculator/)
-	// Default 8pt @min ramp: s = 16px = 1rem.
-	await expect(page.getByText('16px · 1rem')).toBeVisible()
+test('foundations previews every layer and offers every palette shade for shadows', async ({
+	page,
+}) => {
+	await page.goto(BASE)
+	await awaitHydrated(page)
+	// Scoped to the section — the export code block repeats these strings.
+	const foundations = page.locator('#foundations')
+	await expect(foundations.getByText('9999px')).toBeVisible()
+	await expect(foundations.getByLabel('Sizes')).toHaveValue('3')
+	await expect(foundations.getByText('Light', { exact: true })).toBeVisible()
+	await expect(foundations.getByText('Dark', { exact: true })).toBeVisible()
 	await expect(
-		page.getByRole('heading', { name: /Layout grid/i })
+		foundations.getByText('cubic-bezier(0.4, 0, 0.2, 1)')
 	).toBeVisible()
+	// The default palette's full ramp is offered, not just 500/900.
+	const swatch = foundations.getByLabel(/^Shadow color blue-300,/)
+	await expect(swatch).toBeVisible()
+	await swatch.click()
+	await expect(swatch).toHaveAttribute('aria-pressed', 'true')
 })
 
-test('foundations tool previews every layer', async ({ page }) => {
-	await page.goto(`${BASE}/foundations`)
-	await expect(page).toHaveTitle(/Design System Foundations/)
-	// Radii ladder + T-shirt borders + elevation panels + motion easings.
-	await expect(page.getByText('9999px')).toBeVisible()
-	await expect(page.getByLabel('Sizes')).toHaveValue('3')
-	await expect(page.getByText('Light', { exact: true })).toBeVisible()
-	await expect(page.getByText('Dark', { exact: true })).toBeVisible()
-	await expect(page.getByText('cubic-bezier(0.4, 0, 0.2, 1)')).toBeVisible()
-})
-
-test('export page merges every tool into one CSS file', async ({ page }) => {
-	await page.goto(`${BASE}/export`)
-	await expect(page).toHaveTitle(/Export Your Design System/)
+test('export section merges every layer into one CSS file', async ({
+	page,
+}) => {
+	await page.goto(BASE)
 	const code = page.locator('pre code')
-	// Default CSS format carries every layer, fonts included (now emitted by
-	// the type engine).
+	// Default CSS format carries every layer, fonts included (emitted by the
+	// type engine).
 	await expect(code).toContainText('/* ===== Color ===== */')
 	await expect(code).toContainText(
 		'--step-0: clamp(1.125rem, 1.0893rem + 0.1786vw, 1.25rem)'
@@ -79,7 +141,7 @@ test('export page merges every tool into one CSS file', async ({ page }) => {
 })
 
 test('export tokens are DTCG 2025.10 across every layer', async ({ page }) => {
-	await page.goto(`${BASE}/export`)
+	await page.goto(BASE)
 	await selectFormat(page, 'tokens')
 	const code = page.locator('pre code')
 	// Mode groups: light/dark (color + elevation), min/max (type + space),
@@ -98,7 +160,7 @@ test('export tokens are DTCG 2025.10 across every layer', async ({ page }) => {
 })
 
 test('export downloads the snippet as a txt file', async ({ page }) => {
-	await page.goto(`${BASE}/export`)
+	await page.goto(BASE)
 	await selectFormat(page, 'tokens')
 	const [download] = await Promise.all([
 		page.waitForEvent('download'),
@@ -111,22 +173,15 @@ test('export downloads the snippet as a txt file', async ({ page }) => {
 	expect(Buffer.concat(chunks).toString()).toContain('"colorSpace": "srgb"')
 })
 
-test('nav moves between the five destinations', async ({ page }) => {
-	await page.goto(BASE)
-	// Scoped to the nav — page copy may link to the same routes. (Islands
-	// write the URL hash only after an edit, so rapid clicking can't race a
-	// mount-time replaceState.)
-	const nav = page.getByLabel('Tools')
-	await nav.getByRole('link', { name: 'Type Scales' }).click()
-	await expect(page).toHaveURL(/\/type\/?$/)
-	await nav.getByRole('link', { name: 'Space & Grid' }).click()
-	await expect(page).toHaveURL(/\/space\/?$/)
-	await nav.getByRole('link', { name: 'Foundations' }).click()
-	await expect(page).toHaveURL(/\/foundations\/?$/)
-	await nav.getByRole('link', { name: 'Export' }).click()
-	await expect(page).toHaveURL(/\/export\/?$/)
-	await nav.getByRole('link', { name: 'Color Scales' }).click()
-	await expect(
-		page.getByRole('heading', { name: /Color Scale Generator/i })
-	).toBeVisible()
+test('legacy per-tool links redirect, keep their state, and unify the viewport', async ({
+	page,
+}) => {
+	await page.goto(`${BASE}/type#t=320,1200,18,20,1.2,1.25,5,2`)
+	// The stub replaces to /?go=type + hash; the island then drops the query.
+	await page.waitForURL(/\/#t=320,1200/)
+	await expect(page.locator('#type')).toBeInViewport()
+	// The legacy segment's viewport anchors landed in the shared control…
+	await expect(page.getByLabel('Max viewport')).toHaveValue('1200')
+	// …and were stamped onto the space config too (one viewport everywhere).
+	await expect(page.getByText('Base size @max (1200px)')).toBeVisible()
 })

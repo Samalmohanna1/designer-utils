@@ -1,20 +1,14 @@
-import { useMemo, useState } from 'react'
-import { useHashSync } from '../hooks/useHashSync'
+import { useMemo } from 'react'
+import Field from './Field'
 import { pxToRem } from '../utils/typeScale'
 import {
-	DEFAULT_SPACE,
-	DEFAULT_GRID,
 	generateSpaceSizes,
 	generateSpacePairs,
 	computeGrid,
-	encodeSpaceGrid,
-	decodeSpaceGrid,
 	px,
 	type SpaceConfig,
 	type GridConfig,
 } from '../utils/spaceScale'
-
-const HASH_PREFIX = '#s='
 
 // The preview swatch/bar fill — the project blue token (not Utopia's pink).
 // The pair-bar taper uses color-mix since a var() can't take a hex alpha
@@ -22,72 +16,20 @@ const HASH_PREFIX = '#s='
 const SWATCH = 'var(--color-blue-500)'
 const SWATCH_FADED = 'color-mix(in srgb, var(--color-blue-500) 40%, transparent)'
 
-const Field: React.FC<{
-	id: string
-	label: string
-	unit?: string
-	value: number
-	min?: number
-	step?: number
-	onChange: (v: number) => void
-}> = ({ id, label, unit, value, min, step, onChange }) => (
-	<div className='space-y-3xs'>
-		<label
-			htmlFor={id}
-			className='block text-step--2 font-roboto-condensed font-bold'
-		>
-			{label}
-		</label>
-		<div className='flex items-center gap-3xs rounded-sm border border-black-100 bg-cream-50 px-2xs focus-within:ring-2 focus-within:ring-blue-500'>
-			<input
-				id={id}
-				type='number'
-				inputMode='decimal'
-				min={min}
-				step={step}
-				value={value}
-				onChange={(e) => {
-					const v = parseFloat(e.target.value)
-					if (!Number.isNaN(v)) onChange(v)
-				}}
-				className='h-9 w-full bg-transparent text-step--1 tabular-nums focus:outline-hidden'
-			/>
-			{unit && <span className='text-step--2 text-black-300'>{unit}</span>}
-		</div>
-	</div>
-)
-
-const SpaceScale = () => {
-	const [space, setSpace] = useState<SpaceConfig>(DEFAULT_SPACE)
-	const [grid, setGrid] = useState<GridConfig>(DEFAULT_GRID)
-
-	const setSpaceField = (key: keyof SpaceConfig, value: number) => {
-		setSpace((s) => {
-			const next = { ...s, [key]: value }
-			// Keep the grid's viewports in sync with the space viewports.
-			if (key === 'minViewport' || key === 'maxViewport') {
-				setGrid((g) => ({ ...g, [key]: value }))
-			}
-			return next
-		})
-	}
-	const setGridField = (key: keyof GridConfig, value: number) =>
-		setGrid((g) => ({ ...g, [key]: value }))
-
-	// URL-hash persistence + autosave (the unified system export reads the
-	// saved config).
-	const combined = useMemo(() => ({ space, grid }), [space, grid])
-	useHashSync({
-		prefix: HASH_PREFIX,
-		value: combined,
-		encode: (v) => encodeSpaceGrid(v.space, v.grid),
-		decode: decodeSpaceGrid,
-		onLoad: (v) => {
-			setSpace(v.space)
-			setGrid(v.grid)
-		},
-		storageKey: 'designer-utils:space-grid',
-	})
+// The space & grid section: state lives in DesignSystemApp; viewport anchors
+// come from the shared viewport control.
+const SpaceSection: React.FC<{
+	space: SpaceConfig
+	grid: GridConfig
+	onSpaceChange: (next: SpaceConfig) => void
+	onGridChange: (next: GridConfig) => void
+}> = ({ space, grid, onSpaceChange, onGridChange }) => {
+	const setSpaceField = (key: keyof SpaceConfig, value: number) =>
+		onSpaceChange({ ...space, [key]: value })
+	const setGridField = <K extends keyof GridConfig>(
+		key: K,
+		value: GridConfig[K]
+	) => onGridChange({ ...grid, [key]: value })
 
 	const sizes = useMemo(() => generateSpaceSizes(space), [space])
 	const pairs = useMemo(() => generateSpacePairs(space), [space])
@@ -98,72 +40,42 @@ const SpaceScale = () => {
 
 	return (
 		<>
-			<h1 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
-				&#128208; Space &amp; Grid Calculator
-			</h1>
+			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+				&#128208; Space &amp; Grid
+			</h2>
 			<p className='text-step--1 mb-s max-w-prose'>
 				A fluid spacing scale (T-shirt sizes on an 8pt grid by default)
-				and a matching layout grid, each interpolating between a min and
-				max viewport with a CSS{' '}
+				and a matching layout grid, each interpolating between the shared
+				viewport anchors with a CSS{' '}
 				<code className='font-Ubuntu-mono-bold'>clamp()</code>.
 			</p>
 
 			{/* Space inputs */}
 			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'>
-				<div className='grid gap-s sm:grid-cols-2'>
-					<fieldset className='space-y-2xs'>
-						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Min viewport
-						</legend>
-						<div className='grid grid-cols-2 gap-2xs'>
-							<Field
-								id='space-min-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={space.minViewport}
-								onChange={(v) => setSpaceField('minViewport', v)}
-							/>
-							<Field
-								id='space-min-base'
-								label='Base size'
-								unit='px'
-								min={1}
-								value={space.minBase}
-								onChange={(v) => setSpaceField('minBase', v)}
-							/>
-						</div>
-					</fieldset>
-					<fieldset className='space-y-2xs'>
-						<legend className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-3xs'>
-							Max viewport
-						</legend>
-						<div className='grid grid-cols-2 gap-2xs'>
-							<Field
-								id='space-max-vw'
-								label='Width'
-								unit='px'
-								min={0}
-								value={space.maxViewport}
-								onChange={(v) => setSpaceField('maxViewport', v)}
-							/>
-							<Field
-								id='space-max-base'
-								label='Base size'
-								unit='px'
-								min={1}
-								value={space.maxBase}
-								onChange={(v) => setSpaceField('maxBase', v)}
-							/>
-						</div>
-					</fieldset>
+				<div className='grid grid-cols-2 gap-s max-w-md'>
+					<Field
+						id='space-min-base'
+						label={`Base size @min (${space.minViewport}px)`}
+						unit='px'
+						min={1}
+						value={space.minBase}
+						onChange={(v) => setSpaceField('minBase', v)}
+					/>
+					<Field
+						id='space-max-base'
+						label={`Base size @max (${space.maxViewport}px)`}
+						unit='px'
+						min={1}
+						value={space.maxBase}
+						onChange={(v) => setSpaceField('maxBase', v)}
+					/>
 				</div>
 			</section>
 
 			{/* Size scale */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128207; Space scale
-			</h2>
+			</h3>
 			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'>
 				<div className='grid grid-cols-[auto_1fr_1fr] gap-x-s gap-y-2xs items-center'>
 					<span className='text-step--2 font-roboto-condensed uppercase tracking-tight text-black-300'>
@@ -182,9 +94,9 @@ const SpaceScale = () => {
 			</section>
 
 			{/* Pairs */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#11020; Space pairs
-			</h2>
+			</h3>
 			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100'>
 				<ul className='space-y-s'>
 					{pairs.map((p) => (
@@ -228,9 +140,9 @@ const SpaceScale = () => {
 			</section>
 
 			{/* Grid */}
-			<h2 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
+			<h3 className='text-step-1 sm:text-step-2 mb-2xs tracking-tight uppercase'>
 				&#128301; Layout grid
-			</h2>
+			</h3>
 			<section className='tracking-tight container p-xs mb-m bg-cream-50 rounded-lg border border-black-100 space-y-s'>
 				<div className='grid gap-s sm:grid-cols-2 lg:grid-cols-4'>
 					<Field
@@ -301,9 +213,7 @@ const SpaceScale = () => {
 						<button
 							key={r}
 							type='button'
-							onClick={() =>
-								setGrid((g) => ({ ...g, roundMinColumn: r }))
-							}
+							onClick={() => setGridField('roundMinColumn', r)}
 							aria-pressed={grid.roundMinColumn === r}
 							className={`px-xs py-3xs rounded-sm border font-roboto-condensed ${
 								grid.roundMinColumn === r
@@ -316,13 +226,12 @@ const SpaceScale = () => {
 					))}
 				</div>
 			</section>
-
 		</>
 	)
 }
 
-// One size row: label, multiplier-less, @min / @max each with a proportional
-// pink swatch (capped so the biggest size doesn't overflow the column).
+// One size row: label, @min / @max each with a proportional swatch (capped so
+// the biggest size doesn't overflow the column).
 const SizeRow: React.FC<{
 	size: ReturnType<typeof generateSpaceSizes>[number]
 	maxPreview: number
@@ -364,4 +273,4 @@ const SizeRow: React.FC<{
 	)
 }
 
-export default SpaceScale
+export default SpaceSection

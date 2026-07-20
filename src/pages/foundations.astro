@@ -1,19 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro'
-import SiteNav from '../components/SiteNav.astro'
-import SiteFooter from '../components/SiteFooter.astro'
-import Foundations from '../components/Foundations'
+
+// The suite now lives on one page; this route survives for old links and
+// social shares (the OG card). The redirect keeps any legacy #f= hash.
 ---
 
 <Layout
 	title='Design System Foundations | MYOL Creative'
-	description='Generate corner radii, border widths, elevation shadows, font stacks, and motion tokens — then export your whole design system as CSS, Tailwind 4, or W3C Design Tokens.'
+	description='Generate corner radii, border widths, elevation shadows, and motion tokens — then export your whole design system as CSS, Tailwind 4, or W3C Design Tokens.'
 	path='/foundations'
 	image='/og-foundations.png'
 >
-	<SiteNav active='foundations' />
+	<script is:inline>
+		location.replace('/?go=foundations' + location.hash)
+	</script>
 	<main class='mx-auto p-s bg-cream-100 rounded-md shadow-xs container'>
-		<Foundations client:load />
+		<p>
+			The Foundations tool moved to the main page.
+			<a href='/?go=foundations' class='underline font-bold'>Continue to the Foundations section</a>.
+		</p>
 	</main>
-	<SiteFooter />
 </Layout>

@@ -1,7 +1,7 @@
-// The unified "whole system" export: merges every tool's latest saved state
-// (localStorage, written by each island's useHashSync) into one CSS block,
-// one Tailwind @theme, or one DTCG token file. Tools that were never opened
-// fall back to their defaults, so the export is always complete.
+// The unified "whole system" export and serialization: every tool section's
+// live state merged into one CSS block, one Tailwind @theme, or one DTCG token
+// file — plus the combined URL-hash codec and the localStorage autosave reader
+// the single-page island uses.
 //
 // Token mode strategy (documented in CLAUDE.md): top-level `light`/`dark`
 // groups hold the theme-dependent layers (color, elevation), top-level
@@ -12,6 +12,8 @@ import { colorUtils, type ColorValueFormat } from './colorUtils'
 import {
 	DEFAULT_TYPE_CONFIG,
 	decodeConfig,
+	encodeConfig,
+	fontImports,
 	generateTypeScale,
 	toCss as typeCss,
 	toTailwind as typeTailwind,
@@ -22,6 +24,7 @@ import {
 	DEFAULT_SPACE,
 	DEFAULT_GRID,
 	decodeSpaceGrid,
+	encodeSpaceGrid,
 	generateSpaceSizes,
 	generateSpacePairs,
 	computeGrid,
@@ -35,6 +38,7 @@ import {
 import {
 	DEFAULT_FOUNDATIONS,
 	decodeFoundations,
+	encodeFoundations,
 	toCss as foundationsCss,
 	toTailwind as foundationsTailwind,
 	foundationsTokensObject,
@@ -55,56 +59,113 @@ export interface SystemState {
 	space: SpaceConfig
 	grid: GridConfig
 	foundations: FoundationsConfig
-	// Which layers came from a saved tool state vs. the default.
-	saved: { color: boolean; type: boolean; space: boolean; foundations: boolean }
 }
 
-const defaultPalette = (): { name: string; color: string }[] => {
+export const defaultPalette = (): { name: string; color: string }[] => {
 	const color = colorUtils.defaultColorForIndex(0)
 	return [{ name: colorUtils.nameFromHex(color), color }]
 }
 
-const readKey = (key: string): string | null => {
-	try {
-		return window.localStorage.getItem(key)
-	} catch {
-		return null
-	}
+// --- Combined URL-hash codec ---
+// The single page serializes every section into one hash of &-joined
+// segments: `#p=<palette>&t=<type>&s=<space+grid>&f=<foundations>`. Segment
+// keys match the old per-page prefixes, so a legacy single-tool link
+// (`#t=…`) parses as a one-segment hash. Segments whose encoding equals the
+// default are omitted to keep share links short. Segment values never
+// contain a raw '&': palette names are slugified, type stacks/URL are
+// URI-encoded, and the other segments are numeric.
+
+const SEGMENT_ORDER = ['p', 't', 's', 'f'] as const
+type SegmentKey = (typeof SEGMENT_ORDER)[number]
+
+const defaultEncoded = (): Record<SegmentKey, string> => ({
+	p: colorUtils.encodePalette(defaultPalette()),
+	t: encodeConfig(DEFAULT_TYPE_CONFIG),
+	s: encodeSpaceGrid(DEFAULT_SPACE, DEFAULT_GRID),
+	f: encodeFoundations(DEFAULT_FOUNDATIONS),
+})
+
+export const encodeSystemHash = (
+	encoded: Record<SegmentKey, string>
+): string => {
+	const defaults = defaultEncoded()
+	return SEGMENT_ORDER.filter((k) => encoded[k] !== defaults[k])
+		.map((k) => `${k}=${encoded[k]}`)
+		.join('&')
 }
 
-// Client-only: the latest saved state of every tool, defaults where a tool
-// has no autosave.
-export const readSystemState = (): SystemState => {
-	const paletteRaw = readKey(STORAGE_KEYS.palette)
-	const paletteEntries = paletteRaw ? colorUtils.decodePalette(paletteRaw) : []
-
-	const typeRaw = readKey(STORAGE_KEYS.type)
-	const type = (typeRaw && decodeConfig(typeRaw)) || DEFAULT_TYPE_CONFIG
-
-	const spaceRaw = readKey(STORAGE_KEYS.space)
-	const spaceGrid = spaceRaw ? decodeSpaceGrid(spaceRaw) : null
-
-	const foundationsRaw = readKey(STORAGE_KEYS.foundations)
-	const foundations =
-		(foundationsRaw && decodeFoundations(foundationsRaw)) ||
-		DEFAULT_FOUNDATIONS
-
-	return {
-		palette: paletteEntries.length > 0 ? paletteEntries : defaultPalette(),
-		type,
-		space: spaceGrid?.space ?? DEFAULT_SPACE,
-		grid: spaceGrid?.grid ?? DEFAULT_GRID,
-		foundations,
-		saved: {
-			color: paletteEntries.length > 0,
-			type: Boolean(typeRaw && decodeConfig(typeRaw)),
-			space: spaceGrid !== null,
-			foundations: Boolean(
-				foundationsRaw && decodeFoundations(foundationsRaw)
-			),
-		},
-	}
+// The decoded segments a hash carries (each optional — a segment is present
+// only when it decodes to something valid).
+export interface SystemHashParts {
+	palette?: { name: string; color: string }[]
+	type?: TypeScaleConfig
+	spaceGrid?: { space: SpaceConfig; grid: GridConfig }
+	foundations?: FoundationsConfig
 }
+
+export const decodeSystemHash = (encoded: string): SystemHashParts | null => {
+	const parts: SystemHashParts = {}
+	for (const segment of encoded.split('&')) {
+		const eq = segment.indexOf('=')
+		if (eq < 1) continue
+		const key = segment.slice(0, eq)
+		const value = segment.slice(eq + 1)
+		if (!value) continue
+		if (key === 'p') {
+			const entries = colorUtils.decodePalette(value)
+			if (entries.length > 0) parts.palette = entries
+		} else if (key === 't') {
+			const config = decodeConfig(value)
+			if (config) parts.type = config
+		} else if (key === 's') {
+			const spaceGrid = decodeSpaceGrid(value)
+			if (spaceGrid) parts.spaceGrid = spaceGrid
+		} else if (key === 'f') {
+			const config = decodeFoundations(value)
+			if (config) parts.foundations = config
+		}
+	}
+	return Object.keys(parts).length > 0 ? parts : null
+}
+
+// The previous session's autosave (each tool's localStorage key), decoded.
+// Segments equal to the default are dropped — only real user state counts,
+// so the restore banner never offers to "restore" the defaults. Client-only.
+export const readSavedSystem = (): SystemHashParts | null => {
+	const read = (key: string): string | null => {
+		try {
+			return window.localStorage.getItem(key)
+		} catch {
+			return null
+		}
+	}
+	const defaults = defaultEncoded()
+	const parts: SystemHashParts = {}
+
+	const palette = read(STORAGE_KEYS.palette)
+	if (palette && palette !== defaults.p) {
+		const entries = colorUtils.decodePalette(palette)
+		if (entries.length > 0) parts.palette = entries
+	}
+	const type = read(STORAGE_KEYS.type)
+	if (type && type !== defaults.t) {
+		const config = decodeConfig(type)
+		if (config) parts.type = config
+	}
+	const space = read(STORAGE_KEYS.space)
+	if (space && space !== defaults.s) {
+		const spaceGrid = decodeSpaceGrid(space)
+		if (spaceGrid) parts.spaceGrid = spaceGrid
+	}
+	const foundations = read(STORAGE_KEYS.foundations)
+	if (foundations && foundations !== defaults.f) {
+		const config = decodeFoundations(foundations)
+		if (config) parts.foundations = config
+	}
+	return Object.keys(parts).length > 0 ? parts : null
+}
+
+// --- Merged export builders ---
 
 const spaceParts = (state: SystemState) => {
 	const sizes = generateSpaceSizes(state.space)
@@ -112,6 +173,13 @@ const spaceParts = (state: SystemState) => {
 	const grid = computeGrid(state.grid)
 	const gutter = gutterClampFor(state.grid)
 	return { sizes, pairs, grid, gutter }
+}
+
+// @import must precede every other rule in a stylesheet, so the font imports
+// (Google Fonts / custom stylesheet) are hoisted above the merged sections.
+const importHeader = (state: SystemState): string[] => {
+	const imports = fontImports(state.type)
+	return imports.length > 0 ? [...imports, ''] : []
 }
 
 export const systemCss = (
@@ -122,6 +190,7 @@ export const systemCss = (
 	const data = colorUtils.paletteShadeData(state.palette)
 	const { sizes, pairs, grid, gutter } = spaceParts(state)
 	return [
+		...importHeader(state),
 		'/* ===== Color ===== */',
 		colorUtils.paletteCss(data, colorFormat, prefix),
 		'',
@@ -145,6 +214,7 @@ export const systemTailwind = (
 	const { sizes, pairs, grid, gutter } = spaceParts(state)
 	// Tailwind 4 merges repeated @theme blocks, so the sections stay readable.
 	return [
+		...importHeader(state),
 		'/* ===== Color ===== */',
 		colorUtils.paletteTailwind(data, colorFormat, prefix),
 		'',

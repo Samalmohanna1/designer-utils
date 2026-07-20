@@ -8,33 +8,41 @@ about architecture or conventions.
 
 ## What this is
 
-**Designer Utils** (MYOL Creative tools suite) — a small set of designer/dev
-tools, each its own route, linked by a shared top nav ([SiteNav](./src/components/SiteNav.astro)):
+**Designer Utils** (MYOL Creative tools suite) — a design-system-foundations
+builder that lives on **ONE page** (`/`). A sticky top nav
+([SiteNav](./src/components/SiteNav.astro)) jumps between the sections (JS
+`scrollIntoView`, never `#hash` navigation — the hash carries state), and one
+React island ([DesignSystemApp](./src/components/DesignSystemApp.tsx)) owns
+every section's state (see **Single-page architecture**):
 
-- **Color Scales** (`/`, the original tool) — build color scales, check WCAG
-  contrast, export code, copy swatches to Figma. The bulk of this doc.
-- **Type Scales** (`/type`) — a fluid type-scale calculator: set min/max
-  viewport, font size, and modular-scale ratio, preview every step, and copy a
-  `:root` block of `clamp()` custom properties. See the **Type Scale** entry.
-- **Space & Grid** (`/space`) — a fluid spacing scale (T-shirt sizes 3xs–3xl on
-  an 8pt grid by default, plus one-up pairs) and a matching column grid, both
-  interpolating between min/max viewport via `clamp()`. See the **Space & Grid**
-  entry.
-- **Foundations** (`/foundations`) — the remaining token layers: corner radii,
-  T-shirt-sized border widths, elevation shadows, and motion. (Font stacks
-  live with the Type tool.) See the **Foundations** entry.
-- **Export** (`/export`) — THE export surface for the whole suite: every
-  tool's latest saved state merged into one CSS / Tailwind 4 / Markdown /
-  DTCG file. The individual tools have no export blocks of their own. See
-  the **Unified system export** entry.
+- **Color Scales** (`#colors`, the original tool) — build color scales, check
+  WCAG contrast, copy swatches to Figma. The bulk of this doc.
+- **Type Scales** (`#type`) — font stacks first (system stacks, Google Fonts,
+  or a custom stylesheet URL), then a fluid type-scale calculator: font size
+  and modular-scale ratio at each shared viewport anchor, preview every step.
+  See the **Type Scale** entry.
+- **Space & Grid** (`#space`) — a fluid spacing scale (T-shirt sizes 3xs–3xl on
+  an 8pt grid by default, plus one-up pairs) and a matching column grid. See
+  the **Space & Grid** entry.
+- **Foundations** (`#foundations`) — the remaining token layers: corner radii,
+  T-shirt-sized border widths, elevation shadows (tint pickable from ANY shade
+  of the live palette), and motion. See the **Foundations** entry.
+- **Export** (`#export`) — THE export surface for the whole suite: every
+  section's LIVE state merged into one CSS / Tailwind 4 / Markdown / DTCG
+  file. See the **Unified system export** entry.
 
-The repo is still named "color-scale-generator"; the color tool is the primary
-surface and most of this file describes it. The site itself has a dark mode
-(see **Site dark mode**).
+A single **viewport range control** at the top of the page drives every fluid
+scale (type, space, grid) — see **Shared viewport**. The old per-tool routes
+(`/type`, `/space`, `/foundations`, `/export`) survive as redirect stubs that
+keep their OG cards and forward any legacy hash to `/?go=<section>#…`.
 
-### Color Scales tool
+The repo is still named "color-scale-generator"; the color section is the
+original tool and most of this file describes it. The site itself has a dark
+mode (see **Site dark mode**).
 
-What the color tool does, top to bottom on one page:
+### Color Scales section
+
+What the color section does, top to bottom:
 
 1. **Generate scales.** Enter one or more base hex colors; each expands into a
    10-step shade ramp (50–900). A fixed bottom bar can simulate color blindness
@@ -42,7 +50,7 @@ What the color tool does, top to bottom on one page:
 2. **Check contrast.** Every unique shade across every scale is paired against
    every other, and combinations meeting at least 3:1 are listed with their
    WCAG level (AAA / AA / AA Large), minimum text size, and a live preview.
-3. **Export.** Handled by the shared `/export` page (see **Unified system
+3. **Export.** Handled by the Export section (see **Unified system
    export**): **CSS + Dark Mode** (`:root` plus a `prefers-color-scheme:
    dark` block with the ramp inverted), **Tailwind 4.1** `@theme` tokens (in
    **hex / HSL / RGB**), a **Markdown style guide** (a Hex + HSL table per
@@ -50,10 +58,12 @@ What the color tool does, top to bottom on one page:
    2025.10) JSON** (color objects, Figma-importable), with one-click copy or
    download as a `.txt` file, and an optional variable prefix (see
    **Variable prefix**).
-4. **Share.** The palette lives in the URL hash (`#p=name:hex,…`), so editing
-   updates the link live and a shared link reopens the exact palette. Also
-   autosaved to `localStorage` (written, but not auto-restored — the URL or the
-   default wins on load). See the **Palette sharing** glossary entry.
+4. **Share.** The whole system lives in the URL hash
+   (`#p=<palette>&t=<type>&s=<space>&f=<foundations>`, default segments
+   omitted), so editing updates the link live and a shared link reopens the
+   exact state. Also autosaved to `localStorage` (written, but not
+   auto-restored — the URL or the default wins on load). See the **State
+   sharing** glossary entry.
 
 Deployed at <https://tools.myol-creative.com/>. There is no backend — it's a
 fully static Astro site with a client-rendered React island.
@@ -74,10 +84,10 @@ command — the doc update is **part of that change, not a follow-up**.
 
 - **Astro 5** static site (`output` default = static). Config in
   [astro.config.mjs](./astro.config.mjs).
-- **React 19** for interactivity, via `@astrojs/react`. Each tool is one React
-  island mounted with `client:load` from its `.astro` route ([index.astro](./src/pages/index.astro)
-  → `App`; [type.astro](./src/pages/type.astro) → `TypeScale`;
-  [space.astro](./src/pages/space.astro) → `SpaceScale`).
+- **React 19** for interactivity, via `@astrojs/react`. The whole suite is ONE
+  React island mounted with `client:load` from
+  [index.astro](./src/pages/index.astro) → `DesignSystemApp` (plus the small
+  `CvdBar` island in the layout).
 - **Tailwind CSS 4** via the `@tailwindcss/vite` plugin (no `tailwind.config`
   file — theme is defined in CSS with `@theme`, see
   [src/styles/global.css](./src/styles/global.css)).
@@ -96,42 +106,44 @@ No database, no auth, no API. All color math runs in the browser.
 ```
 src/
   pages/
-    index.astro           Color tool route. SiteNav + <App> + SiteFooter in the layout.
-    type.astro            Type Scale tool route. SiteNav + <TypeScale> + SiteFooter.
-    space.astro           Space & Grid tool route. SiteNav + <SpaceScale> + SiteFooter.
-    foundations.astro     Foundations tool route. SiteNav + <Foundations> + SiteFooter.
-    export.astro          The export route. SiteNav + <SystemExport> + SiteFooter.
+    index.astro           THE page: SiteNav + <DesignSystemApp> + SiteFooter.
+    type.astro            Redirect stub (kept for old links + its OG card) → /?go=type + legacy hash.
+    space.astro           Redirect stub → /?go=space.
+    foundations.astro     Redirect stub → /?go=foundations.
+    export.astro          Redirect stub → /?go=export.
   layouts/Layout.astro    HTML shell: meta/OG tags (per-page title/description/path/image), PostHog, bg pattern, CVD SVG filters + CvdBar.
   components/
-    SiteNav.astro         Shared top nav (Color Scales | Type Scales | Space & Grid | Foundations | Export); `active` marks the current item.
-    SiteFooter.astro      Shared footer (the author credit link), used by all routes.
-    App.tsx               Color-tool island. Owns colorScales state; composes the three sections + jump links + restore banner.
+    SiteNav.astro         Sticky top nav; items scroll to sections via JS (never #hash nav — the hash is state) + IntersectionObserver current-section highlight (aria-current).
+    SiteFooter.astro      Shared footer (the author credit link).
+    DesignSystemApp.tsx   THE island. Owns ALL state (scales/type/space/grid/foundations), the shared viewport control, the combined hash sync + per-key autosaves, the restore banner, and the /?go= scroll. Composes the five sections.
+    ColorSection.tsx      Color section (was App.tsx). Handlers over the passed-down setScales; exports ScaleState/defaultScales/scalesFromEntries.
     ColorInput.tsx        Hex text field + native color picker for one scale. Validates #RRGGBB.
     ShadeRamp.tsx         Renders the 10 swatches (50–900) for one base color (renamed from ColorScale.tsx — collided with the ColorScale type).
     ContrastChecker.tsx   Pick-a-background → legible-foregrounds cards; the whole grid copies as one SVG.
-    ExportBlock.tsx       The shared export panel (format select, scoped Prism highlight, Copy Code + Download .txt, optional prefix field). Rendered by SystemExport.
-    SystemExport.tsx      The /export island: reads every tool's autosave (readSystemState) and renders the one export block for the whole suite.
+    TypeSection.tsx       Type section (was TypeScale.tsx). Fonts FIRST (presets incl. Google Fonts + custom stylesheet URL, preview <link> management), then scale controls + preview (specimen renders in the chosen heading stack).
+    SpaceSection.tsx      Space & Grid section (was SpaceScale.tsx). Base sizes + size table + pairs + grid; no viewport fields (shared control).
+    FoundationsSection.tsx Foundations section (was Foundations.tsx). Radii/borders/elevation/motion; shadow tint pickable from every shade of the live palette prop.
+    ExportSection.tsx     Export section (was SystemExport.tsx). Renders the one ExportBlock from the LIVE SystemState prop — no localStorage indirection.
+    ExportBlock.tsx       The shared export panel (format select, scoped Prism highlight, Copy Code + Download .txt, optional prefix field).
+    Field.tsx             The shared labeled number input (was triplicated across sections).
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
-    TypeScale.tsx         Type-tool island. Owns the TypeScaleConfig (incl. font stacks); inputs, live preview, font-stack pickers.
-    SpaceScale.tsx        Space & Grid island. Owns SpaceConfig + GridConfig; size table + pairs + grid.
-    Foundations.tsx       Foundations island. Owns FoundationsConfig; radii/borders/elevation/motion sections.
   hooks/
-    useHashSync.ts        The shared URL-hash persistence pattern (mount read → hydrated gate → replaceState live-sync) + optional localStorage autosave. Used by all four islands.
+    useHashSync.ts        URL-hash persistence (mount read → hydrated gate → replaceState live-sync; decode owns URI-decoding) + useAutosave (write-on-change localStorage). Used by DesignSystemApp.
     useCopied.ts          Shared copied!-feedback state with the reset timer.
   utils/
     colorUtils.ts         All color math + shared types, the SVG-export builders, and the four color export formats (paletteShadeData/paletteCss/paletteTailwind/paletteMarkdown/paletteTokens). The one place color logic lives.
-    typeScale.ts          Fluid type-scale math + font stacks (FONT_STACKS presets, weights): step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round/withPrefix/remDimension (shared with the other engines).
+    typeScale.ts          Fluid type-scale math + font stacks (FONT_STACKS system presets, GOOGLE_FONTS, weights, fontCssUrl + fontImports/googleFontsUrl): step sizes + clamp() builder + named ratios + CSS/Tailwind/Tokens emitters. Exports clampFor/pxToRem/round/withPrefix/remDimension (shared with the other engines).
     spaceScale.ts         Fluid space + grid math: T-shirt sizes + one-up pairs + column/grid calc + CSS/Tailwind/Tokens emitters. Reuses typeScale's clampFor. The one place space/grid logic lives.
     foundations.ts        Radii/borders/elevation/motion math + CSS/Tailwind/Tokens emitters. The one place foundations logic lives.
-    systemExport.ts       The whole-system export: reads every tool's localStorage autosave (defaults as fallback) and merges into one CSS/Tailwind/DTCG file. Owns the STORAGE_KEYS.
-    clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by App + ContrastChecker.
+    systemExport.ts       The whole-system merge (CSS/Tailwind/Markdown/DTCG with hoisted font @imports) + the combined hash codec (encodeSystemHash/decodeSystemHash) + readSavedSystem for the restore banner. Owns the STORAGE_KEYS.
+    clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by ColorSection + ContrastChecker.
     download.ts           downloadText: saves a code snippet as a file via a Blob URL. Used by ExportBlock.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing) + the dark-mode token remap.
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
-public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png.
-tests/                    Playwright specs (smoke.spec.ts covers all four tools + nav).
+public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
+tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, and the legacy redirects).
 tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
@@ -177,8 +189,9 @@ Thresholds: **AAA ≥ 7**, **AA ≥ 4.5**, **AA Large ≥ 3.1**.
   surprising workaround. Don't explain WHAT the code does. No `TODO`s without an
   owner.
 - **Single responsibility.** One React component per file, default-exported.
-  Keep state ownership in `App.tsx`; child components stay presentational and
-  receive props.
+  Keep state ownership in `DesignSystemApp.tsx`; the section components stay
+  presentational-ish and receive their slice of state (plus a setter/onChange)
+  as props.
 - **Naming:** PascalCase components/types (and component file names, matching
   the existing files), camelCase functions/variables, SCREAMING_SNAKE for
   constants. Descriptive names; no obscure abbreviations.
@@ -213,8 +226,9 @@ Current dependencies and why:
 | `npm run preview` | Serve the built output locally. |
 | `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev`). |
 
-There is **no separate lint script.** Type checking comes from the strict
-`tsconfig` at build time; run `npm run build` to catch type errors.
+There is **no separate lint script.** Note `astro build` transpiles WITHOUT
+type-checking (esbuild strips types) — run `npx tsc --noEmit` for the strict
+check; both must pass before a change is complete.
 
 ---
 
@@ -310,7 +324,8 @@ the live page reflects the merged commit before calling anything fixed.
   multiple scales at once; each has a numeric `id`, a base `color`, and a
   `name`. The `name` is **auto-derived from the hue** (`colorUtils.nameFromHex`,
   e.g. blue) until the user edits it, after which it's left alone (tracked by
-  `nameEdited` in `App`'s local state, *not* on the shared `ColorScale` type).
+  `nameEdited` on `ColorSection`'s exported `ScaleState`, *not* on the shared
+  `ColorScale` type).
   **Array order is the export/contrast order** — up/down buttons reorder it.
   Scales can be bulk-created by pasting a hex list (`colorUtils.parseHexList`),
   and each scale's ramp can be copied as a labeled-swatch SVG
@@ -331,10 +346,9 @@ the live page reflects the merged commit before calling anything fixed.
 - **Slug** — the export-safe form of a scale's `name`
   (`colorUtils.slugify`), de-duped across scales by `colorUtils.uniqueSlugs`
   (collisions get `-2`, `-3`…). Exported variables are `--<slug>-<shade>`
-  (CSS / Tailwind 4). Both
-  [CodeBlock](./src/components/CodeBlock.tsx) and
-  [ContrastChecker](./src/components/ContrastChecker.tsx) labels go through
-  `uniqueSlugs` so naming stays consistent. (This replaced the old positional
+  (CSS / Tailwind 4). The export builders and
+  [ContrastChecker](./src/components/ContrastChecker.tsx) labels both go
+  through `uniqueSlugs` so naming stays consistent. (This replaced the old positional
   `color1`/`color2` naming.) The Markdown export uses the human `name`
   (capitalized) for section headings rather than the slug. When de-duping
   renames a scale, its name input shows the resolved slug (e.g. `blue-2`) while
@@ -365,9 +379,10 @@ the live page reflects the merged commit before calling anything fixed.
   Modes: `protanopia`, `deuteranopia`, `tritanopia`, `achromatopsia` — one active
   at a time; re-clicking the active one (or "Reset to full color") clears it.
   There's no "normal" option — that's just the unfiltered default.
-- **Format vs. color format** — *format* is the output syntax (`cssDark`,
-  `tailwind4`, `markdown`, `tokens`; `cssDark` is the default); *color format* is
-  the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in `CodeBlock`,
+- **Format vs. color format** — *format* is the output syntax (`css`,
+  `tailwind4`, `markdown`, `tokens`; `css` is the default); *color format* is
+  the value encoding (`hex`, `hsl`, `rgb`). Independent selectors in
+  `ExportSection`/`ExportBlock`,
   except the color format is hidden for the fixed-value formats (`markdown` →
   Hex + HSL table; `tokens` → a fixed DTCG color object). Those two build from
   raw-hex shade data, not the `convertColor` pipeline the code formats use.
@@ -377,7 +392,7 @@ the live page reflects the merged commit before calling anything fixed.
   components normalized 0..1 at 6 decimals), which is what Figma's native
   variables importer expects — a bare hex string is the old style and no longer
   imports. The Prism language switches
-  `css` / `markdown` / `json` by format (`cssDark`, `tailwind4` use `css`).
+  `css` / `markdown` / `json` by format (the CSS and Tailwind formats use `css`).
 - **Fluid values as tokens** — DTCG 2025.10 requires a `dimension` `$value` to
   be an **object**, `{ value: <number>, unit: 'px' | 'rem' }` — never a string.
   A `clamp()` therefore has no representation as a dimension token (one number,
@@ -403,51 +418,90 @@ the live page reflects the merged commit before calling anything fixed.
   `tailwind4` → `@theme { … }` plus a `.dark { … }` override (class-based dark
   variant); `markdown` → a **Dark** column in the per-color table; `tokens` →
   top-level `light` and `dark` groups, each `{ slug: { shade: { $type, $value } } }`.
-- **Palette sharing** — the palette serializes to `name:hex,…`
-  (`colorUtils.encodePalette` / `decodePalette`) and lives in the URL hash under
-  the `#p=` prefix, via the shared `useHashSync` hook (mount read → `hydrated`
-  ref gate → `replaceState` live-sync → `localStorage` autosave). A valid hash
-  wins over the default. **The hook writes nothing until the value actually
-  changes** (a `lastSynced` baseline seeded on mount): a mount-time
-  `replaceState` would abort an in-flight nav click, and the eager write used
-  to clobber the previous session's autosave — so a fresh page keeps a clean
-  URL until the first edit. The autosave is **not** auto-restored, but when a
-  previous session's save exists and the URL carries no palette, a banner
-  offers **"Restore your last palette?"** (the saved value is read in a lazy
-  initializer). Shared scales load with `nameEdited: false` (the shared name is
-  shown, but recoloring re-derives it from the hue until the recipient types
-  one — see `handleColorChange`). Malformed pairs are dropped; if nothing
-  valid decodes, the default loads. The same `useHashSync` pattern backs
-  `#t=` (type), `#s=` (space), and `#f=` (foundations), each with its own
-  autosave key (see `systemExport.STORAGE_KEYS`).
-- **Type Scale** — the second tool ([TypeScale](./src/components/TypeScale.tsx)
-  at `/type`). Math lives in [typeScale.ts](./src/utils/typeScale.ts) (the
-  engine, mirroring `colorUtils`): `generateTypeScale(config)` builds each step
+- **Single-page architecture** — the suite is ONE route (`/`) and ONE React
+  island ([DesignSystemApp](./src/components/DesignSystemApp.tsx)) that owns
+  every section's state and composes the five sections (`#colors`, `#type`,
+  `#space`, `#foundations`, `#export` — each a `scroll-mt-2xl` wrapper div).
+  The sticky [SiteNav](./src/components/SiteNav.astro) scrolls to sections
+  with JS (`scrollIntoView`) — NEVER by setting `location.hash`, which
+  carries the design-system state — and highlights the current section via
+  IntersectionObserver (`aria-current` + a scoped CSS rule). The old routes
+  (`/type`, `/space`, `/foundations`, `/export`) are redirect stubs
+  (`location.replace('/?go=<section>' + location.hash)`) that keep their OG
+  cards for old social shares; the island scrolls to `?go=` on mount and
+  strips the query.
+- **State sharing** — the whole system serializes into one URL hash of
+  &-joined segments, `#p=<palette>&t=<type>&s=<space>&f=<foundations>`
+  (`systemExport.encodeSystemHash`/`decodeSystemHash`; segment keys match the
+  old per-page prefixes so legacy single-tool links parse as one-segment
+  hashes; segments equal to the default encoding are omitted). Segment values
+  never contain a raw `&`: palette names are slugified, type stacks/URL are
+  URI-encoded, the rest are numeric — and `useHashSync` passes the raw hash
+  to `decode` (URI-decoding is the decoder's job, per segment). The palette
+  segment is `name:hex,…` (`colorUtils.encodePalette`/`decodePalette`). The
+  `useHashSync` hook does mount read → `hydrated` ref gate → `replaceState`
+  live-sync, and **writes nothing until the value actually changes** (a
+  `lastSynced` baseline seeded on mount): a mount-time `replaceState` would
+  abort an in-flight nav click — so a fresh page keeps a clean URL until the
+  first edit. Each section also autosaves under its own localStorage key
+  (`useAutosave` + `systemExport.STORAGE_KEYS`, same write-on-change
+  semantics); the autosave is **not** auto-restored, but when a previous
+  session's save differs from the defaults and the URL carries no state, a
+  banner offers to restore the whole system (`readSavedSystem`, read in a
+  lazy initializer). Shared scales load with `nameEdited: false` (the shared
+  name is shown, but recoloring re-derives it from the hue until the
+  recipient types one). Malformed segments are dropped; if nothing valid
+  decodes, the defaults load.
+- **Type Scale** — the type section
+  ([TypeSection](./src/components/TypeSection.tsx) at `#type`). Math lives in
+  [typeScale.ts](./src/utils/typeScale.ts) (the engine, mirroring
+  `colorUtils`): `generateTypeScale(config)` builds each step
   (`size = fontSize × ratio^step` at each viewport), `toCss` emits the `:root`
   block of `--step-N: clamp(...)` custom properties, and `clampFor` builds the
   Utopia-style `clamp(min, intercept + slopeVw, max)` (slope/intercept of the
   line through the two viewport anchors; px→rem at 16px). `NAMED_RATIOS` /
-  `ratioName` back the modular-scale picker (Minor Third, etc.). The island owns
-  a `TypeScaleConfig` (min/max viewport, font size, ratio; steps up/down) and a
+  `ratioName` back the modular-scale picker (Minor Third, etc.). The section
+  is controlled (`TypeScaleConfig` + onChange from `DesignSystemApp`; the
+  viewport anchors come from the **shared viewport** control) and has a
   preview-viewport slider that renders each step at its interpolated px size
-  (`sizeAtViewport`). The slider's draggable handle is a device icon
-  (`deviceForWidth`: mobile <768, tablet <1024, laptop ≥1024) — a transparent
-  native range input over a custom thick track, with the icon overlaid at the
-  value position (so it stays accessible/keyboard-operable). Output matches
-  utopia.fyi for the same inputs; the default viewport is 320–1440, matching
-  the space tool. **The tool also owns the font stacks** (heading/body/mono,
-  picked from `FONT_STACKS` — curated modernfontstacks.com system stacks,
-  zero-download — or free text, plus fixed regular/medium/bold weights);
-  typography belongs with the type scale. Engine emitters (consumed by the
-  Export page): `toCss` (`--step-N` clamps + `--font-*` stacks/weights),
-  `toTailwind` (`--text-step-N` + `--font-*` utilities), `typeTokensObject`
-  (DTCG `font-size` dimensions under `min`/`max` — see **Fluid values as
-  tokens** — plus a static `font` group of `fontFamily`/`fontWeight`). The
-  config serializes to `#t=` (`encodeConfig` / `decodeConfig`: eight
-  comma-joined numbers, then the three URI-encoded stacks pipe-appended;
-  numbers-only legacy links still decode with default stacks).
-- **Space & Grid** — the third tool ([SpaceScale](./src/components/SpaceScale.tsx)
-  at `/space`). Math lives in [spaceScale.ts](./src/utils/spaceScale.ts), which
+  (`sizeAtViewport`) **in the chosen heading stack**. The slider's draggable
+  handle is a device icon (`deviceForWidth`: mobile <768, tablet <1024,
+  laptop ≥1024) — a transparent native range input over a custom thick track,
+  with the icon overlaid at the value position (so it stays
+  accessible/keyboard-operable). Output matches utopia.fyi for the same
+  inputs. **Fonts come FIRST** (pick families before sizing them):
+  heading/body/mono stacks picked from `FONT_STACKS` (curated
+  modernfontstacks.com system stacks, zero-download), `GOOGLE_FONTS` (a
+  curated list; the preset select groups the two), or free text — plus fixed
+  regular/medium/bold weights and an optional **custom font stylesheet URL**
+  (`fontCssUrl`) for self-hosted fonts. Google families in use (detected by a
+  stack's LEADING family, `googleFamiliesIn`) and the custom URL are loaded
+  as `<link>` tags for the live preview (`syncStylesheet`) and emitted as
+  `@import` lines in the CSS/Tailwind exports (`fontImports`, hoisted to the
+  top of the merged file — `@import` must precede all other rules); DTCG has
+  no URL representation, so tokens carry only the `fontFamily` arrays. Engine
+  emitters (consumed by the Export section): `toCss` (`--step-N` clamps +
+  `--font-*` stacks/weights), `toTailwind` (`--text-step-N` + `--font-*`
+  utilities), `typeTokensObject` (DTCG `font-size` dimensions under
+  `min`/`max` — see **Fluid values as tokens** — plus a static `font` group
+  of `fontFamily`/`fontWeight`). The config serializes to the `t=` segment
+  (`encodeConfig` / `decodeConfig`: eight comma-joined numbers, then the
+  three URI-encoded stacks and the URL pipe-appended; numbers-only and
+  three-stack legacy links still decode with defaults for the missing
+  parts).
+- **Shared viewport** — ONE viewport range control (min/max, at the top of
+  the page) drives every fluid scale. The anchors still live inside
+  `TypeScaleConfig`, `SpaceConfig`, and `GridConfig` (the engines and the
+  serialized segments need them there) but are only ever written together by
+  `DesignSystemApp.setViewport`, so they can't drift. On hash/autosave load,
+  `snapshotFromParts` unifies them (a type segment's anchors win, then
+  space's) — a legacy single-tool link therefore sets the viewport for the
+  whole page. The type/space sections show the current anchors in their
+  legends/labels (`At max viewport (1440px)`, `Base size @max (1440px)`) but
+  have no viewport inputs of their own.
+- **Space & Grid** — the space section
+  ([SpaceSection](./src/components/SpaceSection.tsx) at `#space`). Math lives
+  in [spaceScale.ts](./src/utils/spaceScale.ts), which
   **reuses `typeScale`'s `clampFor`/`pxToRem`/`round`** so all the fluid math is
   in one place. **Sizes:** `SPACE_SIZES` is the T-shirt ladder (3xs–3xl) with
   multipliers 0.25–6; `generateSpaceSizes` = `base × multiplier`, fluid between
@@ -458,46 +512,50 @@ the live page reflects the merged commit before calling anything fixed.
   gutters) / cols` (one gutter of inline padding each side + between columns);
   `computeGrid` returns the `@min`/`@max` container/gutter/column, with optional
   `@min`-column rounding (up/down). `gutterClampFor` is the fluid gutter.
-  **Engine emitters** (consumed by the Export page): `toCss` → `--space-*` +
-  the grid `:root` plus `.u-container`/`.u-grid`; `toTailwind` → `@theme`
-  with `--spacing-*`; `spaceTokensObject` → DTCG under `space`/`grid` groups,
-  see **Fluid values as tokens**. Preview swatches/bars use the blue-500
-  token (not Utopia's pink); size rows show px and rem. The config serializes
-  to `#s=` (`encodeSpaceGrid`/`decodeSpaceGrid`, ten numbers) with the same
-  hash-sync pattern. Output matches utopia.fyi for the same inputs.
+  **Engine emitters** (consumed by the Export section): `toCss` → `--space-*`
+  + the grid `:root` plus `.u-container`/`.u-grid` (all prefix-aware);
+  `toTailwind` → `@theme` with `--spacing-*`; `spaceTokensObject` → DTCG
+  under `space`/`grid` groups, see **Fluid values as tokens**. Preview
+  swatches/bars use the blue-500 token (not Utopia's pink); size rows show px
+  and rem. The config serializes to the `s=` segment
+  (`encodeSpaceGrid`/`decodeSpaceGrid`, ten numbers). Output matches
+  utopia.fyi for the same inputs.
 
-- **Foundations** — the fourth tool ([Foundations](./src/components/Foundations.tsx)
-  at `/foundations`). Math lives in [foundations.ts](./src/utils/foundations.ts)
-  (the engine, mirroring the others). Four sections, each with controls +
+- **Foundations** — the foundations section
+  ([FoundationsSection](./src/components/FoundationsSection.tsx) at
+  `#foundations`). Math lives in [foundations.ts](./src/utils/foundations.ts)
+  (the engine, mirroring the others). Four sub-sections, each with controls +
   live preview: **corner radii** (`none/sm/md/lg/xl/full` multipliers off a
   base, `full` = 9999px), **border widths** (a T-shirt ladder off a base —
   `BORDER_LADDER` `s/m/l/xl/2xl/3xl/4xl` — with a `borderSteps` control for
   how many sizes the system ships), **elevation** (5 levels, each a key +
   ambient shadow pair; fixed geometry, opacity scaled by an intensity control
-  and a shadow color pickable from the saved palette's 500/900 shades or a
-  native picker; the dark variant raises opacity ×1.8 — shadows need more
-  contrast on dark surfaces — previewed on fixed `preview-*` light/dark
-  panels), and **motion** (fast/base/slow durations +
+  and a shadow color pickable from **EVERY shade of every live scale** (the
+  `palette` prop from `DesignSystemApp` — one swatch row per scale, all 10
+  shades, plus black and a native picker); the dark variant raises opacity
+  ×1.8 — shadows need more contrast on dark surfaces — previewed on fixed
+  `preview-*` light/dark panels), and **motion** (fast/base/slow durations +
   standard/decelerate/accelerate cubic-bezier easings, laid out as three
   cards with replayable previews). Engine emitters (consumed by the Export
-  page): `toCss` (`:root` plus a dark elevation override), `toTailwind`
+  section): `toCss` (`:root` plus a dark elevation override), `toTailwind`
   (`@theme` using real TW4 namespaces — `--radius-*`, `--shadow-*`,
   `--ease-*` — plus a `.dark` elevation block), `foundationsTokensObject`
   (DTCG: px dimensions, `shadow` composites under `light`/`dark`,
-  `duration`/`cubicBezier`). Config serializes to `#f=`
+  `duration`/`cubicBezier`). Config serializes to the `f=` segment
   (`encodeFoundations`/`decodeFoundations`, eight pipe-separated parts; the
   legacy 10-part format that carried font stacks still decodes).
-- **Unified system export** — THE export surface, its own nav destination at
-  `/export` ([SystemExport.tsx](./src/components/SystemExport.tsx) over
-  [systemExport.ts](./src/utils/systemExport.ts)); the tools themselves have
-  no export blocks. Merges every tool's **latest saved state** (each
-  island's `useHashSync` autosave, read via `STORAGE_KEYS`; defaults where a
-  tool was never opened) into one CSS block, Tailwind `@theme`, Markdown
-  style guide (colors only), or DTCG file
-  (`systemCss`/`systemTailwind`/`systemMarkdown`/`systemTokens`). The code
-  formats take the hex/HSL/RGB color-format selector. **Token mode
-  strategy:** top-level `light`/`dark` groups hold the theme-dependent
-  layers (color, elevation), top-level `min`/`max` hold the
+- **Unified system export** — THE export surface, the last section
+  ([ExportSection.tsx](./src/components/ExportSection.tsx) over
+  [systemExport.ts](./src/utils/systemExport.ts)); no other section has an
+  export block. Merges the **live state of every section** (the `SystemState`
+  prop from `DesignSystemApp` — no localStorage indirection; edits above show
+  up instantly) into one CSS block, Tailwind `@theme`, Markdown style guide
+  (colors only), or DTCG file
+  (`systemCss`/`systemTailwind`/`systemMarkdown`/`systemTokens`; the CSS and
+  Tailwind builders hoist the type engine's font `@import`s to the top of
+  the file). The code formats take the hex/HSL/RGB color-format selector.
+  **Token mode strategy:** top-level `light`/`dark` groups hold the
+  theme-dependent layers (color, elevation), top-level `min`/`max` hold the
   viewport-dependent layers (font-size, space, grid), and the static layers
   (radius, border, font, motion) sit at the top level — each top-level group
   imports as a Figma collection/mode. `mergeGroups` deep-merges the
@@ -529,13 +587,13 @@ the live page reflects the merged commit before calling anything fixed.
 
 - Do NOT add features, services, or dependencies not asked for. No color
   libraries — the math is intentionally hand-written in `colorUtils.ts`.
-- Keep all color/contrast logic in `colorUtils.ts`; keep components
-  presentational with state owned by `App.tsx`.
+- Keep all color/contrast logic in `colorUtils.ts`; keep section components
+  presentational with state owned by `DesignSystemApp.tsx`.
 - Use existing `@theme` tokens; add to `@theme` before hardcoding values. No
   `tailwind.config` file.
 - Always create a new branch; never work on `main`.
-- Run `npm run build` (type check) and `npx playwright test` before calling a
-  change complete.
+- Run `npm run build`, `npx tsc --noEmit` (the build does NOT type-check), and
+  `npx playwright test` before calling a change complete.
 - **Never start, restart, or kill the user's dev server** (and never
   `taskkill node.exe`) to take screenshots or for any other reason, unless the
   user asks or grants permission. The user runs their own dev server — rely on

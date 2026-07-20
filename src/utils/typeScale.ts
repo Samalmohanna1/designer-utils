@@ -17,6 +17,9 @@ export interface TypeScaleConfig {
 	headingStack: string
 	bodyStack: string
 	monoStack: string
+	// Optional stylesheet URL for self-hosted/custom fonts ('' = none). Loaded
+	// for the live preview and emitted as an @import in the CSS exports.
+	fontCssUrl: string
 }
 
 // Curated system stacks (modernfontstacks.com) — OS-native families that
@@ -61,6 +64,81 @@ export const FONT_STACKS: { label: string; value: string }[] = [
 	},
 ]
 
+// Curated Google Fonts (loaded from fonts.googleapis.com only while previewed
+// or via the emitted @import — unlike the system stacks these download). Each
+// stack leads with the Google family and falls back to a system family.
+export const GOOGLE_FONTS: {
+	label: string
+	family: string
+	value: string
+}[] = [
+	{ label: 'Inter', family: 'Inter', value: "'Inter', system-ui, sans-serif" },
+	{ label: 'Roboto', family: 'Roboto', value: "'Roboto', system-ui, sans-serif" },
+	{ label: 'Open Sans', family: 'Open Sans', value: "'Open Sans', system-ui, sans-serif" },
+	{ label: 'Lato', family: 'Lato', value: "'Lato', system-ui, sans-serif" },
+	{ label: 'Montserrat', family: 'Montserrat', value: "'Montserrat', Avenir, system-ui, sans-serif" },
+	{ label: 'Poppins', family: 'Poppins', value: "'Poppins', system-ui, sans-serif" },
+	{ label: 'Nunito', family: 'Nunito', value: "'Nunito', system-ui, sans-serif" },
+	{ label: 'Work Sans', family: 'Work Sans', value: "'Work Sans', system-ui, sans-serif" },
+	{ label: 'DM Sans', family: 'DM Sans', value: "'DM Sans', system-ui, sans-serif" },
+	{ label: 'Space Grotesk', family: 'Space Grotesk', value: "'Space Grotesk', system-ui, sans-serif" },
+	{ label: 'Playfair Display', family: 'Playfair Display', value: "'Playfair Display', 'Iowan Old Style', serif" },
+	{ label: 'Merriweather', family: 'Merriweather', value: "'Merriweather', Charter, serif" },
+	{ label: 'Lora', family: 'Lora', value: "'Lora', Charter, serif" },
+	{ label: 'Source Serif 4', family: 'Source Serif 4', value: "'Source Serif 4', Charter, serif" },
+	{ label: 'JetBrains Mono', family: 'JetBrains Mono', value: "'JetBrains Mono', ui-monospace, monospace" },
+	{ label: 'Fira Code', family: 'Fira Code', value: "'Fira Code', ui-monospace, monospace" },
+	{ label: 'IBM Plex Mono', family: 'IBM Plex Mono', value: "'IBM Plex Mono', ui-monospace, monospace" },
+	{ label: 'Space Mono', family: 'Space Mono', value: "'Space Mono', ui-monospace, monospace" },
+]
+
+// The Google families a set of stacks actually uses (a stack counts when its
+// LEADING family is a curated Google family), deduped in stack order.
+export const googleFamiliesIn = (stacks: string[]): string[] => {
+	const families: string[] = []
+	for (const stack of stacks) {
+		const lead = stackToFamilies(stack)[0]
+		if (!lead) continue
+		const match = GOOGLE_FONTS.find((g) => g.family === lead)
+		if (match && !families.includes(match.family)) {
+			families.push(match.family)
+		}
+	}
+	return families
+}
+
+// The css2 stylesheet URL for a set of families at the system's three weights.
+export const googleFontsUrl = (families: string[]): string => {
+	const params = families
+		.map(
+			(f) =>
+				`family=${encodeURIComponent(f).replace(/%20/g, '+')}:wght@${FONT_WEIGHTS.map((w) => w.value).join(';')}`
+		)
+		.join('&')
+	return `https://fonts.googleapis.com/css2?${params}&display=swap`
+}
+
+export const isHttpUrl = (raw: string): boolean => /^https?:\/\//i.test(raw)
+
+// @import lines the config needs (Google Fonts and/or the custom stylesheet).
+// @import is only valid before any other rule, so the system export hoists
+// these to the very top of the merged file.
+export const fontImports = (config: TypeScaleConfig): string[] => {
+	const imports: string[] = []
+	const families = googleFamiliesIn([
+		config.headingStack,
+		config.bodyStack,
+		config.monoStack,
+	])
+	if (families.length > 0) {
+		imports.push(`@import url('${googleFontsUrl(families)}');`)
+	}
+	if (isHttpUrl(config.fontCssUrl)) {
+		imports.push(`@import url('${config.fontCssUrl}');`)
+	}
+	return imports
+}
+
 export const FONT_WEIGHTS: { label: string; value: number }[] = [
 	{ label: 'regular', value: 400 },
 	{ label: 'medium', value: 500 },
@@ -90,6 +168,7 @@ export const DEFAULT_TYPE_CONFIG: TypeScaleConfig = {
 	headingStack: 'system-ui, sans-serif',
 	bodyStack: 'system-ui, sans-serif',
 	monoStack: "ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace",
+	fontCssUrl: '',
 }
 
 export interface TypeStep {
@@ -313,10 +392,11 @@ export const sizeAtViewport = (
 }
 
 // --- Shareable config serialization ---
-// Eight comma-joined numbers, then the three URI-encoded font stacks joined
-// by '|' (stacks contain commas): `320,1440,18,20,1.2,1.25,5,2|h|b|m`.
-// Links from before the stacks existed (numbers only) still decode — stacks
-// fall back to the defaults. Round-trips through encode/decode.
+// Eight comma-joined numbers, then the three URI-encoded font stacks and the
+// custom stylesheet URL joined by '|' (stacks contain commas):
+// `320,1440,18,20,1.2,1.25,5,2|h|b|m|url`. Links from before the stacks
+// existed (numbers only) or before the URL (three stack parts) still decode —
+// missing parts fall back to the defaults. Round-trips through encode/decode.
 
 const CONFIG_ORDER = [
 	'minViewport',
@@ -335,6 +415,7 @@ export const encodeConfig = (config: TypeScaleConfig): string =>
 		encodeURIComponent(config.headingStack),
 		encodeURIComponent(config.bodyStack),
 		encodeURIComponent(config.monoStack),
+		encodeURIComponent(config.fontCssUrl),
 	].join('|')
 
 // Parses the encoded string back into a config. Returns null if the numeric
@@ -360,13 +441,14 @@ export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
 		stepsDown,
 	] = parts
 	const stack = (i: number, fallback: string): string => {
-		if (stackParts.length !== 3 || !stackParts[i]) return fallback
+		if (stackParts.length < 3 || !stackParts[i]) return fallback
 		try {
 			return decodeURIComponent(stackParts[i])
 		} catch {
 			return fallback
 		}
 	}
+	const url = stack(3, '')
 	return {
 		minViewport,
 		maxViewport,
@@ -379,5 +461,6 @@ export const decodeConfig = (encoded: string): TypeScaleConfig | null => {
 		headingStack: stack(0, DEFAULT_TYPE_CONFIG.headingStack),
 		bodyStack: stack(1, DEFAULT_TYPE_CONFIG.bodyStack),
 		monoStack: stack(2, DEFAULT_TYPE_CONFIG.monoStack),
+		fontCssUrl: isHttpUrl(url) ? url : '',
 	}
 }
