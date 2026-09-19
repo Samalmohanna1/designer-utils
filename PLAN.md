@@ -28,8 +28,8 @@ legacy per-tool links redirect with their state). Still wanted:
       endpoints, distinct shades for near-white/near-black bases, contrast
       thresholds at 3.1 / 4.5 / 7, hex↔RGB↔HSL) and
       [typeScale.ts](./src/utils/typeScale.ts) (clamp matches Utopia).
-- [ ] Remove or ignore the `tests-examples/` demo so it isn't mistaken for real tests.
-- [ ] `npx playwright test` passes.
+- [x] Remove or ignore the `tests-examples/` demo so it isn't mistaken for real tests.
+- [x] `npx playwright test` passes.
 
 ### 3. Generate a palette from an image
 

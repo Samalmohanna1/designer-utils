@@ -144,7 +144,6 @@ src/
   assets/                 SVGs used by the build.
 public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
 tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, and the legacy redirects).
-tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
 **`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
@@ -198,7 +197,7 @@ Thresholds: **AAA ≥ 7**, **AA ≥ 4.5**, **AA Large ≥ 3.1**.
 - **No dead code.** No commented-out blocks or scaffolding for unagreed
   features. Prefer deletion over deprecation.
 - **No emojis in code or commit messages** unless explicitly asked. (The
-  decorative emoji *entities* in `App.tsx`/`index.astro` headings are existing
+  decorative emoji *entities* in the section components' headings are existing
   user-facing copy — leave them unless asked to change the copy.)
 
 ## Dependency policy
@@ -237,11 +236,9 @@ check; both must pass before a change is complete.
 - **Playwright e2e** under [tests/](./tests/), configured in
   [playwright.config.ts](./playwright.config.ts). The config starts the dev
   server automatically and runs chromium/firefox/webkit.
-- **`tests-examples/` is Playwright's generated demo** — not part of the real
-  suite. Don't extend it.
-- Note the existing `tests/example.spec.ts` is **scaffolding** (a "get started"
-  assertion that doesn't match this app's UI). When adding real coverage,
-  replace it rather than building on it, and assert on actual behavior — scale
+- [tests/smoke.spec.ts](./tests/smoke.spec.ts) is the suite: every section,
+  the nav, the shared viewport, exports, and the legacy redirects. Extend it
+  (or add sibling specs) with assertions on actual behavior — scale
   generation, the contrast table, format switching, copy-to-clipboard.
 - **Test feature behavior, not just that the page loads.** For color math,
   cover `colorUtils` directly (shade ramp endpoints, contrast thresholds at
@@ -265,7 +262,7 @@ check; both must pass before a change is complete.
   own chrome. Verify pairs; don't eyeball them.
 - **Accessibility beyond contrast:** semantic HTML first, ARIA only when needed.
   Every form control has a label (note `ColorInput` uses an `sr-only` label and
-  the selects in `CodeBlock` use `htmlFor`). Keyboard navigation and visible
+  the selects in `ExportBlock` use `htmlFor`). Keyboard navigation and visible
   focus on every interactive element; the contrast table is scrollable via
   `tabIndex`.
 - **Mobile-first / responsive.** Layout already switches at `sm:`/`md:`
