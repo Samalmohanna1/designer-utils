@@ -78,7 +78,11 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
+    /* --ignore-lock keeps this harness-owned server independent of Astro 7's
+       managed dev server (its .astro/dev.json lock) and, crucially, in the
+       foreground: astro dev otherwise daemonizes itself when it detects an
+       AI-agent environment, and Playwright then sees the process exit early. */
+    command: 'npm run dev -- --ignore-lock',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
   },

@@ -124,7 +124,7 @@ npm run dev      # dev server at http://localhost:4321
 
 ## 🛠 Built with
 
--   **Astro 5** — static site generation
+-   **Astro 7** — static site generation (Node 22.12+)
 -   **React 19** — the interactive island (`client:load`)
 -   **TypeScript** — strict throughout
 -   **Tailwind CSS 4** — CSS-first theming (no `tailwind.config`)

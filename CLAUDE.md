@@ -82,8 +82,11 @@ command — the doc update is **part of that change, not a follow-up**.
 
 ## Stack & architecture
 
-- **Astro 5** static site (`output` default = static). Config in
-  [astro.config.mjs](./astro.config.mjs).
+- **Astro 7** static site (`output` default = static; Node ≥ 22.12). Config in
+  [astro.config.mjs](./astro.config.mjs). Astro 7's default `compressHTML:
+  'jsx'` strips whitespace that contains a newline between inline elements in
+  `.astro` markup — keep text and an adjacent `<a>`/`<em>` on one line with an
+  explicit space (see the redirect stubs); React components are unaffected.
 - **React 19** for interactivity, via `@astrojs/react`. The whole suite is ONE
   React island mounted with `client:load` from
   [index.astro](./src/pages/index.astro) → `DesignSystemApp` (plus the small
@@ -97,7 +100,8 @@ command — the doc update is **part of that change, not a follow-up**.
   [src/layouts/Layout.astro](./src/layouts/Layout.astro).
 - **Playwright** for end-to-end tests, run in CI via GitHub Actions.
 - **TypeScript** throughout (`astro/tsconfigs/strict` — see
-  [tsconfig.json](./tsconfig.json)).
+  [tsconfig.json](./tsconfig.json)); `typescript` is an explicit devDependency
+  because `npx tsc --noEmit` is part of the completion checklist.
 
 No database, no auth, no API. All color math runs in the browser.
 
@@ -213,6 +217,8 @@ Current dependencies and why:
 - `prismjs` (`@types/prismjs`) — syntax highlighting in the export block.
 - `posthog-js` — product analytics.
 - `@playwright/test` — end-to-end tests.
+- `typescript` — the strict type check (`npx tsc --noEmit`); Astro no longer
+  pulls it in transitively.
 
 ---
 
@@ -223,11 +229,17 @@ Current dependencies and why:
 | `npm run dev` | Start Astro dev server at `http://localhost:4321`. |
 | `npm run build` | Static production build. |
 | `npm run preview` | Serve the built output locally. |
-| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev`). |
+| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev -- --ignore-lock`, or reuses a server already on 4321). |
 
 There is **no separate lint script.** Note `astro build` transpiles WITHOUT
 type-checking (esbuild strips types) — run `npx tsc --noEmit` for the strict
 check; both must pass before a change is complete.
+
+Astro 7's `astro dev` is a **managed server**: it writes a lock file
+(`.astro/dev.json`) and, when it detects an AI-agent environment, daemonizes
+itself (`astro dev status` / `logs` / `stop`). That is why the Playwright
+`webServer` command passes `--ignore-lock` — it keeps the harness-owned server
+in the foreground and independent of any dev server the user is running.
 
 ---
 
