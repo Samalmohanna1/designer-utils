@@ -82,8 +82,11 @@ command — the doc update is **part of that change, not a follow-up**.
 
 ## Stack & architecture
 
-- **Astro 5** static site (`output` default = static). Config in
-  [astro.config.mjs](./astro.config.mjs).
+- **Astro 7** static site (`output` default = static; Node ≥ 22.12). Config in
+  [astro.config.mjs](./astro.config.mjs). Astro 7's default `compressHTML:
+  'jsx'` strips whitespace that contains a newline between inline elements in
+  `.astro` markup — keep text and an adjacent `<a>`/`<em>` on one line with an
+  explicit space (see the redirect stubs); React components are unaffected.
 - **React 19** for interactivity, via `@astrojs/react`. The whole suite is ONE
   React island mounted with `client:load` from
   [index.astro](./src/pages/index.astro) → `DesignSystemApp` (plus the small
@@ -97,7 +100,8 @@ command — the doc update is **part of that change, not a follow-up**.
   [src/layouts/Layout.astro](./src/layouts/Layout.astro).
 - **Playwright** for end-to-end tests, run in CI via GitHub Actions.
 - **TypeScript** throughout (`astro/tsconfigs/strict` — see
-  [tsconfig.json](./tsconfig.json)).
+  [tsconfig.json](./tsconfig.json)); `typescript` is an explicit devDependency
+  because `npx tsc --noEmit` is part of the completion checklist.
 
 No database, no auth, no API. All color math runs in the browser.
 
@@ -144,7 +148,6 @@ src/
   assets/                 SVGs used by the build.
 public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
 tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, and the legacy redirects).
-tests-examples/           Playwright's generated demo spec (not part of the suite).
 ```
 
 **`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
@@ -198,7 +201,7 @@ Thresholds: **AAA ≥ 7**, **AA ≥ 4.5**, **AA Large ≥ 3.1**.
 - **No dead code.** No commented-out blocks or scaffolding for unagreed
   features. Prefer deletion over deprecation.
 - **No emojis in code or commit messages** unless explicitly asked. (The
-  decorative emoji *entities* in `App.tsx`/`index.astro` headings are existing
+  decorative emoji *entities* in the section components' headings are existing
   user-facing copy — leave them unless asked to change the copy.)
 
 ## Dependency policy
@@ -214,6 +217,8 @@ Current dependencies and why:
 - `prismjs` (`@types/prismjs`) — syntax highlighting in the export block.
 - `posthog-js` — product analytics.
 - `@playwright/test` — end-to-end tests.
+- `typescript` — the strict type check (`npx tsc --noEmit`); Astro no longer
+  pulls it in transitively.
 
 ---
 
@@ -224,11 +229,17 @@ Current dependencies and why:
 | `npm run dev` | Start Astro dev server at `http://localhost:4321`. |
 | `npm run build` | Static production build. |
 | `npm run preview` | Serve the built output locally. |
-| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev`). |
+| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev -- --ignore-lock`, or reuses a server already on 4321). |
 
 There is **no separate lint script.** Note `astro build` transpiles WITHOUT
 type-checking (esbuild strips types) — run `npx tsc --noEmit` for the strict
 check; both must pass before a change is complete.
+
+Astro 7's `astro dev` is a **managed server**: it writes a lock file
+(`.astro/dev.json`) and, when it detects an AI-agent environment, daemonizes
+itself (`astro dev status` / `logs` / `stop`). That is why the Playwright
+`webServer` command passes `--ignore-lock` — it keeps the harness-owned server
+in the foreground and independent of any dev server the user is running.
 
 ---
 
@@ -237,11 +248,9 @@ check; both must pass before a change is complete.
 - **Playwright e2e** under [tests/](./tests/), configured in
   [playwright.config.ts](./playwright.config.ts). The config starts the dev
   server automatically and runs chromium/firefox/webkit.
-- **`tests-examples/` is Playwright's generated demo** — not part of the real
-  suite. Don't extend it.
-- Note the existing `tests/example.spec.ts` is **scaffolding** (a "get started"
-  assertion that doesn't match this app's UI). When adding real coverage,
-  replace it rather than building on it, and assert on actual behavior — scale
+- [tests/smoke.spec.ts](./tests/smoke.spec.ts) is the suite: every section,
+  the nav, the shared viewport, exports, and the legacy redirects. Extend it
+  (or add sibling specs) with assertions on actual behavior — scale
   generation, the contrast table, format switching, copy-to-clipboard.
 - **Test feature behavior, not just that the page loads.** For color math,
   cover `colorUtils` directly (shade ramp endpoints, contrast thresholds at
@@ -265,7 +274,7 @@ check; both must pass before a change is complete.
   own chrome. Verify pairs; don't eyeball them.
 - **Accessibility beyond contrast:** semantic HTML first, ARIA only when needed.
   Every form control has a label (note `ColorInput` uses an `sr-only` label and
-  the selects in `CodeBlock` use `htmlFor`). Keyboard navigation and visible
+  the selects in `ExportBlock` use `htmlFor`). Keyboard navigation and visible
   focus on every interactive element; the contrast table is scrollable via
   `tabIndex`.
 - **Mobile-first / responsive.** Layout already switches at `sm:`/`md:`
