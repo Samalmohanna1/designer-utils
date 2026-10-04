@@ -8,7 +8,7 @@
 // `min`/`max` hold the viewport-dependent layers (font-size, space, grid),
 // and the static layers (radius, border, font, motion) sit at the top level.
 
-import { colorUtils, type ColorValueFormat } from './colorUtils'
+import { colorUtils, type ColorValueFormat } from './colorUtils.ts'
 import {
 	DEFAULT_TYPE_CONFIG,
 	decodeConfig,
@@ -19,7 +19,7 @@ import {
 	toTailwind as typeTailwind,
 	typeTokensObject,
 	type TypeScaleConfig,
-} from './typeScale'
+} from './typeScale.ts'
 import {
 	DEFAULT_SPACE,
 	DEFAULT_GRID,
@@ -34,7 +34,7 @@ import {
 	spaceTokensObject,
 	type SpaceConfig,
 	type GridConfig,
-} from './spaceScale'
+} from './spaceScale.ts'
 import {
 	DEFAULT_FOUNDATIONS,
 	decodeFoundations,
@@ -43,7 +43,7 @@ import {
 	toTailwind as foundationsTailwind,
 	foundationsTokensObject,
 	type FoundationsConfig,
-} from './foundations'
+} from './foundations.ts'
 
 export const STORAGE_KEYS = {
 	// The color key predates the suite naming; kept for existing autosaves.

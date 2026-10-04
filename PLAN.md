@@ -12,24 +12,32 @@ item before starting it; mark items done here as they ship.
 
 **Status:** in progress · **Type:** `test`
 
-The scaffolding `example.spec.ts` was replaced with real smoke tests
-([tests/smoke.spec.ts](./tests/smoke.spec.ts): the single page carries every
-section, the sticky nav jumps without touching the hash, the shared viewport
-drives type + space live in the export, Google Fonts load, foundations offer
-every palette shade for shadows, the merged CSS/DTCG exports are correct, and
-legacy per-tool links redirect with their state). Still wanted:
+Two suites now: [tests/smoke.spec.ts](./tests/smoke.spec.ts) in Playwright
+(the single page carries every section, the sticky nav jumps without touching
+the hash, the shared viewport drives type + space live in the export, Google
+Fonts load, foundations tint each mode independently, the Figma-ready token
+files are one per mode, no horizontal scroll at any breakpoint, and legacy
+per-tool links redirect with their state), and [tests/unit/](./tests/unit/)
+on Node's built-in runner for the engines. Still wanted:
 
 - [ ] Deeper color-tool specs: add/remove a scale, contrast tiers labeled
       correctly, format + color-format switching changes the snippet, copy
       (text export + SVG copy).
 - [ ] Type-tool specs: changing ratio/viewport/size updates the clamps; steps
       up/down change the count.
-- [ ] Unit coverage of [colorUtils.ts](./src/utils/colorUtils.ts) (shade-ramp
-      endpoints, distinct shades for near-white/near-black bases, contrast
-      thresholds at 3.1 / 4.5 / 7, hex↔RGB↔HSL) and
-      [typeScale.ts](./src/utils/typeScale.ts) (clamp matches Utopia).
+- [ ] Component-level coverage: the sections are still only reached through
+      the browser suite (state ownership in `DesignSystemApp`, the restore
+      banner, `useHashSync`'s write-on-change gate).
+- [x] Unit coverage of the engines — `colorUtils` (ramp endpoints, near-white
+      distinctness, contrast tiers at 3.1 / 4.5 / 7, hex↔RGB round trips,
+      slug de-duping, palette codec), `typeScale` (clamp matches Utopia,
+      ratio stepping, viewport interpolation, config codec), `spaceScale`
+      (4/8pt ramp, grid column math, rounding), `foundations` (per-mode
+      tints, the 1.8x dark boost, the 8/9/10-part hash matrix, the paste
+      SVG), and `systemExport` (per-mode files, px/s/font conversions,
+      dropped unsupported types, prefix nesting, hash round-trips).
 - [x] Remove or ignore the `tests-examples/` demo so it isn't mistaken for real tests.
-- [x] `npx playwright test` passes.
+- [x] `npm test` passes (unit + e2e), and CI runs both plus `tsc --noEmit`.
 
 ### 3. Generate a palette from an image
 

@@ -147,7 +147,9 @@ src/
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
 public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
-tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, the Figma-ready token files, no-horizontal-scroll at each breakpoint, and the legacy redirects).
+tests/
+  smoke.spec.ts           Playwright specs: every section, the nav, the shared viewport, the Figma-ready token files, no-horizontal-scroll at each breakpoint, and the legacy redirects.
+  unit/*.test.ts          Engine unit tests on `node --test` — one file per src/utils engine.
 ```
 
 **`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
@@ -229,7 +231,9 @@ Current dependencies and why:
 | `npm run dev` | Start Astro dev server at `http://localhost:4321`. |
 | `npm run build` | Static production build. |
 | `npm run preview` | Serve the built output locally. |
-| `npx playwright test` | Run the Playwright e2e suite (auto-starts `npm run dev -- --ignore-lock`, or reuses a server already on 4321). |
+| `npm test` | Unit tests then e2e. |
+| `npm run test:unit` | Engine unit tests on Node's built-in runner (no browser, ~0.2s). |
+| `npm run test:e2e` | The Playwright suite (auto-starts `npm run dev -- --ignore-lock`, or reuses a server already on 4321). |
 
 There is **no separate lint script.** Note `astro build` transpiles WITHOUT
 type-checking (esbuild strips types) — run `npx tsc --noEmit` for the strict
@@ -245,6 +249,18 @@ in the foreground and independent of any dev server the user is running.
 
 ## Testing
 
+- **Two suites, two runners.** `tests/unit/*.test.ts` are engine unit tests on
+  Node's built-in runner (`node --test`); `tests/*.spec.ts` are Playwright
+  browser specs. Playwright's `testMatch` is pinned to `**/*.spec.ts` so it
+  never tries to run the unit files. **Adding a test runner as a dependency
+  isn't necessary** — Node strips the TypeScript itself. That is also why the
+  engines import each other with explicit `.ts` extensions
+  (`allowImportingTsExtensions` in [tsconfig.json](./tsconfig.json)): without
+  them Node can't resolve the imports, though Vite/Astro are fine either way.
+- **Unit-test the engines, not the components.** The math and the codecs live
+  in `src/utils/*` as pure functions — test them directly there (ramp
+  endpoints, contrast tiers, hash round-trips and their legacy formats, the
+  Figma token shaping) rather than driving a browser to reach them.
 - **Playwright e2e** under [tests/](./tests/), configured in
   [playwright.config.ts](./playwright.config.ts). The config starts the dev
   server automatically and runs chromium/firefox/webkit.
@@ -637,7 +653,7 @@ the live page reflects the merged commit before calling anything fixed.
   `tailwind.config` file.
 - Always create a new branch; never work on `main`.
 - Run `npm run build`, `npx tsc --noEmit` (the build does NOT type-check), and
-  `npx playwright test` before calling a change complete.
+  `npm test` (unit + e2e) before calling a change complete.
 - **Never start, restart, or kill the user's dev server** (and never
   `taskkill node.exe`) to take screenshots or for any other reason, unless the
   user asks or grants permission. The user runs their own dev server — rely on

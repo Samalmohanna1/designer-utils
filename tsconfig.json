@@ -9,6 +9,10 @@
   ],
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "react"
+    "jsxImportSource": "react",
+    // The engines import each other with explicit .ts extensions so `node
+    // --test` can resolve them directly — that's what lets the unit suite run
+    // on Node's built-in runner instead of a test-runner dependency.
+    "allowImportingTsExtensions": true
   }
 }

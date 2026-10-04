@@ -4,8 +4,8 @@
 // no DOM; the one place foundations logic lives (mirrors colorUtils /
 // typeScale / spaceScale).
 
-import { colorUtils } from './colorUtils'
-import { withPrefix } from './typeScale'
+import { colorUtils } from './colorUtils.ts'
+import { withPrefix } from './typeScale.ts'
 
 export interface FoundationsConfig {
 	radiusBase: number // px — the `md` radius; the ladder scales off it

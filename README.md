@@ -128,7 +128,9 @@ npm run dev      # dev server at http://localhost:4321
 | `npm run build` | Static production build. |
 | `npm run preview` | Serve the built output locally. |
 | `npx tsc --noEmit` | Strict type check (the build alone doesn't type-check). |
-| `npx playwright test` | Run the end-to-end test suite. |
+| `npm test` | Unit tests, then the end-to-end suite. |
+| `npm run test:unit` | Engine unit tests only (Node's built-in runner, no browser). |
+| `npm run test:e2e` | End-to-end suite only (Playwright). |
 
 ## 🛠 Built with
 
