@@ -142,7 +142,7 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 						aria-live='polite'
 						className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
 							copied
-								? 'bg-green-200 text-green-800'
+								? 'bg-success-soft text-success'
 								: 'bg-cream-200 text-black-400 hover:bg-accent hover:text-accent-ink'
 						}`}
 					>

@@ -146,7 +146,7 @@ const ExportSection: React.FC<{ system: SystemState }> = ({ system }) => {
 							title='Copy elevation and easings as an SVG to paste into Figma'
 							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
 								svgCopied
-									? 'bg-green-200 text-green-800'
+									? 'bg-success-soft text-success'
 									: 'bg-cream-200 text-black-400 hover:bg-accent hover:text-accent-ink'
 							}`}
 						>
