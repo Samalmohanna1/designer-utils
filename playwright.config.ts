@@ -13,6 +13,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Only the browser specs. tests/unit holds *.test.ts files for Node's own
+     runner (npm run test:unit), which Playwright's default pattern would
+     otherwise pick up and fail on. */
+  testMatch: '**/*.spec.ts',
   /* Three browsers share one dev server that transforms modules on demand;
      the 5s default expect timeout flakes under that first-load contention. */
   expect: { timeout: 10_000 },

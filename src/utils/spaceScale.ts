@@ -10,7 +10,7 @@ import {
 	round,
 	withPrefix,
 	type DimensionToken,
-} from './typeScale'
+} from './typeScale.ts'
 
 export interface SpaceConfig {
 	minViewport: number // px
