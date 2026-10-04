@@ -32,6 +32,22 @@ test('one page carries every section', async ({ page }) => {
 	await expect(page.locator('.hex-code')).toHaveCount(10)
 })
 
+// The shade ramp has a ~649px floor (10 swatches at min-w-16), so it and the
+// scale row only go single-line at lg; at sm they overflowed the page.
+test('no horizontal scroll at any breakpoint', async ({ page }) => {
+	await page.goto(BASE)
+	await awaitHydrated(page)
+	for (const width of [390, 640, 768, 1024, 1440]) {
+		await page.setViewportSize({ width, height: 1000 })
+		const overflow = await page.evaluate(
+			() =>
+				document.documentElement.scrollWidth -
+				document.documentElement.clientWidth
+		)
+		expect(overflow, `horizontal overflow at ${width}px`).toBe(0)
+	}
+})
+
 test('sticky nav jumps to sections without touching the hash', async ({
 	page,
 }) => {

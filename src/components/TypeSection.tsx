@@ -457,7 +457,12 @@ const TypeSection: React.FC<{
 
 				<ul className='space-y-2xs'>
 					{steps.map((s) => {
-						const px = sizeAtViewport(s, preview, config)
+						// Rounded once here: the raw interpolation carries float
+						// noise (52.91245812499999), which lands in the inline
+						// style and makes the server and client markup differ.
+						const px = Number(
+							sizeAtViewport(s, preview, config).toFixed(2)
+						)
 						return (
 							<li
 								key={s.step}

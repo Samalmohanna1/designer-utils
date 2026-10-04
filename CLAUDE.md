@@ -141,19 +141,19 @@ src/
     foundations.ts        Radii/borders/elevation/motion math + CSS/Tailwind/Tokens emitters. The one place foundations logic lives.
     systemExport.ts       The whole-system merge (CSS/Tailwind/Markdown/DTCG with hoisted font @imports) + the combined hash codec (encodeSystemHash/decodeSystemHash) + readSavedSystem for the restore banner. Owns the STORAGE_KEYS.
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by ColorSection + ContrastChecker.
-    download.ts           downloadText: saves a code snippet as a file via a Blob URL. Used by ExportBlock.
+    download.ts           downloadAll/downloadText: saves snippets as files via Blob URLs (staggered, so a multi-file token export isn't dropped). Used by ExportBlock.
   styles/
     global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing) + the dark-mode token remap.
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
 public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
-tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, and the legacy redirects).
+tests/                    Playwright specs (smoke.spec.ts covers every section, the nav, the shared viewport, the Figma-ready token files, no-horizontal-scroll at each breakpoint, and the legacy redirects).
 ```
 
 **`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
 conversion, and WCAG luminance/contrast all live there as a single exported
-`colorUtils` object, plus the shared `ColorScale` / `ColorInfo` /
-`ColorCombination` types. Add new color logic here, not inline in components.
+`colorUtils` object, plus the shared `ColorScale` / `ColorInfo` types. Add new
+color logic here, not inline in components.
 
 #### How shades are generated
 
