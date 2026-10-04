@@ -172,7 +172,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 									aria-pressed={isSelected}
 									aria-label={`${colorLabel(c)}, ${c.hex}`}
 									title={`${colorLabel(c)} · ${c.hex}`}
-									className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+									className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-600 ${
 										isSelected
 											? 'border-black-500 ring-2 ring-black-500 scale-110'
 											: 'border-black-100'

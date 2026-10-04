@@ -307,7 +307,7 @@ const ColorSection: React.FC<{
 				<div className='mt-s flex flex-wrap gap-xs'>
 					<button
 						onClick={addColorScale}
-						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
+						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-accent hover:text-accent-ink font-roboto-condensed flex items-center justify-center'
 					>
 						<span className='inline-block mr-2xs'>
 							<svg
@@ -350,7 +350,7 @@ const ColorSection: React.FC<{
 							disabled={
 								colorUtils.parseHexList(bulkText).length === 0
 							}
-							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
+							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-accent hover:text-accent-ink font-roboto-condensed text-step--2 disabled:opacity-40'
 						>
 							Add{' '}
 							{colorUtils.parseHexList(bulkText).length || ''}{' '}

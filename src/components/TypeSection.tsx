@@ -81,7 +81,7 @@ const RatioField: React.FC<{
 					const v = parseFloat(e.target.value)
 					if (!Number.isNaN(v)) onChange(v)
 				}}
-				className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--1 tabular-nums focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--1 tabular-nums focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 			/>
 			<select
 				aria-label={`${label} named ratio`}
@@ -90,7 +90,7 @@ const RatioField: React.FC<{
 					const v = parseFloat(e.target.value)
 					if (!Number.isNaN(v)) onChange(v)
 				}}
-				className='w-full rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+				className='w-full rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 			>
 				<option value=''>{name || 'Custom'}</option>
 				{NAMED_RATIOS.map((r) => (
@@ -129,7 +129,7 @@ const StackField: React.FC<{
 					onChange={(e) => {
 						if (e.target.value) onChange(e.target.value)
 					}}
-					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+					className='rounded-sm border border-black-100 bg-cream-50 px-2xs py-3xs text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 				>
 					<option value=''>{preset ? preset.label : 'Custom'}</option>
 					<optgroup label='System stacks (no download)'>
@@ -152,7 +152,7 @@ const StackField: React.FC<{
 					type='text'
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
-					className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+					className='h-9 w-full rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 				/>
 			</div>
 			<p
@@ -228,7 +228,7 @@ const TypeSection: React.FC<{
 				Pick your font families first, then set a font size and
 				modular-scale ratio at each viewport anchor. Every step fluidly
 				interpolates with a CSS{' '}
-				<code className='font-Ubuntu-mono-bold'>clamp()</code>.
+				<code className='font-bold'>clamp()</code>.
 			</p>
 
 			{/* Font stacks — chosen before the scale is sized. */}
@@ -270,7 +270,7 @@ const TypeSection: React.FC<{
 						value={config.fontCssUrl}
 						onChange={(e) => set('fontCssUrl', e.target.value.trim())}
 						placeholder='https://your-cdn.com/fonts.css'
-						className='h-9 w-full max-w-xl rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+						className='h-9 w-full max-w-xl rounded-sm border border-black-100 bg-cream-50 px-2xs text-step--2 font-mono focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 					/>
 					<p className='text-step--2 text-black-300 max-w-prose'>
 						Hosting your own fonts? Paste the stylesheet URL that
@@ -395,7 +395,7 @@ const TypeSection: React.FC<{
 								{/* thick track */}
 								<div className='pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-black-100'>
 									<div
-										className='h-full rounded-full bg-yellow-500'
+										className='h-full rounded-full bg-accent'
 										style={{ width: `${pct}%` }}
 									/>
 								</div>

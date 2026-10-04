@@ -47,7 +47,7 @@ const SpaceSection: React.FC<{
 				A fluid spacing scale (T-shirt sizes on an 8pt grid by default)
 				and a matching layout grid, each interpolating between the shared
 				viewport anchors with a CSS{' '}
-				<code className='font-Ubuntu-mono-bold'>clamp()</code>.
+				<code className='font-bold'>clamp()</code>.
 			</p>
 
 			{/* Space inputs */}

@@ -99,7 +99,7 @@ const FoundationsSection: React.FC<{
 				aria-pressed={selected}
 				aria-label={`${m.label} shadow color ${s.label}, ${s.hex}`}
 				title={`${s.label} · ${s.hex}`}
-				className={`w-6 h-6 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+				className={`w-6 h-6 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-600 ${
 					selected
 						? 'border-black-500 ring-2 ring-black-500 scale-110'
 						: 'border-black-100'

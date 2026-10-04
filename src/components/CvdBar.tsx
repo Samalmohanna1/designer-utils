@@ -55,7 +55,7 @@ const CvdBar = () => {
 								title={`${label} (${hint})`}
 								className={`px-xs py-3xs rounded-sm text-step--2 font-roboto-condensed border transition-colors ${
 									isActive
-										? 'bg-yellow-500 text-black-500 border-yellow-500'
+										? 'bg-accent text-accent-ink border-accent'
 										: 'border-black-300 hover:bg-black-400'
 								}`}
 							>

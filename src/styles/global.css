@@ -5,8 +5,10 @@
 @theme {
   --breakpoint-3xl: 1920px;
 
-  --font-Ubuntu-mono-regular: UbuntuMono-Regular, monospace;
-  --font-Ubuntu-mono-bold: UbuntuMono-Bold, monospace;
+  /* One family, two weights (see the @font-face block). Overriding Tailwind's
+     --font-mono points the `font-mono` utility at our face too, instead of
+     the system stack it defaults to. */
+  --font-mono: UbuntuMono, ui-monospace, monospace;
   --font-roboto-condensed: RobotoCondensed, sans-serif;
 
   /* Colors */
@@ -30,6 +32,16 @@
   --color-blue-700: #205A91;
   --color-blue-800: #003D6E;
   --color-blue-900: #002242;
+
+  /* The interaction accent: the yellow highlight behind a hovered or active
+     control, with the ink that sits on it. Both are STATIC — this pair is the
+     brand's one fixed signature (it's the favicon's yellow on its black), and
+     pinning it keeps the highlight reading as a highlight in both schemes.
+     Letting it ride the flipping yellow-500/black-500 tokens collapsed the
+     hovered Copy Code / Download buttons to 3:1 in dark mode. The yellow-*
+     ramp below is still the ramp — badges and fills use it. */
+  --color-accent: #FFDA47;
+  --color-accent-ink: #060404;
 
   /* Destructive action (the remove-color hover pair). */
   --color-red-50: #FDF4F4;
@@ -145,23 +157,29 @@
   animation-play-state: paused;
 }
 
+/* Ubuntu Mono ships as two STATIC files, so each face is declared at the one
+   weight it actually contains, under a shared family name. Declaring a static
+   face as `100 900` tells the browser it covers the whole range, which
+   suppresses synthetic bolding — `font-bold` then rendered the Regular file at
+   regular weight. */
 @font-face {
   font-display: swap;
-  font-family: 'UbuntuMono-Regular';
-  font-weight: 100 900;
+  font-family: 'UbuntuMono';
+  font-weight: 400;
   src: url(/fonts/UbuntuMono-Regular.ttf);
 }
 
 @font-face {
   font-display: swap;
-  font-family: 'UbuntuMono-Bold';
-  font-weight: 100 900;
+  font-family: 'UbuntuMono';
+  font-weight: 700;
   src: url(/fonts/UbuntuMono-Bold.ttf);
 }
 
+/* RobotoCondensed.ttf is a real variable font, so the range is accurate. */
 @font-face {
   font-display: swap;
-  font-family: "RobotoCondensed";
+  font-family: 'RobotoCondensed';
   font-weight: 100 900;
   src: url(/fonts/RobotoCondensed.ttf);
 }
@@ -171,7 +189,7 @@ body {
   transition:
     color 0.5s,
     background-color 0.5s;
-  font-family: UbuntuMono-Regular, monospace;
+  font-family: UbuntuMono, ui-monospace, monospace;
   font-size: 18px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
