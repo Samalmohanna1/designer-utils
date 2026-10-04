@@ -20,8 +20,11 @@ const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 		setTimeout(() => setCopied(null), 1200)
 	}
 
+	// Ten swatches at min-w-16 need ~649px, so the ramp only goes single-line
+	// once the row itself does (lg) — below that it wraps rather than pushing
+	// the page into a horizontal scroll.
 	return (
-		<div className='flex flex-wrap sm:flex-nowrap gap-px grow self-stretch'>
+		<div className='flex flex-wrap lg:flex-nowrap gap-px grow self-stretch'>
 			{shades.map((hexCode, index) => {
 				const isCopied = copied === hexCode
 				const textColor = colorUtils.readableTextColor(hexCode)
@@ -33,7 +36,7 @@ const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 						aria-label={`Copy ${hexCode}`}
 						title={`Copy ${hexCode}`}
 						style={{ backgroundColor: hexCode, color: textColor }}
-						className='group relative flex-1 min-w-[64px] min-h-16 rounded-sm border border-black-100/40 flex flex-col justify-between p-3xs text-step--2 leading-tight cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-black-500'
+						className='group relative flex-1 min-w-16 min-h-16 rounded-sm border border-black-100/40 flex flex-col justify-between p-3xs text-step--2 leading-tight cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 hover:ring-2 hover:ring-black-500'
 					>
 						<span className='font-bold text-left'>
 							{colorUtils.shadeNumbers[index]}

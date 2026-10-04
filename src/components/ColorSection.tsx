@@ -210,9 +210,9 @@ const ColorSection: React.FC<{
 				{scales.map((scale, index) => (
 					<div
 						key={scale.id}
-						className='py-2xs flex flex-col sm:flex-row sm:items-stretch gap-2xs'
+						className='py-2xs flex flex-col lg:flex-row lg:items-stretch gap-2xs'
 					>
-						<div className='flex sm:flex-col gap-3xs shrink-0'>
+						<div className='flex lg:flex-col gap-3xs shrink-0'>
 							<ColorInput
 								color={scale.color}
 								name={scale.name}

@@ -26,15 +26,6 @@ export interface PaletteShadeData {
     shades: ShadeDatum[]
 }
 
-export interface ColorCombination {
-    color1: ColorInfo
-    color2: ColorInfo
-    contrast: number
-    meetsAA: boolean
-    meetsAAA: boolean
-    meetsAALarge: boolean
-}
-
 export const colorUtils = {
     shadeNumbers: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const,
 
