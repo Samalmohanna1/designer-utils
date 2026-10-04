@@ -55,9 +55,9 @@ What the color section does, top to bottom:
    dark` block with the ramp inverted), **Tailwind 4.1** `@theme` tokens (in
    **hex / HSL / RGB**), a **Markdown style guide** (a Hex + HSL table per
    color with WCAG text-on-white/black notes), or **W3C Design Tokens (DTCG
-   2025.10) JSON** (color objects, Figma-importable), with one-click copy or
-   download as a `.txt` file, and an optional variable prefix (see
-   **Variable prefix**).
+   2025.10) JSON** (shaped for Figma's variable importer — one `.json` per
+   mode, see **Figma-ready token files**), with one-click copy or download,
+   and an optional variable prefix (see **Variable prefix**).
 4. **Share.** The whole system lives in the URL hash
    (`#p=<palette>&t=<type>&s=<space>&f=<foundations>`, default segments
    omitted), so editing updates the link live and a shared link reopens the
@@ -128,7 +128,7 @@ src/
     SpaceSection.tsx      Space & Grid section (was SpaceScale.tsx). Base sizes + size table + pairs + grid; no viewport fields (shared control).
     FoundationsSection.tsx Foundations section (was Foundations.tsx). Radii/borders/elevation/motion; shadow tint pickable from every shade of the live palette prop.
     ExportSection.tsx     Export section (was SystemExport.tsx). Renders the one ExportBlock from the LIVE SystemState prop — no localStorage indirection.
-    ExportBlock.tsx       The shared export panel (format select, scoped Prism highlight, Copy Code + Download .txt, optional prefix field).
+    ExportBlock.tsx       The shared export panel (format select, scoped Prism highlight, Copy Code + Download, optional prefix field, plus `notice`/`actions` slots the tokens format fills). Controls share CONTROL_CLASS so the selects and the prefix input line up.
     Field.tsx             The shared labeled number input (was triplicated across sections).
     CvdBar.tsx            Fixed bottom bar; toggles a page-wide color-blindness SVG filter.
   hooks/
@@ -407,19 +407,46 @@ the live page reflects the merged commit before calling anything fixed.
   A `clamp()` therefore has no representation as a dimension token (one number,
   one unit), and Figma variables have no viewport concept to bind it to either.
   So the Type and Space tools' `toTokens` flatten each fluid value to its two
-  viewport anchors under top-level **`min`** and **`max`** groups, which import
-  as Figma modes — deliberately mirroring the color tool's `light`/`dark`
-  groups. `typeScale.remDimension(px)` (+ the `DimensionToken` type) builds the
+  viewport anchors under top-level **`min`** and **`max`** groups — mirroring
+  the color tool's `light`/`dark` groups — which `systemTokenFiles` then
+  splits into one file per Figma mode (see **Figma-ready token files**).
+  `typeScale.remDimension(px)` (+ the `DimensionToken` type) builds the
   object and is shared by both engines; `grid.columns` stays `$type: 'number'`,
   which is already spec-valid. The `clamp()` strings live only in the CSS and
   Tailwind formats, which is where they're actually consumable.
-- **Snippet download** — the export block pairs **Copy Code** with
-  **Download .txt**, which saves the exact snippet on screen via
-  `download.ts`'s `downloadText` (a Blob URL + synthetic `<a download>`; no
-  backend). Filenames are `design-system-<format>.txt`. The `.txt` extension
-  is deliberate per issue #46 — note Figma's *native* variables importer and
-  most token plugins filter their file picker to `.json`, so a `.txt` token
-  export may need renaming before import.
+- **Figma-ready token files** — Figma imports **one JSON file per variable
+  mode** ("Import mode" on a mode column), so a single merged file can only
+  ever land as nested groups inside one mode. `systemExport.systemTokenFiles`
+  therefore splits the merged tree by top-level group into one file each:
+  `light` / `dark` (Color), `min` / `max` (Scale), and everything left over —
+  radius, border, font, motion, or the prefix group wrapping them — as
+  `static` (Base). `systemTokensBundle` joins them for the on-screen preview
+  with `// ===== <file> =====` separators, so the preview is deliberately
+  **not** valid JSON on its own; each file is.
+  The importer also takes only part of DTCG, so `figmaReady` reshapes the
+  tree before splitting: `dimension` rem → **px** (×16), `duration` ms →
+  **s**, `fontFamily` array → **the leading family only**. Figma has no
+  variable type for `shadow` or `cubicBezier` (`FIGMA_UNSUPPORTED`), so those
+  are dropped, along with any group left empty by the pruning. The CSS and
+  Tailwind formats keep the rem/ms/full-stack values — this shaping is for
+  the token format alone, which is documented as the Figma-targeted one.
+  What's dropped is carried into Figma by **Copy for Figma** instead
+  (`foundations.foundationsToSvg` → `clipboard.copySvg`): the five elevation
+  levels per mode drawn on their own surface with the shadows as stacked
+  `<feDropShadow>` primitives (Figma imports those as drop-shadow effects, so
+  "Create style from selection" makes a matching effect style), plus the
+  three easing curves plotted with their `cubic-bezier()` values. Layers are
+  `id`-named to match the tokens (`elevation-3-dark`, `ease-standard`).
+- **Snippet download** — the export block pairs **Copy Code** with a
+  **Download** button driven by a `files` prop (`download.ts`'s
+  `DownloadFile[]`; a Blob URL + synthetic `<a download>`, no backend). The
+  CSS / Tailwind / Markdown formats pass one `design-system-<format>.txt`;
+  `tokens` passes the whole per-mode set and the button reads **Download N
+  files** (`downloadAll` staggers them — browsers drop downloads fired in a
+  tight loop, and Chrome asks once to allow multiple). Token files are
+  `.json` with an `application/json` blob type, because Figma's importer
+  filters its file picker to `.json` (this reverses the earlier `.txt`-only
+  decision from issue #46, which predated the Figma-targeted shaping).
 - **Dark mode in exports** — the dark ramp is the light ramp **mirrored**
   (`colorUtils.mirrorHexes` — 50↔900, 100↔800, …), so light tints become dark
   and vice versa, keeping hue/chroma. Where each format puts it: `cssDark` →
@@ -566,17 +593,18 @@ the live page reflects the merged commit before calling anything fixed.
   export block. Merges the **live state of every section** (the `SystemState`
   prop from `DesignSystemApp` — no localStorage indirection; edits above show
   up instantly) into one CSS block, Tailwind `@theme`, Markdown style guide
-  (colors only), or DTCG file
-  (`systemCss`/`systemTailwind`/`systemMarkdown`/`systemTokens`; the CSS and
-  Tailwind builders hoist the type engine's font `@import`s to the top of
+  (colors only), or a set of DTCG files
+  (`systemCss`/`systemTailwind`/`systemMarkdown`/`systemTokenFiles`; the CSS
+  and Tailwind builders hoist the type engine's font `@import`s to the top of
   the file). The code formats take the hex/HSL/RGB color-format selector.
-  **Token mode strategy:** top-level `light`/`dark` groups hold the
-  theme-dependent layers (color, elevation), top-level `min`/`max` hold the
-  viewport-dependent layers (font-size, space, grid), and the static layers
-  (radius, border, font, motion) sit at the top level — each top-level group
-  imports as a Figma collection/mode. `mergeGroups` deep-merges the
-  per-engine token objects so e.g. color's `light` and elevation's `light`
-  share one group (and prefix groups merge instead of clobbering).
+  **Token mode strategy:** `mergeGroups` deep-merges the per-engine token
+  objects one group level deep, so e.g. color's `light` and elevation's
+  `light` share one group (and prefix groups merge instead of clobbering).
+  Top-level `light`/`dark` hold the theme-dependent layers, `min`/`max` the
+  viewport-dependent ones, and the static layers (radius, border, font,
+  motion) sit alongside them — then `systemTokenFiles` splits that tree into
+  one file per Figma mode, because the importer takes one file at a time (see
+  **Figma-ready token files**).
 - **Variable prefix** — the export block has an optional prefix field
   (sanitized slug-safe in `ExportBlock`). CSS/Tailwind prepend it to the
   variable namespace (`--brand-blue-500`, `--text-brand-step-0`,

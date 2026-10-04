@@ -259,14 +259,153 @@ const mergeGroups = (
 	return out
 }
 
-export const systemTokens = (state: SystemState, prefix = ''): string => {
+const systemTokenTree = (
+	state: SystemState,
+	prefix: string
+): Record<string, unknown> => {
 	const data = colorUtils.paletteShadeData(state.palette)
 	const { sizes, pairs, grid } = spaceParts(state)
-	const merged = mergeGroups(
+	return mergeGroups(
 		colorUtils.paletteTokensObject(data, prefix),
 		typeTokensObject(generateTypeScale(state.type), state.type, prefix),
 		spaceTokensObject(sizes, pairs, grid, prefix),
 		foundationsTokensObject(state.foundations, prefix)
 	)
-	return JSON.stringify(merged, null, 2)
 }
+
+// --- Figma variable import ---
+// Figma's importer takes only part of DTCG, so the token files are shaped for
+// it rather than emitted verbatim (the CSS/Tailwind exports keep the rem/ms/
+// stack values). Three value rules — dimensions in px, durations in seconds,
+// fontFamily a single name, not an array — plus two token types it has no
+// variable for at all. Those are dropped here and carried into Figma as
+// pasteable layers instead (foundations.foundationsToSvg).
+export const FIGMA_UNSUPPORTED = [
+	{ type: 'shadow', label: 'Elevation shadows', carrier: 'effect styles' },
+	{ type: 'cubicBezier', label: 'Easing curves', carrier: 'documentation' },
+] as const
+
+const UNSUPPORTED_TYPES: readonly string[] = FIGMA_UNSUPPORTED.map(
+	(u) => u.type
+)
+
+const roundTo = (n: number, places = 3): number =>
+	Math.round(n * 10 ** places) / 10 ** places
+
+const isToken = (n: unknown): n is Record<string, unknown> =>
+	!!n && typeof n === 'object' && '$type' in (n as Record<string, unknown>)
+
+// Reshapes one token for Figma, or returns null when Figma has no variable
+// type for it. Values the importer already accepts pass through untouched.
+const figmaToken = (
+	token: Record<string, unknown>
+): Record<string, unknown> | null => {
+	const type = token.$type
+	if (typeof type === 'string' && UNSUPPORTED_TYPES.includes(type)) return null
+	const value = token.$value
+	if (
+		type === 'dimension' &&
+		value &&
+		typeof value === 'object' &&
+		(value as { unit?: string }).unit === 'rem'
+	) {
+		const { value: v } = value as { value: number }
+		return { ...token, $value: { value: roundTo(v * 16), unit: 'px' } }
+	}
+	if (
+		type === 'duration' &&
+		value &&
+		typeof value === 'object' &&
+		(value as { unit?: string }).unit === 'ms'
+	) {
+		const { value: v } = value as { value: number }
+		return { ...token, $value: { value: roundTo(v / 1000), unit: 's' } }
+	}
+	if (type === 'fontFamily' && Array.isArray(value)) {
+		return { ...token, $value: value[0] ?? '' }
+	}
+	return token
+}
+
+// Walks a token tree applying figmaToken, pruning dropped tokens and any
+// group left empty by the pruning.
+const figmaReady = (node: Record<string, unknown>): Record<string, unknown> => {
+	const out: Record<string, unknown> = {}
+	for (const [key, value] of Object.entries(node)) {
+		if (!value || typeof value !== 'object') continue
+		if (isToken(value)) {
+			const token = figmaToken(value)
+			if (token) out[key] = token
+			continue
+		}
+		const group = figmaReady(value as Record<string, unknown>)
+		if (Object.keys(group).length > 0) out[key] = group
+	}
+	return out
+}
+
+// Figma imports one JSON file per mode ("Import mode" on a mode column), so a
+// single merged file can only ever land as nested groups inside one mode.
+// These are the mode groups the engines emit at the top level; whatever else
+// is up there (radius/border/font/motion, or the prefix group wrapping them)
+// has no modes and ships as one static file.
+const MODE_GROUPS = ['light', 'dark', 'min', 'max'] as const
+
+export interface TokenFile {
+	// `light`, `max`, `static` — also the Figma mode name to import into.
+	mode: string
+	filename: string
+	// Which collection the mode belongs to, for the on-screen guidance.
+	collection: string
+	json: string
+}
+
+const COLLECTIONS: Record<string, string> = {
+	light: 'Color',
+	dark: 'Color',
+	min: 'Scale (type, space, grid)',
+	max: 'Scale (type, space, grid)',
+	static: 'Base (radius, border, font, duration)',
+}
+
+export const systemTokenFiles = (
+	state: SystemState,
+	prefix = ''
+): TokenFile[] => {
+	const tree = figmaReady(systemTokenTree(state, prefix))
+	const files: TokenFile[] = []
+	for (const mode of MODE_GROUPS) {
+		const group = tree[mode]
+		if (!group || Object.keys(group as object).length === 0) continue
+		files.push({
+			mode,
+			filename: `design-system-${mode}.json`,
+			collection: COLLECTIONS[mode] ?? mode,
+			json: JSON.stringify(group, null, 2),
+		})
+	}
+	const staticGroups = Object.fromEntries(
+		Object.entries(tree).filter(
+			([key]) => !MODE_GROUPS.includes(key as (typeof MODE_GROUPS)[number])
+		)
+	)
+	if (Object.keys(staticGroups).length > 0) {
+		files.push({
+			mode: 'static',
+			filename: 'design-system-static.json',
+			collection: COLLECTIONS.static,
+			json: JSON.stringify(staticGroups, null, 2),
+		})
+	}
+	return files
+}
+
+// The on-screen preview of the file set. Not itself valid JSON — each file is
+// downloaded separately — so the separators are comments naming the file.
+export const systemTokensBundle = (
+	state: SystemState,
+	prefix = ''
+): string =>
+	systemTokenFiles(state, prefix)
+		.map((f) => `// ===== ${f.filename} → ${f.collection} =====\n${f.json}`)
+		.join('\n\n')

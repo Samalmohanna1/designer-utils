@@ -4,7 +4,7 @@ import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-css'
 import 'prismjs/components/prism-markdown'
 import 'prismjs/components/prism-json'
-import { downloadText } from '../utils/download'
+import { downloadAll, type DownloadFile } from '../utils/download'
 import { useCopied } from '../hooks/useCopied'
 
 export interface FormatOption {
@@ -20,15 +20,27 @@ interface ExportBlockProps {
 	onFormatChange: (value: string) => void
 	code: string
 	language: 'css' | 'markdown' | 'json'
-	// Download filename, e.g. `type-scale-css.txt`.
-	filename: string
+	// What the Download button saves. Usually one file; the Figma token
+	// export saves one per variable mode.
+	files: DownloadFile[]
 	// When set, shows the optional variable-prefix field; called with the
 	// sanitized (slug-safe) prefix on every change.
 	onPrefixChange?: (sanitized: string) => void
 	// Extra selectors rendered beside Format (e.g. the color tool's
 	// color-format select).
 	children?: React.ReactNode
+	// Guidance shown under the controls, for a format that needs it.
+	notice?: React.ReactNode
+	// Extra buttons beside Copy Code / Download.
+	actions?: React.ReactNode
 }
+
+// Matches the prefix input's height so the controls line up on one row.
+const CONTROL_CLASS =
+	'h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+
+const extensionOf = (filename = ''): string =>
+	filename.slice(filename.lastIndexOf('.')) || '.txt'
 
 // Export-safe form of whatever the user types into the prefix field.
 const sanitizePrefix = (raw: string): string =>
@@ -48,9 +60,11 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 	onFormatChange,
 	code,
 	language,
-	filename,
+	files,
 	onPrefixChange,
 	children,
+	notice,
+	actions,
 }) => {
 	// Server HTML has no Prism markup; gate the language class until the
 	// island hydrates so the first client render matches the server.
@@ -86,7 +100,7 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 							id={id}
 							value={format}
 							onChange={(e) => onFormatChange(e.target.value)}
-							className='px-xs py-2xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+							className={CONTROL_CLASS}
 						>
 							{formats.map((f) => (
 								<option key={f.value} value={f.value}>
@@ -114,11 +128,12 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 								onChange={(e) =>
 									onPrefixChange(sanitizePrefix(e.target.value))
 								}
-								className='h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+								className={CONTROL_CLASS}
 							/>
 						</div>
 					)}
 				</div>
+				{notice}
 			</div>
 			<div className='relative bg-code-bg text-code-fg'>
 				<div className='absolute top-6 right-6 z-10 flex flex-wrap justify-end gap-2xs'>
@@ -133,11 +148,14 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 					>
 						{copied ? 'Code Copied!' : 'Copy Code'}
 					</button>
+					{actions}
 					<button
-						onClick={() => downloadText(filename, code)}
+						onClick={() => downloadAll(files)}
 						className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500 hover:text-black-500'
 					>
-						Download .txt
+						{files.length > 1
+							? `Download ${files.length} files`
+							: `Download ${extensionOf(files[0]?.filename)}`}
 					</button>
 				</div>
 				<pre className='p-s max-h-128 overflow-auto'>
