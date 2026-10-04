@@ -175,7 +175,7 @@ const ColorSection: React.FC<{
 						title='Copy the whole palette as SVG (paste into Figma)'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							paletteCopied
-								? 'border-green-600 bg-green-200 text-green-800'
+								? 'border-success-line bg-success-soft text-success'
 								: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
 						}`}
 					>
@@ -186,7 +186,7 @@ const ColorSection: React.FC<{
 						aria-live='polite'
 						className={`px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 							linkCopied
-								? 'border-green-600 bg-green-200 text-green-800'
+								? 'border-success-line bg-success-soft text-success'
 								: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
 						}`}
 					>
@@ -246,7 +246,7 @@ const ColorSection: React.FC<{
 									title='Copy as SVG (paste into Figma)'
 									className={`p-3xs border rounded-sm flex items-center justify-center ${
 										copiedScaleId === scale.id
-											? 'border-green-600 bg-green-200 text-green-800'
+											? 'border-success-line bg-success-soft text-success'
 											: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
 									}`}
 								>
@@ -286,7 +286,7 @@ const ColorSection: React.FC<{
 											onClick={() => removeColorScale(scale.id)}
 											aria-label='Remove color'
 											title='Remove color'
-											className='p-3xs border border-black-100 rounded-sm hover:bg-red-500 hover:text-red-50 flex items-center justify-center'
+											className='p-3xs border border-black-100 rounded-sm hover:bg-danger hover:text-danger-ink flex items-center justify-center'
 										>
 											<svg
 												xmlns='http://www.w3.org/2000/svg'
@@ -307,7 +307,7 @@ const ColorSection: React.FC<{
 				<div className='mt-s flex flex-wrap gap-xs'>
 					<button
 						onClick={addColorScale}
-						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed flex items-center justify-center'
+						className='px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-accent hover:text-accent-ink font-roboto-condensed flex items-center justify-center'
 					>
 						<span className='inline-block mr-2xs'>
 							<svg
@@ -350,7 +350,7 @@ const ColorSection: React.FC<{
 							disabled={
 								colorUtils.parseHexList(bulkText).length === 0
 							}
-							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed text-step--2 disabled:opacity-40'
+							className='self-start px-xs py-2xs bg-black-500 text-cream-100 rounded-sm hover:bg-accent hover:text-accent-ink font-roboto-condensed text-step--2 disabled:opacity-40'
 						>
 							Add{' '}
 							{colorUtils.parseHexList(bulkText).length || ''}{' '}

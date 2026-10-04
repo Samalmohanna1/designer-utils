@@ -217,7 +217,7 @@ const DesignSystemApp = () => {
 					<div className='flex gap-2xs ml-auto'>
 						<button
 							onClick={restoreSaved}
-							className='px-xs py-3xs bg-black-500 text-cream-100 rounded-sm hover:bg-yellow-500 hover:text-black-500 font-roboto-condensed'
+							className='px-xs py-3xs bg-black-500 text-cream-100 rounded-sm hover:bg-accent hover:text-accent-ink font-roboto-condensed'
 						>
 							Restore
 						</button>

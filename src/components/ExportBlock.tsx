@@ -37,7 +37,7 @@ interface ExportBlockProps {
 
 // Matches the prefix input's height so the controls line up on one row.
 const CONTROL_CLASS =
-	'h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+	'h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 
 const extensionOf = (filename = ''): string =>
 	filename.slice(filename.lastIndexOf('.')) || '.txt'
@@ -142,8 +142,8 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 						aria-live='polite'
 						className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
 							copied
-								? 'bg-green-200 text-green-800'
-								: 'bg-cream-200 text-black-400 hover:bg-yellow-500 hover:text-black-500'
+								? 'bg-success-soft text-success'
+								: 'bg-cream-200 text-black-400 hover:bg-accent hover:text-accent-ink'
 						}`}
 					>
 						{copied ? 'Code Copied!' : 'Copy Code'}
@@ -151,7 +151,7 @@ const ExportBlock: React.FC<ExportBlockProps> = ({
 					{actions}
 					<button
 						onClick={() => downloadAll(files)}
-						className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-yellow-500 hover:text-black-500'
+						className='px-xs py-2xs rounded-sm font-roboto-condensed font-bold bg-cream-200 text-black-400 hover:bg-accent hover:text-accent-ink'
 					>
 						{files.length > 1
 							? `Download ${files.length} files`

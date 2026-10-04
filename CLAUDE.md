@@ -143,13 +143,13 @@ src/
     clipboard.ts          copySvg: writes an SVG to the clipboard as text/plain + image/svg+xml (Figma paste). Shared by ColorSection + ContrastChecker.
     download.ts           downloadAll/downloadText: saves snippets as files via Blob URLs (staggered, so a multi-file token export isn't dropped). Used by ExportBlock.
   styles/
-    global.css            Tailwind import + @theme tokens (colors, fonts, fluid type, spacing) + the dark-mode token remap.
+    global.css            Tailwind import + @theme tokens (color ramps, the semantic role layer, fonts, fluid type, spacing) + the dark-mode remap (roles only) + the @font-face block.
     reset.css             CSS reset (imported into the base layer).
   assets/                 SVGs used by the build.
-public/                   Static files served as-is: fonts/, favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
+public/                   Static files served as-is: fonts/ (woff2), favicon.svg, og-image.png + per-tool og-type/og-space/og-foundations.png (used by the redirect stubs).
 tests/
   smoke.spec.ts           Playwright specs: every section, the nav, the shared viewport, the Figma-ready token files, no-horizontal-scroll at each breakpoint, and the legacy redirects.
-  unit/*.test.ts          Engine unit tests on `node --test` — one file per src/utils engine.
+  unit/*.test.ts          Engine unit tests on `node --test` — one file per src/utils engine, plus theme.test.ts which parses global.css and pins the chrome's contrast ratios and @font-face weights in both schemes.
 ```
 
 **`colorUtils.ts` is the engine.** Shade generation, hex/RGB/HSL/OKLCH
@@ -279,7 +279,15 @@ in the foreground and independent of any dev server the user is running.
 
 - **Pull colors, type, and spacing from the `@theme` tokens** in
   [global.css](./src/styles/global.css) rather than inventing inline values. If
-  a value isn't there, add it to `@theme` first, then use it.
+  a value isn't there, add it to `@theme` first, then use it — and never reach
+  for a framework default (Tailwind's `green-*`, `red-700`) that the palette
+  doesn't own, because the dark remap then has to patch someone else's values.
+- **Reach for a semantic role before a ramp step** when the color means
+  something: `bg-success-soft`, `text-notice`, `hover:bg-danger`,
+  `bg-tier-aaa`, `bg-accent`. The ramps (`black-*`, `cream-*`, `blue-*`,
+  `yellow-*`, `green-*`, `red-*`) are the raw palette, and a literal step is
+  right for surfaces and chrome; a *state* should say what it is. See
+  **Semantic color roles**.
 - **The site has a dark mode** implemented purely as a token remap under
   `prefers-color-scheme: dark` in global.css (see **Site dark mode** in the
   glossary). New UI must work in both themes: pair tokens that flip together
@@ -287,7 +295,12 @@ in the foreground and independent of any dev server the user is running.
   `preview-*` tokens for surfaces that must not flip.
 - **This tool is itself an accessibility utility — hold its own UI to a high
   bar.** Target WCAG AAA contrast (7:1 normal text, 4.5:1 large) for the app's
-  own chrome. Verify pairs; don't eyeball them.
+  own chrome, and 3:1 for non-text UI (focus rings, control borders) per WCAG
+  2.1 SC 1.4.11. Verify pairs; don't eyeball them — and verify **both
+  schemes**, since a token that flips can pass in one and fail in the other.
+  Compute with the app's own engine (`colorUtils.getContrastRatio`); the
+  theme pairs are pinned in
+  [tests/unit/theme.test.ts](./tests/unit/theme.test.ts).
 - **Accessibility beyond contrast:** semantic HTML first, ARIA only when needed.
   Every form control has a label (note `ColorInput` uses an `sr-only` label and
   the selects in `ExportBlock` use `htmlFor`). Keyboard navigation and visible
@@ -635,11 +648,56 @@ the live page reflects the merged commit before calling anything fixed.
   `text-cream-100` pairings invert together), yellow darkens to keep its
   light-text pairings legible, and the badge/feedback accents
   (`green-200/600/800`, `blue-100`, `red-700`) get dark-legible overrides.
-  **Static tokens that never flip:** the brand `blue-*` ramp, `red-50/500`,
-  `code-bg`/`code-fg` (the export terminal), and the `preview-*` panels (the
-  elevation preview needs an always-light and an always-dark surface). No
-  `.dark` class, no toggle — the OS preference decides. CVD filters apply on
-  top unchanged.
+  **Static tokens that never flip:** `accent`/`accent-ink` (see below), the
+  brand `blue-*` ramp, `red-50/500`, `code-bg`/`code-fg` (the export
+  terminal), and the `preview-*` panels (the elevation preview needs an
+  always-light and an always-dark surface). No `.dark` class, no toggle — the
+  OS preference decides, so **both schemes are live for real visitors even
+  though there's no in-app switch**. CVD filters apply on top unchanged.
+- **Interaction accent** — `--color-accent` (`#FFDA47`, the favicon's yellow)
+  with `--color-accent-ink` (`#060404`) is the highlight behind a hovered or
+  active control: the Copy/Download buttons, the CVD bar's active mode, the
+  preview slider's fill. Both are **static on purpose**. The pair used to be
+  `bg-yellow-500` + `text-black-500`, and since both of those flip, the
+  hovered buttons landed at 3.06:1 in dark mode. Pinning the pair keeps the
+  highlight reading as a highlight in both schemes at 14.97:1, and makes the
+  brand yellow one fixed value rather than a ramp step. The `yellow-*` ramp
+  is still the ramp — badges and fills use it.
+  The **focus ring is `blue-600`**, not `blue-500`: `blue-500` only managed
+  2.96:1 on `cream-100` in light mode, under WCAG 2.1 SC 1.4.11's 3:1 for
+  non-text UI. `blue-600` is the one step that clears it in both schemes
+  (4.51 light / 3.93 dark). [tests/unit/theme.test.ts](./tests/unit/theme.test.ts)
+  parses `global.css` and holds these ratios, so a token edit that breaks
+  them fails the unit suite.
+- **Typography** — body is **Ubuntu Mono**, headings are **Roboto Condensed**
+  at weight 900. Ubuntu Mono ships as two *static* files declared under one
+  `UbuntuMono` family at their real weights (400 and 700), so `font-bold`
+  picks the Bold file. They were previously declared `font-weight: 100 900`
+  each, which tells the browser a single face covers the range and suppresses
+  synthetic bolding — every `font-bold` in body copy rendered at regular
+  weight. Roboto Condensed genuinely *is* variable, so its range is accurate.
+  Tailwind's `--font-mono` is pointed at `UbuntuMono` too, so the `font-mono`
+  utility matches the body instead of falling through to the system stack.
+  All three faces are **`.woff2`** in [public/fonts/](./public/fonts/) (735KB
+  of TTF became 329KB). There's no conversion step in the build — the files
+  are converted once and committed, so nothing is added to `package.json`;
+  re-convert with `fontTools` in a throwaway venv if a face is ever replaced.
+- **Semantic color roles** — the `@theme` ramps are the palette; a second
+  layer names the *job* a color does, so a component says what it means and
+  each scheme's value is decided in one place instead of inside a class
+  string. `success` / `success-soft` / `success-line` (the Copied! chip),
+  `danger` / `danger-ink` (the destructive hover fill, static), `notice`
+  (warning body text), and `tier-aaa` / `tier-aa` / `tier-aa-large` (the
+  contrast badges, which ride a flipping fill so their `text-black-400` can
+  stay put). Only these roles are remapped for dark — the green/blue/red
+  ramps behind them are static, so a role just points at a different step.
+  **Green is the project's own ramp** (`generateShades('#2E9E5B')`, the same
+  dogfooding as blue): the feedback states used to borrow Tailwind's default
+  green, which meant the palette didn't own its most common state and the
+  dark block had to patch a framework's values. Every pair is pinned at AAA
+  (3:1 for lines) in both schemes by
+  [tests/unit/theme.test.ts](./tests/unit/theme.test.ts) — **add a role there
+  when you add one here.**
 
 ---
 

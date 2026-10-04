@@ -5,8 +5,10 @@
 @theme {
   --breakpoint-3xl: 1920px;
 
-  --font-Ubuntu-mono-regular: UbuntuMono-Regular, monospace;
-  --font-Ubuntu-mono-bold: UbuntuMono-Bold, monospace;
+  /* One family, two weights (see the @font-face block). Overriding Tailwind's
+     --font-mono points the `font-mono` utility at our face too, instead of
+     the system stack it defaults to. */
+  --font-mono: UbuntuMono, ui-monospace, monospace;
   --font-roboto-condensed: RobotoCondensed, sans-serif;
 
   /* Colors */
@@ -31,9 +33,61 @@
   --color-blue-800: #003D6E;
   --color-blue-900: #002242;
 
+  /* The interaction accent: the yellow highlight behind a hovered or active
+     control, with the ink that sits on it. Both are STATIC — this pair is the
+     brand's one fixed signature (it's the favicon's yellow on its black), and
+     pinning it keeps the highlight reading as a highlight in both schemes.
+     Letting it ride the flipping yellow-500/black-500 tokens collapsed the
+     hovered Copy Code / Download buttons to 3:1 in dark mode. The yellow-*
+     ramp below is still the ramp — badges and fills use it. */
+  --color-accent: #FFDA47;
+  --color-accent-ink: #060404;
+
   /* Destructive action (the remove-color hover pair). */
   --color-red-50: #FDF4F4;
   --color-red-500: #A51D1D;
+
+  /* Pass/success green, expanded by the app's own OKLCH engine
+     (generateShades('#2E9E5B')) — the same dogfooding as the blue ramp. The
+     feedback states used to borrow Tailwind's default green, which meant the
+     palette didn't own its most common state and the dark block had to patch
+     someone else's values. Static, like blue; the semantic tokens below pick
+     the step each scheme needs. */
+  --color-green-50: #DEFFE6;
+  --color-green-100: #9DF6B7;
+  --color-green-200: #83DF9F;
+  --color-green-300: #69C988;
+  --color-green-400: #4DB371;
+  --color-green-500: #2E9E5B;
+  --color-green-600: #068143;
+  --color-green-700: #006231;
+  --color-green-800: #004521;
+  --color-green-900: #002A11;
+
+  /* --- Semantic roles ---
+     The ramps above are the palette; these name the job a color does, so a
+     component says what it means and each scheme's value is decided in one
+     place rather than inside a class string. Every pair below is held to AAA
+     (3:1 for the lines) by tests/unit/theme.test.ts, in both schemes. */
+
+  /* Confirmation: the "Copied!" chip. ink / fill / border. */
+  --color-success: var(--color-green-800);
+  --color-success-soft: var(--color-green-100);
+  --color-success-line: var(--color-green-600);
+
+  /* Destructive: the remove-scale hover fill. Static — a red fill with white
+     on it reads the same either way. */
+  --color-danger: var(--color-red-500);
+  --color-danger-ink: #FFFFFF;
+
+  /* "Nothing passes on this background" and friends: warning body text. */
+  --color-notice: var(--color-red-500);
+
+  /* Contrast-tier badges, each carrying text-black-400. They ride a flipping
+     fill so the ink stays put: best / good / minimum. */
+  --color-tier-aaa: var(--color-green-200);
+  --color-tier-aa: var(--color-blue-100);
+  --color-tier-aa-large: #FFF1BD;
 
   /* The export snippet's terminal (matches prism-tomorrow). Static — the
      terminal is dark in both site themes, so its ink can't use a cream token
@@ -132,12 +186,17 @@
     --color-yellow-500: hsla(48, 65%, 38%, 1);
     --color-yellow-600: hsla(48, 72%, 60%, 1);
 
-    /* Tailwind-default accents used by badges/feedback, made dark-legible. */
-    --color-green-200: #1E4B33;
-    --color-green-600: #4ADE80;
-    --color-green-800: #C9EED6;
-    --color-blue-100: #24466B;
-    --color-red-700: #F0A5A5;
+    /* Only the semantic roles flip — the green/blue/red ramps themselves are
+       static, so each role just points at a different step. */
+    --color-success: var(--color-green-100);
+    --color-success-soft: var(--color-green-900);
+    --color-success-line: var(--color-green-400);
+
+    --color-notice: #F4B4B4;
+
+    --color-tier-aaa: var(--color-green-800);
+    --color-tier-aa: #1C3A5C;
+    --color-tier-aa-large: #403712;
   }
 }
 
@@ -145,25 +204,31 @@
   animation-play-state: paused;
 }
 
+/* Ubuntu Mono ships as two STATIC files, so each face is declared at the one
+   weight it actually contains, under a shared family name. Declaring a static
+   face as `100 900` tells the browser it covers the whole range, which
+   suppresses synthetic bolding — `font-bold` then rendered the Regular file at
+   regular weight. */
 @font-face {
   font-display: swap;
-  font-family: 'UbuntuMono-Regular';
-  font-weight: 100 900;
-  src: url(/fonts/UbuntuMono-Regular.ttf);
+  font-family: 'UbuntuMono';
+  font-weight: 400;
+  src: url(/fonts/UbuntuMono-Regular.woff2) format('woff2');
 }
 
 @font-face {
   font-display: swap;
-  font-family: 'UbuntuMono-Bold';
-  font-weight: 100 900;
-  src: url(/fonts/UbuntuMono-Bold.ttf);
+  font-family: 'UbuntuMono';
+  font-weight: 700;
+  src: url(/fonts/UbuntuMono-Bold.woff2) format('woff2');
 }
 
+/* RobotoCondensed is a real variable font, so the range is accurate. */
 @font-face {
   font-display: swap;
-  font-family: "RobotoCondensed";
+  font-family: 'RobotoCondensed';
   font-weight: 100 900;
-  src: url(/fonts/RobotoCondensed.ttf);
+  src: url(/fonts/RobotoCondensed.woff2) format('woff2');
 }
 
 body {
@@ -171,7 +236,7 @@ body {
   transition:
     color 0.5s,
     background-color 0.5s;
-  font-family: UbuntuMono-Regular, monospace;
+  font-family: UbuntuMono, ui-monospace, monospace;
   font-size: 18px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;

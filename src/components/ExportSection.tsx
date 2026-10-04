@@ -146,8 +146,8 @@ const ExportSection: React.FC<{ system: SystemState }> = ({ system }) => {
 							title='Copy elevation and easings as an SVG to paste into Figma'
 							className={`px-xs py-2xs rounded-sm font-roboto-condensed font-bold ${
 								svgCopied
-									? 'bg-green-200 text-green-800'
-									: 'bg-cream-200 text-black-400 hover:bg-yellow-500 hover:text-black-500'
+									? 'bg-success-soft text-success'
+									: 'bg-cream-200 text-black-400 hover:bg-accent hover:text-accent-ink'
 							}`}
 						>
 							{svgCopied ? 'Copied for Figma!' : 'Copy for Figma'}
@@ -171,7 +171,7 @@ const ExportSection: React.FC<{ system: SystemState }> = ({ system }) => {
 									e.target.value as ColorValueFormat
 								)
 							}
-							className='h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-500'
+							className='h-9 px-xs border border-black-100 rounded-sm bg-cream-50 text-step--2 focus:outline-hidden focus:ring-2 focus:ring-blue-600'
 						>
 							<option value='hex'>Hex</option>
 							<option value='hsl'>HSL</option>

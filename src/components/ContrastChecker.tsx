@@ -23,19 +23,19 @@ const tierInfo: Record<
 	{ badge: string; minSize: string; sampleClass: string; note: string }
 > = {
 	AAA: {
-		badge: 'text-black-400 bg-green-200',
+		badge: 'text-black-400 bg-tier-aaa',
 		minSize: 'Any size',
 		sampleClass: 'text-base',
 		note: 'Passes at any text size.',
 	},
 	AA: {
-		badge: 'text-black-400 bg-blue-100',
+		badge: 'text-black-400 bg-tier-aa',
 		minSize: '16px / 12pt normal',
 		sampleClass: 'text-base',
 		note: 'Use at 16px or larger for body text.',
 	},
 	'AA Large': {
-		badge: 'text-black-400 bg-yellow-200',
+		badge: 'text-black-400 bg-tier-aa-large',
 		minSize: '18.66px bold or 24px',
 		sampleClass: 'text-2xl font-bold',
 		note: 'Large text only — 24px, or 18.66px bold.',
@@ -172,7 +172,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 									aria-pressed={isSelected}
 									aria-label={`${colorLabel(c)}, ${c.hex}`}
 									title={`${colorLabel(c)} · ${c.hex}`}
-									className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
+									className={`w-7 h-7 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-600 ${
 										isSelected
 											? 'border-black-500 ring-2 ring-black-500 scale-110'
 											: 'border-black-100'
@@ -209,7 +209,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 							title='Copy the whole grid as SVG (paste into Figma)'
 							className={`ml-auto px-xs py-3xs border rounded-sm text-step--2 font-roboto-condensed ${
 								gridCopied
-									? 'border-green-600 bg-green-200 text-green-800'
+									? 'border-success-line bg-success-soft text-success'
 									: 'border-black-100 hover:bg-black-500 hover:text-cream-100'
 							}`}
 						>
@@ -220,7 +220,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 
 				{matches.length === 0 ? (
 					<div className='p-s'>
-						<p className='text-red-700 text-step--2'>
+						<p className='text-notice text-step--2'>
 							No shades are legible on this background. Try a
 							lighter or darker background, or add a more
 							contrasting color scale.
