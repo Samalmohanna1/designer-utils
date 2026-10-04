@@ -26,9 +26,9 @@ Tailwind 4 / W3C Design Tokens file:
   grid by default, plus one-up pairs) and a matching column grid, with px and
   rem readouts.
 - **Foundations** — the rest of the token layers: corner radii, T-shirt-sized
-  border widths (grow the ladder as needed), a 5-level elevation ramp with a
-  dark variant (shadow color pickable from any shade of your palette), and
-  motion (durations + replayable easings).
+  border widths (grow the ladder as needed), a 5-level elevation ramp where
+  light and dark each take their own shadow color, from any shade of your
+  palette, and motion (durations + replayable easings).
 - **Export** — your whole system in one file, live as you edit: CSS + dark
   mode (with any font `@import`s hoisted on top), Tailwind 4 `@theme`, a
   Markdown style guide, or W3C Design Tokens (DTCG 2025.10,

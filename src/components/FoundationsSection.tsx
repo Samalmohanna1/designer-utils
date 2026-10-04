@@ -9,6 +9,7 @@ import {
 	generateBorders,
 	generateElevation,
 	generateRadii,
+	type ElevationToken,
 	type FoundationsConfig,
 } from '../utils/foundations'
 
@@ -58,15 +59,45 @@ const FoundationsSection: React.FC<{
 	// Which easing demos are in their "played" position.
 	const [played, setPlayed] = useState<Record<string, boolean>>({})
 
-	const swatchButton = (s: { label: string; hex: string }) => {
-		const selected = config.shadowColor === s.hex
+	// One entry per color mode: its own tint, its own fixed preview surface.
+	const shadowModes: {
+		mode: 'light' | 'dark'
+		label: string
+		key: 'shadowColor' | 'shadowColorDark'
+		panel: string
+		card: string
+		tokens: ElevationToken[]
+	}[] = [
+		{
+			mode: 'light',
+			label: 'Light',
+			key: 'shadowColor',
+			panel: 'bg-preview-light text-preview-light-ink',
+			card: 'bg-preview-light-card',
+			tokens: elevationLight,
+		},
+		{
+			mode: 'dark',
+			label: 'Dark',
+			key: 'shadowColorDark',
+			panel: 'bg-preview-dark text-preview-dark-ink',
+			card: 'bg-preview-dark-card',
+			tokens: elevationDark,
+		},
+	]
+
+	const swatchButton = (
+		m: { label: string; key: 'shadowColor' | 'shadowColorDark' },
+		s: { label: string; hex: string }
+	) => {
+		const selected = config[m.key] === s.hex
 		return (
 			<button
 				key={s.label}
 				type='button'
-				onClick={() => set('shadowColor', s.hex)}
+				onClick={() => set(m.key, s.hex)}
 				aria-pressed={selected}
-				aria-label={`Shadow color ${s.label}, ${s.hex}`}
+				aria-label={`${m.label} shadow color ${s.label}, ${s.hex}`}
 				title={`${s.label} · ${s.hex}`}
 				className={`w-6 h-6 rounded-sm border transition-transform hover:scale-110 focus:outline-hidden focus:ring-2 focus:ring-blue-500 ${
 					selected
@@ -182,92 +213,92 @@ const FoundationsSection: React.FC<{
 			{/* Elevation */}
 			<h3 className={headingClass}>&#128230; Elevation</h3>
 			<section className={sectionClass}>
-				<div className='flex flex-wrap gap-s mb-s items-end'>
-					<div className='space-y-3xs'>
-						<label
-							htmlFor='shadow-color'
-							className='block text-step--2 font-roboto-condensed font-bold'
-						>
-							Shadow color
-						</label>
-						<div className='flex items-center gap-2xs'>
-							<input
-								id='shadow-color'
-								type='color'
-								value={config.shadowColor}
-								onChange={(e) =>
-									set('shadowColor', e.target.value.toUpperCase())
-								}
-								className='h-9 w-16 cursor-pointer rounded-sm border border-black-100 bg-cream-50'
-							/>
-							{swatchButton({ label: 'black', hex: '#000000' })}
-						</div>
-					</div>
-					<div className='w-40'>
-						<Field
-							id='shadow-intensity'
-							label='Intensity'
-							min={0.5}
-							max={2}
-							step={0.25}
-							value={config.shadowIntensity}
-							onChange={(v) =>
-								set('shadowIntensity', Math.min(2, Math.max(0.5, v)))
-							}
-						/>
-					</div>
+				{/* Intensity scales both modes; the tint is per-mode below. */}
+				<div className='w-40 mb-s'>
+					<Field
+						id='shadow-intensity'
+						label='Intensity'
+						min={0.5}
+						max={2}
+						step={0.25}
+						value={config.shadowIntensity}
+						onChange={(v) =>
+							set('shadowIntensity', Math.min(2, Math.max(0.5, v)))
+						}
+					/>
 				</div>
-				{/* Every shade of the live palette is a candidate tint. */}
-				<div className='space-y-2xs mb-s'>
-					{shadowRows.map((row) => (
-						<div
-							key={row.slug}
-							className='flex flex-wrap items-center gap-2xs'
-						>
-							<span className='w-20 shrink-0 text-step--2 font-roboto-condensed font-bold uppercase tracking-tight'>
-								{row.slug}
-							</span>
-							<div className='flex flex-wrap gap-3xs'>
-								{row.swatches.map(swatchButton)}
+				{/* Each mode picks its own tint from every shade of the live
+				    palette, directly above the fixed preview-* surface it
+				    applies to — so both read correctly whichever theme the
+				    site itself is in. */}
+				<div className='grid gap-s lg:grid-cols-2'>
+					{shadowModes.map((m) => (
+						<div key={m.mode} className='space-y-s'>
+							<div className='space-y-2xs'>
+								<h4 className='text-step--2 font-roboto-condensed font-bold uppercase tracking-tight'>
+									{m.label}
+								</h4>
+								<div className='space-y-3xs'>
+									<label
+										htmlFor={`shadow-color-${m.mode}`}
+										className='block text-step--2 font-roboto-condensed font-bold'
+									>
+										Shadow color
+									</label>
+									<div className='flex items-center gap-2xs'>
+										<input
+											id={`shadow-color-${m.mode}`}
+											type='color'
+											value={config[m.key]}
+											onChange={(e) =>
+												set(
+													m.key,
+													e.target.value.toUpperCase()
+												)
+											}
+											className='h-9 w-16 cursor-pointer rounded-sm border border-black-100 bg-cream-50'
+										/>
+										{swatchButton(m, {
+											label: 'black',
+											hex: '#000000',
+										})}
+									</div>
+								</div>
+								{shadowRows.map((row) => (
+									<div
+										key={row.slug}
+										className='flex flex-wrap items-center gap-2xs'
+									>
+										<span className='w-20 shrink-0 text-step--2 font-roboto-condensed font-bold uppercase tracking-tight'>
+											{row.slug}
+										</span>
+										<div className='flex flex-wrap gap-3xs'>
+											{row.swatches.map((s) =>
+												swatchButton(m, s)
+											)}
+										</div>
+									</div>
+								))}
+							</div>
+							<div
+								className={`p-s rounded-lg border border-black-100 ${m.panel}`}
+							>
+								<div className='flex flex-wrap gap-s'>
+									{m.tokens.map((e, i) => (
+										<div
+											key={e.label}
+											className={`w-20 h-20 rounded-md flex items-center justify-center text-step--2 font-bold ${m.card}`}
+											style={{
+												boxShadow: elevationCss(e),
+											}}
+										>
+											{i + 1}
+										</div>
+									))}
+								</div>
 							</div>
 						</div>
 					))}
-				</div>
-				{/* Fixed light/dark surfaces (preview-* tokens) so both shadow
-				    variants read correctly whichever theme the site is in. */}
-				<div className='grid gap-s sm:grid-cols-2'>
-					<div className='p-s rounded-lg bg-preview-light border border-black-100 text-preview-light-ink'>
-						<p className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-s'>
-							Light
-						</p>
-						<div className='flex flex-wrap gap-s'>
-							{elevationLight.map((e, i) => (
-								<div
-									key={e.label}
-									className='w-20 h-20 rounded-md bg-preview-light-card flex items-center justify-center text-step--2 font-bold'
-									style={{ boxShadow: elevationCss(e) }}
-								>
-									{i + 1}
-								</div>
-							))}
-						</div>
-					</div>
-					<div className='p-s rounded-lg bg-preview-dark border border-black-100 text-preview-dark-ink'>
-						<p className='text-step--2 font-roboto-condensed uppercase tracking-tight mb-s'>
-							Dark
-						</p>
-						<div className='flex flex-wrap gap-s'>
-							{elevationDark.map((e, i) => (
-								<div
-									key={e.label}
-									className='w-20 h-20 rounded-md bg-preview-dark-card flex items-center justify-center text-step--2 font-bold'
-									style={{ boxShadow: elevationCss(e) }}
-								>
-									{i + 1}
-								</div>
-							))}
-						</div>
-					</div>
 				</div>
 			</section>
 
