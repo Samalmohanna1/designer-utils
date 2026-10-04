@@ -266,10 +266,13 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 														The quick brown fox
 													</span>
 												</div>
-												<div className='flex items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
+												<div className='flex flex-wrap items-center justify-between gap-2xs px-xs py-3xs bg-cream-100 text-step--2'>
 													<span className='flex items-center gap-3xs'>
+														<span className='font-roboto-condensed uppercase tracking-tight'>
+															Foreground
+														</span>
 														<span
-															className='w-3 h-3 rounded-xs border border-black-100'
+															className='w-3 h-3 rounded-xs border border-black-100 shrink-0'
 															style={{
 																backgroundColor:
 																	m.foreground
@@ -280,7 +283,7 @@ const ContrastChecker: React.FC<ContrastCheckerProps> = ({ colorScales }) => {
 															m.foreground
 														)}
 													</span>
-													<span className='font-bold tabular-nums'>
+													<span className='font-bold tabular-nums shrink-0'>
 														{m.contrast}:1
 													</span>
 												</div>
