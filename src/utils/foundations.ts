@@ -319,6 +319,138 @@ export const foundationsTokensObject = (
 export const toTokens = (config: FoundationsConfig, prefix = ''): string =>
 	JSON.stringify(foundationsTokensObject(config, prefix), null, 2)
 
+// --- Figma paste (SVG) ---
+// Figma has no variable type for shadows or easing curves, so they can't ride
+// along in the token files. This draws them as real layers instead: each
+// elevation card carries its shadows as stacked <feDropShadow> primitives,
+// which Figma imports as drop-shadow effects — select a card, "Create style
+// from selection", and the effect style is named to match the token. The
+// easing curves are documentation: the plotted path plus its cubic-bezier().
+
+const CARD = 96
+const CARD_GAP = 28
+const SVG_PAD = 28
+const ROW_LABEL_H = 34
+
+const dropShadowFilter = (token: ElevationToken, id: string): string =>
+	`<filter id="${id}" x="-60%" y="-60%" width="220%" height="220%" ` +
+	`color-interpolation-filters="sRGB">` +
+	token.layers
+		.map((l) => {
+			const [r, g, b] = colorUtils.hexToRgb(l.color)
+			return (
+				`<feDropShadow dx="${l.x}" dy="${l.y}" ` +
+				`stdDeviation="${l.blur / 2}" ` +
+				`flood-color="rgb(${r}, ${g}, ${b})" flood-opacity="${l.alpha}"/>`
+			)
+		})
+		.join('') +
+	`</filter>`
+
+// One mode's five elevation cards on the surface that mode actually uses, so
+// the shadow reads the way it will in the product.
+const elevationRowSvg = (
+	config: FoundationsConfig,
+	mode: 'light' | 'dark',
+	y: number,
+	radius: number
+): { defs: string; body: string; width: number; height: number } => {
+	const tokens = generateElevation(config, mode)
+	const surface = mode === 'dark' ? '#1A1614' : '#FBFAF7'
+	const cardFill = mode === 'dark' ? '#241F1B' : '#FFFFFF'
+	const ink = mode === 'dark' ? '#E8E0D4' : '#1A1A1A'
+	const esc = colorUtils.escapeXml
+	const width =
+		SVG_PAD * 2 + tokens.length * CARD + (tokens.length - 1) * CARD_GAP
+	const height = ROW_LABEL_H + CARD + SVG_PAD * 2
+	const defs = tokens
+		.map((t, i) => dropShadowFilter(t, `elevation-${mode}-${i + 1}`))
+		.join('')
+	const cards = tokens
+		.map((t, i) => {
+			const x = SVG_PAD + i * (CARD + CARD_GAP)
+			const cy = y + ROW_LABEL_H + SVG_PAD / 2
+			const label = `${t.label}-${mode}`
+			return (
+				`<g id="${esc(label)}">` +
+				`<title>${esc(label)}: ${esc(elevationCss(t))}</title>` +
+				`<rect x="${x}" y="${cy}" width="${CARD}" height="${CARD}" rx="${radius}" ` +
+				`fill="${cardFill}" filter="url(#elevation-${mode}-${i + 1})"/>` +
+				`<text x="${x + CARD / 2}" y="${cy + CARD / 2 + 5}" text-anchor="middle" ` +
+				`font-family="sans-serif" font-size="14" font-weight="700" fill="${ink}">` +
+				`${i + 1}</text>` +
+				`</g>`
+			)
+		})
+		.join('')
+	const heading =
+		`<text x="${SVG_PAD}" y="${y + 22}" font-family="sans-serif" ` +
+		`font-size="15" font-weight="700" fill="${ink}">` +
+		`Elevation — ${mode}</text>`
+	const bg = `<rect x="0" y="${y}" width="${width}" height="${height}" fill="${surface}"/>`
+	return {
+		defs,
+		body: `<g id="elevation-${mode}">${bg}${heading}${cards}</g>`,
+		width,
+		height,
+	}
+}
+
+// A cubic-bezier plotted in a unit box: the curve itself, plus the CSS value
+// so the number is right there when the designer wires up a prototype.
+const easingCardSvg = (
+	easing: { label: string; bezier: [number, number, number, number] },
+	x: number,
+	y: number
+): string => {
+	const S = CARD
+	const [x1, y1, x2, y2] = easing.bezier
+	const esc = colorUtils.escapeXml
+	// SVG y grows downward, so the curve is drawn from the bottom-left corner.
+	const path =
+		`M 0 ${S} C ${x1 * S} ${S - y1 * S} ${x2 * S} ${S - y2 * S} ${S} 0`
+	return (
+		`<g id="ease-${esc(easing.label)}" transform="translate(${x},${y})">` +
+		`<title>ease-${esc(easing.label)}: ${esc(easingCss(easing.bezier))}</title>` +
+		`<rect x="0" y="0" width="${S}" height="${S}" rx="6" fill="#FFFFFF" stroke="#D8D5CE"/>` +
+		`<path d="${path}" fill="none" stroke="#2F6FB0" stroke-width="2"/>` +
+		`<text x="0" y="${S + 18}" font-family="sans-serif" font-size="13" ` +
+		`font-weight="700" fill="#1A1A1A">ease-${esc(easing.label)}</text>` +
+		`<text x="0" y="${S + 34}" font-family="monospace" font-size="11" ` +
+		`fill="#555555">${esc(easingCss(easing.bezier))}</text>` +
+		`</g>`
+	)
+}
+
+// The whole non-variable half of the foundations as one pasteable SVG.
+export const foundationsToSvg = (config: FoundationsConfig): string => {
+	const radius = Math.min(
+		CARD / 2,
+		generateRadii(config).find((r) => r.label === 'md')?.px ?? 8
+	)
+	const light = elevationRowSvg(config, 'light', 0, radius)
+	const dark = elevationRowSvg(config, 'dark', light.height, radius)
+	const easingTop = light.height + dark.height
+	const easingH = ROW_LABEL_H + CARD + 44 + SVG_PAD
+	const easings = EASINGS.map((e, i) =>
+		easingCardSvg(e, SVG_PAD + i * (CARD + CARD_GAP), easingTop + ROW_LABEL_H)
+	).join('')
+	const easingHeading =
+		`<text x="${SVG_PAD}" y="${easingTop + 22}" font-family="sans-serif" ` +
+		`font-size="15" font-weight="700" fill="#1A1A1A">Easing curves</text>`
+	const width = Math.max(light.width, dark.width)
+	const height = easingTop + easingH
+	const easingBg = `<rect x="0" y="${easingTop}" width="${width}" height="${easingH}" fill="#FBFAF7"/>`
+	return colorUtils.wrapSvg(
+		`<defs>${light.defs}${dark.defs}</defs>` +
+			light.body +
+			dark.body +
+			`<g id="easings">${easingBg}${easingHeading}${easings}</g>`,
+		width,
+		height
+	)
+}
+
 // --- Shareable config serialization ---
 // Pipe-separated: seven numbers, the light shadow hex, then the dark one (no
 // '#'). Two older formats still decode, both predating a separate dark tint,

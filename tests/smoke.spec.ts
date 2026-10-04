@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Download, type Page } from '@playwright/test'
 
 const BASE = 'http://localhost:4321'
 
@@ -155,37 +155,64 @@ test('export section merges every layer into one CSS file', async ({
 	await expect(code).toContainText('--ease-standard: cubic-bezier')
 })
 
-test('export tokens are DTCG 2025.10 across every layer', async ({ page }) => {
+test('export tokens are one Figma-ready file per mode', async ({ page }) => {
 	await page.goto(BASE)
 	await selectFormat(page, 'tokens')
 	const code = page.locator('pre code')
-	// Mode groups: light/dark (color + elevation), min/max (type + space),
-	// static groups at the top level.
-	await expect(code).toContainText('"light": {')
-	await expect(code).toContainText('"min": {')
-	await expect(code).toContainText('"font-size": {')
-	await expect(code).toContainText('"radius": {')
-	// Color objects, dimension objects, shadow composites, fontFamily.
+	// One file per mode, not mode groups nested inside a single file.
+	for (const mode of ['light', 'dark', 'min', 'max', 'static']) {
+		await expect(code).toContainText(`design-system-${mode}.json`)
+	}
+	await expect(code).not.toContainText('"light": {')
+	// Values shaped for the importer: px dimensions, seconds, one font name.
 	await expect(code).toContainText('"colorSpace": "srgb"')
-	await expect(code).toContainText('"unit": "rem"')
-	await expect(code).toContainText('"$type": "shadow"')
-	await expect(code).toContainText('"$type": "fontFamily"')
-	// No bare-string $values anywhere (pre-2025.10 style).
-	await expect(code).not.toContainText(/"\$value": "/)
+	await expect(code).toContainText('"unit": "px"')
+	await expect(code).toContainText('"unit": "s"')
+	await expect(code).toContainText('"$value": "system-ui"')
+	await expect(code).not.toContainText('"unit": "rem"')
+	await expect(code).not.toContainText('"unit": "ms"')
+	// The two types Figma has no variable for are left out and flagged.
+	await expect(code).not.toContainText('"$type": "shadow"')
+	await expect(code).not.toContainText('"$type": "cubicBezier"')
+	await expect(
+		page.getByText('Figma has no variable type for')
+	).toBeVisible()
 })
 
-test('export downloads the snippet as a txt file', async ({ page }) => {
+test('export saves one json download per mode', async ({ page }) => {
 	await page.goto(BASE)
 	await selectFormat(page, 'tokens')
+	const downloads: Download[] = []
+	page.on('download', (d) => downloads.push(d))
+	await page.getByRole('button', { name: 'Download 5 files' }).click()
+	await expect.poll(() => downloads.length, { timeout: 15_000 }).toBe(5)
+	expect(downloads.map((d) => d.suggestedFilename()).sort()).toEqual([
+		'design-system-dark.json',
+		'design-system-light.json',
+		'design-system-max.json',
+		'design-system-min.json',
+		'design-system-static.json',
+	])
+	// Each file is valid JSON on its own, with no mode wrapper.
+	const light = downloads.find(
+		(d) => d.suggestedFilename() === 'design-system-light.json'
+	)!
+	const stream = await light.createReadStream()
+	const chunks: Buffer[] = []
+	for await (const chunk of stream) chunks.push(chunk as Buffer)
+	const parsed = JSON.parse(Buffer.concat(chunks).toString())
+	expect(Object.keys(parsed)).toEqual(['blue'])
+	expect(parsed.blue['500'].$type).toBe('color')
+})
+
+test('the other formats still download a single txt file', async ({ page }) => {
+	await page.goto(BASE)
+	await awaitHydrated(page)
 	const [download] = await Promise.all([
 		page.waitForEvent('download'),
 		page.getByRole('button', { name: 'Download .txt' }).click(),
 	])
-	expect(download.suggestedFilename()).toBe('design-system-tokens.txt')
-	const stream = await download.createReadStream()
-	const chunks: Buffer[] = []
-	for await (const chunk of stream) chunks.push(chunk as Buffer)
-	expect(Buffer.concat(chunks).toString()).toContain('"colorSpace": "srgb"')
+	expect(download.suggestedFilename()).toBe('design-system-css.txt')
 })
 
 test('legacy per-tool links redirect, keep their state, and unify the viewport', async ({

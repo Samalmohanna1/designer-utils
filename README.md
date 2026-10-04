@@ -31,9 +31,10 @@ Tailwind 4 / W3C Design Tokens file:
   palette, and motion (durations + replayable easings).
 - **Export** — your whole system in one file, live as you edit: CSS + dark
   mode (with any font `@import`s hoisted on top), Tailwind 4 `@theme`, a
-  Markdown style guide, or W3C Design Tokens (DTCG 2025.10,
-  Figma-importable). One-click copy or `.txt` download, hex/HSL/RGB color
-  encoding, and an optional variable prefix (e.g. `--brand-blue-500`).
+  Markdown style guide, or W3C Design Tokens (DTCG 2025.10) shaped for
+  Figma's variable importer — one `.json` per mode. One-click copy or
+  download, hex/HSL/RGB color encoding, and an optional variable prefix
+  (e.g. `--brand-blue-500`).
 
 Everything you set lives in the URL hash
 (`#p=<palette>&t=<type>&s=<space>&f=<foundations>`), so a shared link reopens
@@ -72,19 +73,26 @@ The site follows your OS light/dark preference.
 ### 📋 Code export
 
 One **Export** section for the whole suite — live from everything you set
-above it — in four formats; copy with one click, or download the snippet as a
-`.txt` file:
+above it — in four formats; copy with one click, or download:
 
 -   **CSS + Dark Mode** — `:root` variables plus a `prefers-color-scheme: dark`
     block with the ramp mirrored.
 -   **Tailwind 4** — `@theme` tokens, plus a `.dark` override.
 -   **Markdown style guide** — a Hex + HSL table per color with WCAG
     text-on-white/black notes and a Dark column.
--   **Design Tokens (DTCG 2025.10) JSON** — W3C Design Tokens with top-level
-    `light` and `dark` groups, for Style Dictionary / Tokens Studio / Figma.
-    Colors use the 2025.10 color-object `$value`
-    (`colorSpace` / `components` / `alpha` / `hex`), which is what Figma's
-    native variables importer expects.
+-   **Design Tokens (DTCG 2025.10) JSON** — built for Figma's variable
+    importer. Figma reads one file per variable mode, so this saves five:
+    `light` and `dark` (Color), `min` and `max` (Scale), and `static`
+    (radius, border, font, duration). Right-click a mode column in Figma's
+    Variables panel and choose *Import mode*. Values are shaped to match —
+    px dimensions, durations in seconds, one font family per token — while
+    the CSS and Tailwind formats keep the rem, ms, and full font stacks.
+
+    Figma has no variable type for **shadows or easing curves**, so those are
+    left out of the files and the export flags it. **Copy for Figma** puts
+    them on your clipboard as named layers instead: paste, select an
+    elevation card, and *Create style from selection* gives you a matching
+    effect style.
 
 Code formats (CSS / Tailwind) also let you pick the value encoding: **HEX**,
 **HSL**, or **RGB** — and every format takes an optional variable prefix.
