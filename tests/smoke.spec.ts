@@ -112,11 +112,26 @@ test('foundations previews every layer and offers every palette shade for shadow
 	await expect(
 		foundations.getByText('cubic-bezier(0.4, 0, 0.2, 1)')
 	).toBeVisible()
-	// The default palette's full ramp is offered, not just 500/900.
-	const swatch = foundations.getByLabel(/^Shadow color blue-300,/)
-	await expect(swatch).toBeVisible()
-	await swatch.click()
-	await expect(swatch).toHaveAttribute('aria-pressed', 'true')
+	// The default palette's full ramp is offered, not just 500/900, and each
+	// color mode tints independently.
+	const light = foundations.getByLabel(/^Light shadow color blue-300,/)
+	const dark = foundations.getByLabel(/^Dark shadow color blue-700,/)
+	await expect(light).toBeVisible()
+	await light.click()
+	await expect(light).toHaveAttribute('aria-pressed', 'true')
+	await expect(dark).toHaveAttribute('aria-pressed', 'false')
+	await dark.click()
+	await expect(dark).toHaveAttribute('aria-pressed', 'true')
+	// Picking the dark tint leaves the light one alone.
+	await expect(light).toHaveAttribute('aria-pressed', 'true')
+	// Both tints reach the export: elevation-1 appears once in :root and once
+	// in the dark block, and the two carry different rgb triples.
+	const code = await page.locator('pre code').innerText()
+	const tints = [
+		...code.matchAll(/--elevation-1: 0px 1px 2px 0px rgba\((\d+, \d+, \d+)/g),
+	].map((m) => m[1])
+	expect(tints).toHaveLength(2)
+	expect(tints[0]).not.toBe(tints[1])
 })
 
 test('export section merges every layer into one CSS file', async ({

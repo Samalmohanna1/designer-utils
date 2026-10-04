@@ -11,7 +11,8 @@ export interface FoundationsConfig {
 	radiusBase: number // px — the `md` radius; the ladder scales off it
 	borderBase: number // px — the `s` width; the T-shirt ladder scales off it
 	borderSteps: number // how many T-shirt sizes to emit (1..BORDER_LADDER)
-	shadowColor: string // hex — tint for every elevation shadow
+	shadowColor: string // hex — tint for every elevation shadow in light mode
+	shadowColorDark: string // hex — the dark-mode tint, picked independently
 	shadowIntensity: number // 0.5–2 multiplier on shadow opacity
 	durationFast: number // ms
 	durationBase: number // ms
@@ -23,6 +24,7 @@ export const DEFAULT_FOUNDATIONS: FoundationsConfig = {
 	borderBase: 1,
 	borderSteps: 3,
 	shadowColor: '#000000',
+	shadowColorDark: '#000000',
 	shadowIntensity: 1,
 	durationFast: 150,
 	durationBase: 250,
@@ -85,7 +87,8 @@ export const generateBorders = (config: FoundationsConfig): BorderToken[] =>
 // Five levels, each two stacked shadows: a `key` shadow (directional, grows
 // with height) and an `ambient` shadow (soft, close). Geometry is fixed;
 // opacity scales with the intensity control. The dark variant keeps the
-// geometry and raises opacity — shadows need more contrast on dark surfaces.
+// geometry, takes its own tint, and raises opacity — shadows need more
+// contrast on dark surfaces.
 const ELEVATION_GEOMETRY: {
 	key: { y: number; blur: number }
 	ambient: { y: number; blur: number }
@@ -123,6 +126,8 @@ export const generateElevation = (
 ): ElevationToken[] => {
 	const factor =
 		config.shadowIntensity * (mode === 'dark' ? DARK_ALPHA_FACTOR : 1)
+	const color =
+		mode === 'dark' ? config.shadowColorDark : config.shadowColor
 	return ELEVATION_GEOMETRY.map((geo, i) => ({
 		label: `elevation-${i + 1}`,
 		layers: [
@@ -131,7 +136,7 @@ export const generateElevation = (
 				y: geo.key.y,
 				blur: geo.key.blur,
 				spread: 0,
-				color: config.shadowColor,
+				color,
 				alpha: roundAlpha(KEY_ALPHA * factor),
 			},
 			{
@@ -139,7 +144,7 @@ export const generateElevation = (
 				y: geo.ambient.y,
 				blur: geo.ambient.blur,
 				spread: 1,
-				color: config.shadowColor,
+				color,
 				alpha: roundAlpha(AMBIENT_ALPHA * factor),
 			},
 		],
@@ -315,10 +320,12 @@ export const toTokens = (config: FoundationsConfig, prefix = ''): string =>
 	JSON.stringify(foundationsTokensObject(config, prefix), null, 2)
 
 // --- Shareable config serialization ---
-// Pipe-separated: seven numbers then the shadow hex (no '#'). The previous
-// 10-part format carried three font stacks (now owned by the type tool) and
-// no borderSteps; those links still decode — stacks are ignored, borderSteps
-// defaults. Malformed input decodes to null so the caller falls back.
+// Pipe-separated: seven numbers, the light shadow hex, then the dark one (no
+// '#'). Two older formats still decode, both predating a separate dark tint,
+// so dark falls back to the light hex and renders exactly as those links did:
+// 8 parts (one hex), and 10 parts that carried three font stacks (now owned
+// by the type tool) and no borderSteps. Malformed input decodes to null so
+// the caller falls back.
 
 export const encodeFoundations = (config: FoundationsConfig): string =>
 	[
@@ -330,6 +337,7 @@ export const encodeFoundations = (config: FoundationsConfig): string =>
 		config.durationBase,
 		config.durationSlow,
 		config.shadowColor.replace('#', ''),
+		config.shadowColorDark.replace('#', ''),
 	].join('|')
 
 export const decodeFoundations = (
@@ -337,17 +345,19 @@ export const decodeFoundations = (
 ): FoundationsConfig | null => {
 	if (!encoded) return null
 	const parts = encoded.split('|')
-	// Current: 8 parts with borderSteps at index 2. Legacy: 10 parts without
-	// it (index 2 was shadowIntensity; 6 the hex; 7-9 font stacks).
+	// Current: 9 parts. Previous: 8 (no dark hex). Legacy: 10 parts, where
+	// index 2 was shadowIntensity, 6 the hex, and 7-9 the font stacks.
 	const isLegacy = parts.length === 10
-	if (parts.length !== 8 && !isLegacy) return null
+	if (parts.length !== 9 && parts.length !== 8 && !isLegacy) return null
 	const numeric = isLegacy
 		? [parts[0], parts[1], '3', ...parts.slice(2, 6)]
 		: parts.slice(0, 7)
 	const hex = isLegacy ? parts[6] : parts[7]
+	const darkHex = parts.length === 9 ? parts[8] : hex
 	const nums = numeric.map((n) => parseFloat(n))
 	if (nums.some((n) => !Number.isFinite(n) || n < 0)) return null
 	if (!/^[0-9a-fA-F]{6}$/.test(hex)) return null
+	if (!/^[0-9a-fA-F]{6}$/.test(darkHex)) return null
 	const [radiusBase, borderBase, borderSteps, shadowIntensity, fast, base, slow] =
 		nums
 	return {
@@ -362,5 +372,6 @@ export const decodeFoundations = (
 		durationBase: base,
 		durationSlow: slow,
 		shadowColor: `#${hex.toUpperCase()}`,
+		shadowColorDark: `#${darkHex.toUpperCase()}`,
 	}
 }

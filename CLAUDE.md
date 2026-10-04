@@ -538,12 +538,16 @@ the live page reflects the merged commit before calling anything fixed.
   base, `full` = 9999px), **border widths** (a T-shirt ladder off a base —
   `BORDER_LADDER` `s/m/l/xl/2xl/3xl/4xl` — with a `borderSteps` control for
   how many sizes the system ships), **elevation** (5 levels, each a key +
-  ambient shadow pair; fixed geometry, opacity scaled by an intensity control
-  and a shadow color pickable from **EVERY shade of every live scale** (the
-  `palette` prop from `DesignSystemApp` — one swatch row per scale, all 10
-  shades, plus black and a native picker); the dark variant raises opacity
-  ×1.8 — shadows need more contrast on dark surfaces — previewed on fixed
-  `preview-*` light/dark panels), and **motion** (fast/base/slow durations +
+  ambient shadow pair; fixed geometry, opacity scaled by one shared intensity
+  control, and **a shadow color per color mode** — `shadowColor` for light,
+  `shadowColorDark` for dark — each pickable from **EVERY shade of every live
+  scale** (the `palette` prop from `DesignSystemApp` — one swatch row per
+  scale, all 10 shades, plus black and a native picker). The two tints are
+  independent (both default to black, so a system that wants one tint just
+  sets both the same); the section lays each mode's picker directly above the
+  fixed `preview-*` panel it drives, two columns from `lg:` and stacked
+  below. The dark variant also raises opacity ×1.8 — shadows need more
+  contrast on dark surfaces), and **motion** (fast/base/slow durations +
   standard/decelerate/accelerate cubic-bezier easings, laid out as three
   cards with replayable previews). Engine emitters (consumed by the Export
   section): `toCss` (`:root` plus a dark elevation override), `toTailwind`
@@ -551,8 +555,11 @@ the live page reflects the merged commit before calling anything fixed.
   `--ease-*` — plus a `.dark` elevation block), `foundationsTokensObject`
   (DTCG: px dimensions, `shadow` composites under `light`/`dark`,
   `duration`/`cubicBezier`). Config serializes to the `f=` segment
-  (`encodeFoundations`/`decodeFoundations`, eight pipe-separated parts; the
-  legacy 10-part format that carried font stacks still decodes).
+  (`encodeFoundations`/`decodeFoundations`, nine pipe-separated parts — seven
+  numbers, the light shadow hex, then the dark one). Both older formats still
+  decode, and since neither had a dark tint it falls back to the light hex so
+  those links render exactly as they used to: the 8-part format (one hex) and
+  the legacy 10-part one that carried font stacks.
 - **Unified system export** — THE export surface, the last section
   ([ExportSection.tsx](./src/components/ExportSection.tsx) over
   [systemExport.ts](./src/utils/systemExport.ts)); no other section has an
