@@ -32,6 +32,36 @@ test('one page carries every section', async ({ page }) => {
 	await expect(page.locator('.hex-code')).toHaveCount(10)
 })
 
+test('a shade copies its hex without the leading hash', async ({ page }) => {
+	// Recorded rather than read back: clipboard permissions are Chromium-only,
+	// and the thing under test is what the component hands to the clipboard.
+	await page.addInitScript(() => {
+		;(window as unknown as { copied: string[] }).copied = []
+		Object.defineProperty(navigator, 'clipboard', {
+			configurable: true,
+			value: {
+				writeText: (text: string) => {
+					;(window as unknown as { copied: string[] }).copied.push(text)
+					return Promise.resolve()
+				},
+			},
+		})
+	})
+	await page.goto(BASE)
+	await awaitHydrated(page)
+	const swatch = page.locator('#colors button[aria-label^="Copy #"]').first()
+	const hex = (await swatch.getAttribute('aria-label'))!.replace('Copy ', '')
+	await swatch.click()
+	await expect(swatch.getByText('Copied!')).toBeVisible()
+	const copied = await page.evaluate(
+		() => (window as unknown as { copied: string[] }).copied
+	)
+	expect(copied).toEqual([hex.slice(1)])
+	expect(copied[0]).not.toContain('#')
+	// The swatch still shows the hex with its '#'.
+	await expect(swatch.locator('.hex-code')).toHaveText(hex)
+})
+
 // The shade ramp has a ~649px floor (10 swatches at min-w-16), so it and the
 // scale row only go single-line at lg; at sm they overflowed the page.
 test('no horizontal scroll at any breakpoint', async ({ page }) => {
