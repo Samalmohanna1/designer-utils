@@ -14,8 +14,11 @@ const ShadeRamp: React.FC<ShadeRampProps> = ({ baseColor }) => {
 
 	const [copied, setCopied] = useState<string | null>(null)
 
+	// Copied without the leading '#': the value usually lands somewhere that
+	// supplies its own (a Figma hex field, a token file), where pasting the
+	// '#' means deleting it again.
 	const copyHex = (hex: string) => {
-		navigator.clipboard.writeText(hex)
+		navigator.clipboard.writeText(hex.replace('#', ''))
 		setCopied(hex)
 		setTimeout(() => setCopied(null), 1200)
 	}
