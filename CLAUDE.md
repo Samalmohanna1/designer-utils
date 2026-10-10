@@ -101,7 +101,7 @@ command — the doc update is **part of that change, not a follow-up**.
 - **Playwright** for end-to-end tests, run in CI via GitHub Actions.
 - **TypeScript** throughout (`astro/tsconfigs/strict` — see
   [tsconfig.json](./tsconfig.json)); `typescript` is an explicit devDependency
-  because `npx tsc --noEmit` is part of the completion checklist.
+  because `npm run typecheck` is part of the completion checklist.
 
 No database, no auth, no API. All color math runs in the browser.
 
@@ -219,7 +219,7 @@ Current dependencies and why:
 - `prismjs` (`@types/prismjs`) — syntax highlighting in the export block.
 - `posthog-js` — product analytics.
 - `@playwright/test` — end-to-end tests.
-- `typescript` — the strict type check (`npx tsc --noEmit`); Astro no longer
+- `typescript` — the strict type check (`npm run typecheck`); Astro no longer
   pulls it in transitively.
 
 ---
@@ -236,8 +236,16 @@ Current dependencies and why:
 | `npm run test:e2e` | The Playwright suite (auto-starts `npm run dev -- --ignore-lock`, or reuses a server already on 4321). |
 
 There is **no separate lint script.** Note `astro build` transpiles WITHOUT
-type-checking (esbuild strips types) — run `npx tsc --noEmit` for the strict
+type-checking (esbuild strips types) — run `npm run typecheck` for the strict
 check; both must pass before a change is complete.
+
+**Use `npm run typecheck`, not a bare `npx tsc --noEmit`.** The script runs
+`astro sync` first, which writes the gitignored `.astro/types.d.ts`. That file
+is the only thing referencing `astro/client`, and `astro/client` is what
+declares side-effect `*.css` imports — so without it `tsc` fails on
+`ExportBlock`'s Prism theme import with TS2882. A bare `tsc` only passes on a
+machine that has already built or run the dev server, which is exactly why CI
+went red on a clean checkout while every local run looked fine.
 
 Astro 7's `astro dev` is a **managed server**: it writes a lock file
 (`.astro/dev.json`) and, when it detects an AI-agent environment, daemonizes
@@ -710,8 +718,9 @@ the live page reflects the merged commit before calling anything fixed.
 - Use existing `@theme` tokens; add to `@theme` before hardcoding values. No
   `tailwind.config` file.
 - Always create a new branch; never work on `main`.
-- Run `npm run build`, `npx tsc --noEmit` (the build does NOT type-check), and
-  `npm test` (unit + e2e) before calling a change complete.
+- Run `npm run build`, `npm run typecheck` (the build does NOT type-check; use
+  the script, not a bare `tsc` — see **Commands**), and `npm test` (unit +
+  e2e) before calling a change complete.
 - **Never start, restart, or kill the user's dev server** (and never
   `taskkill node.exe`) to take screenshots or for any other reason, unless the
   user asks or grants permission. The user runs their own dev server — rely on
